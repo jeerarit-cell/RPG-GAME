@@ -7,3 +7,4 @@ BATTLE CARD
 ![BossFireGobin](https://github.com/user-attachments/assets/6dec1453-a3f9-4b8f-8499-ac45bd42da29)
 ![Rabbit](https://github.com/user-attachments/assets/912e9583-da84-4f1a-adce-e9fe5ae54490)
 ![Scopion](https://github.com/user-attachments/assets/43953afd-66b6-4ae5-83b9-6121ba7ff05d)
+![wolf](https://github.com/user-attachments/assets/8e3523b7-7ed7-4d27-b6cf-2f10373738e9)
