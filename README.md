@@ -8,3 +8,4 @@ BATTLE CARD
 ![Rabbit](https://github.com/user-attachments/assets/912e9583-da84-4f1a-adce-e9fe5ae54490)
 ![Scopion](https://github.com/user-attachments/assets/43953afd-66b6-4ae5-83b9-6121ba7ff05d)
 ![wolf](https://github.com/user-attachments/assets/8e3523b7-7ed7-4d27-b6cf-2f10373738e9)
+![bot](https://github.com/user-attachments/assets/25e5e09e-332d-4a76-8bcb-6f21013d6bcc)
