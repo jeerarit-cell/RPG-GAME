@@ -11,4 +11,4 @@ BATTLE CARD
 ![bot](https://github.com/user-attachments/assets/25e5e09e-332d-4a76-8bcb-6f21013d6bcc)
 ![login](https://github.com/user-attachments/assets/c9b596d6-88ee-4ca0-bf0a-a80b17ab31f0)
 ![background](https://github.com/user-attachments/assets/13b147e2-f363-49ce-bd43-68530d231a60)
-![legendary](https://github.com/user-attachments/assets/691aef63-3fa4-4e64-9ad0-3034beb89e1c)
+![legandary](https://github.com/user-attachments/assets/b8379da1-b55e-4c8f-bcfb-e68eaae581ed)
