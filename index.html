@@ -5,7 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>CYBER RPG v7.0 (MiniKit)</title>
     
-    <script src="https://cdn.jsdelivr.net/npm/@worldcoin/minikit-js@1.2.0/dist/index.min.js"></script>
+   <script type="module">
+    import { MiniKit } from "https://cdn.jsdelivr.net/npm/@worldcoin/minikit-js@1.2.0/+esm";
+    
+    // ตั้งค่า APP ID ตรงนี้เลย
+    const APP_ID = "app_6203a46daf3053d01617ef5293135678";
+    
+    // สั่งติดตั้งทันทีที่โหลด
+    MiniKit.install(APP_ID);
+    
+    // ส่งออกตัวแปรให้โค้ดอื่นเรียกใช้ได้
+    window.MiniKit = MiniKit;
+    console.log("MiniKit Module Loaded");
+</script>
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Kanit:wght@300;500;600&family=Orbitron:wght@700;900&display=swap');
@@ -154,10 +166,10 @@
             </div>
             
             <button class="btn btn-world-id" style="width: 260px; height: 50px;" id="btnWorldID">
-                <span id="btnIcon" style="font-size: 1.5rem;">⚫</span> 
-                <span id="btnText">VERIFY WITH WORLD ID</span>
-            </button>
-            <p id="loginStatus" style="color: #666; font-size: 0.8rem; margin-top: 10px; font-family: 'Kanit';">Ready for Mini App</p>
+    <span id="btnIcon" style="font-size: 1.5rem;">⚫</span> 
+    <span id="btnText">VERIFY WITH WORLD ID</span>
+</button>
+<p id="loginStatus" style="color: #666; font-size: 0.8rem; margin-top: 10px; font-family: 'Kanit';">System Ready</p>
         </div>
 
         <div id="screen-lobby" class="screen">
@@ -296,38 +308,51 @@
         }
     };
 
-    document.getElementById('btnWorldID').onclick = function() {
-        if (!window.MiniKit) {
-             // เผื่อเทสในคอม (นอกแอป) ให้ใช้ระบบสุ่มไปก่อน
-            alert("Testing Mode (Not in World App)\nGenerating random ID...");
-            const fakeID = "TEST_" + Math.floor(Math.random() * 9999);
-            if(window.cloudLoad) window.cloudLoad(fakeID);
-            return;
-        }
+   document.getElementById('btnWorldID').onclick = async function() {
+    const status = document.getElementById('loginStatus');
+    status.innerText = "Processing...";
+    status.style.color = "#ff9d00"; // สีส้มตอนกำลังคิด
 
-        document.getElementById('loginStatus').innerText = "Verifying with World ID...";
-        
-        // สั่งให้ World App ยืนยันตัวตน (คำสั่งใหม่)
-        MiniKit.commands.verify({
+    // 1. เช็คว่าโหลดเครื่องมือมาหรือยัง
+    if (!window.MiniKit) {
+        alert("Error: MiniKit not loaded. Check internet.");
+        return;
+    }
+
+    // 2. เช็คว่าเปิดใน World App จริงไหม?
+    if (!window.MiniKit.isInstalled()) {
+        // ถ้าเปิดในคอม/Browser มือถือ -> เข้าโหมดทดสอบ
+        alert("⚠️ Testing Mode (Outside App)\nGenerating Fake ID...");
+        const fakeID = "TEST_" + Math.floor(Math.random() * 9999);
+        if(window.cloudLoad) window.cloudLoad(fakeID);
+        return;
+    }
+
+    // 3. สั่งยืนยันตัวตน (คำสั่งใหม่ของ V7)
+    try {
+        const { finalPayload } = await window.MiniKit.commandsAsync.verify({
             action: 'login',
             signal: '', 
-            verification_level: 'orb' // หรือ 'device'
-        }).then((result) => {
-            if (result && result.proof) {
-                // ถ้าสำเร็จ
-                document.getElementById('loginStatus').innerText = "Success! Loading...";
-                // ใช้ nullifier_hash เป็น ID เหมือนเดิม
-                if(window.cloudLoad) window.cloudLoad(result.nullifier_hash);
-                if(audioCtx.state === 'suspended') audioCtx.resume();
-            } else {
-                alert("Verification Failed");
-                document.getElementById('loginStatus').innerText = "Failed. Try again.";
-            }
-        }).catch((error) => {
-             console.error(error);
-             alert("Error: " + error.message);
+            verification_level: 'orb' 
         });
-    };
+
+        if (finalPayload.status === 'error') {
+            status.innerText = "Verification Failed";
+            status.style.color = "red";
+            console.error("Verify Error:", finalPayload);
+        } else {
+            // สำเร็จ!
+            status.innerText = "Success!";
+            status.style.color = "#00eaff";
+            // ส่งรหัส nullifier_hash ไปโหลดเซฟเกม
+            if(window.cloudLoad) window.cloudLoad(finalPayload.nullifier_hash);
+        }
+    } catch (error) {
+        console.error(error);
+        status.innerText = "Error occurred";
+        alert("Login Error: " + error.message);
+    }
+};
 
     // --- GAME LOGIC (ย่อ) ---
     let playerWLD = 10.00, playerCOIN = 0, playerMaxHP = 20, playerCurrentHP = 20, playerLevel = 1, playerEXP = 0, currentMonsterType = 'common'; 
