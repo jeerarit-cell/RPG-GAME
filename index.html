@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>CYBER RPG v6.2 (Stable)</title>
+    <title>CYBER RPG v7.0 (MiniKit)</title>
     
-    <script src="https://cdn.jsdelivr.net/npm/@worldcoin/idkit@1/build/idkit-js.js"></script>
-    
+    <script src="https://cdn.jsdelivr.net/npm/@worldcoin/minikit-js@1.2.0/dist/index.min.js"></script>
+
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Kanit:wght@300;500;600&family=Orbitron:wght@700;900&display=swap');
 
@@ -58,9 +58,7 @@
             background: #ffffff; color: #000000; font-family: 'Orbitron'; letter-spacing: 1px;
             display: flex; align-items: center; justify-content: center; gap: 10px;
             box-shadow: 0 0 20px rgba(255,255,255,0.4); transition: 0.2s;
-            opacity: 0.5; pointer-events: none; /* เริ่มต้นให้กดไม่ได้ก่อน รอโหลดเสร็จ */
         }
-        .btn-world-id.ready { opacity: 1; pointer-events: auto; cursor: pointer; }
         .btn-world-id:active { transform: scale(0.95); box-shadow: 0 0 10px rgba(255,255,255,0.2); }
 
         .ad-banner { width: 100%; max-width: 380px; height: 100px; background: #222; margin: 10px auto; border-radius: 8px; border: 1px solid #444; display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative; flex-shrink: 0; }
@@ -152,13 +150,14 @@
         <div id="screen-login" class="screen active" style="justify-content: center; align-items: center;">
             <div style="font-family: 'Orbitron'; font-size: 3rem; text-align: center; color:white; text-shadow: 0 0 20px var(--neon-orange); margin-bottom: 20px;">
                 PROJECT<br><span style="color:var(--neon-orange)">CHASER</span>
-                <div style="font-size: 0.8rem; color:#aaa; margin-top:10px;">V6.2 STABLE</div>
+                <div style="font-size: 0.8rem; color:#aaa; margin-top:10px;">V7.0 MINIKIT</div>
             </div>
+            
             <button class="btn btn-world-id" style="width: 260px; height: 50px;" id="btnWorldID">
-                <span id="btnIcon" style="font-size: 1.5rem;">⏳</span> 
-                <span id="btnText">LOADING SYSTEM...</span>
+                <span id="btnIcon" style="font-size: 1.5rem;">⚫</span> 
+                <span id="btnText">VERIFY WITH WORLD ID</span>
             </button>
-            <p id="loginStatus" style="color: #666; font-size: 0.8rem; margin-top: 10px; font-family: 'Kanit';">Establishing secure connection...</p>
+            <p id="loginStatus" style="color: #666; font-size: 0.8rem; margin-top: 10px; font-family: 'Kanit';">Ready for Mini App</p>
         </div>
 
         <div id="screen-lobby" class="screen">
@@ -259,7 +258,6 @@
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
-
         let REAL_USER_ID = null;
 
         window.cloudSave = async function(data) {
@@ -287,59 +285,51 @@
     </script>
 
     <script>
+    // ✅ 2. เปลี่ยนมาใช้ MiniKit Logic
     const WORLD_APP_ID = "app_6203a46daf3053d01617ef5293135678"; 
-    const WORLD_ACTION = "login";
-
-    // ✅ เพิ่มระบบเช็คว่าโหลดเครื่องมือเสร็จหรือยัง
+    
+    // ติดตั้ง MiniKit เมื่อโหลด
     window.onload = function() {
-        const btn = document.getElementById('btnWorldID');
-        const status = document.getElementById('loginStatus');
-        
-        // เช็คซ้ำๆ ทุก 0.5 วินาที จนกว่าเครื่องมือจะมา
-        const checkInterval = setInterval(() => {
-            if (window.IDKit) {
-                clearInterval(checkInterval);
-                btn.classList.add('ready');
-                document.getElementById('btnIcon').innerText = "⚫";
-                document.getElementById('btnText').innerText = "VERIFY WITH WORLD ID";
-                status.innerText = "System Ready. Please Verify.";
-                status.style.color = "#00eaff";
-            }
-        }, 500);
-        
-        // ตั้งเวลาหมดอายุ 10 วินาที ถ้ายังไม่มาให้ฟ้อง Error
-        setTimeout(() => {
-            if (!window.IDKit) {
-                clearInterval(checkInterval);
-                status.innerText = "Connection Error: Library Failed to Load";
-                status.style.color = "red";
-                alert("เกิดปัญหา: โหลดเครื่องมือไม่สำเร็จ \nกรุณาเช็คอินเทอร์เน็ตแล้วเข้าใหม่ครับ");
-            }
-        }, 10000);
-    };
-
-    document.getElementById('btnWorldID').onclick = function() {
-        if (!window.IDKit) return; // ถ้ายังไม่พร้อม ห้ามกด
-        
-        document.getElementById('loginStatus').innerText = "Connecting to World App...";
-        try {
-            IDKit.init({
-                app_id: WORLD_APP_ID,
-                action: WORLD_ACTION,
-                onSuccess: (result) => {
-                    console.log("Verified!", result);
-                    document.getElementById('loginStatus').innerText = "Success! Loading data...";
-                    if(window.cloudLoad) window.cloudLoad(result.nullifier_hash);
-                    if(audioCtx.state === 'suspended') audioCtx.resume();
-                }
-            });
-            IDKit.open();
-        } catch (e) {
-            alert("Error: " + e.message);
+        if (window.MiniKit) {
+            MiniKit.install(WORLD_APP_ID);
+            console.log("MiniKit installed");
         }
     };
 
-    // --- GAME LOGIC (Minified for brevity but fully functional) ---
+    document.getElementById('btnWorldID').onclick = function() {
+        if (!window.MiniKit) {
+             // เผื่อเทสในคอม (นอกแอป) ให้ใช้ระบบสุ่มไปก่อน
+            alert("Testing Mode (Not in World App)\nGenerating random ID...");
+            const fakeID = "TEST_" + Math.floor(Math.random() * 9999);
+            if(window.cloudLoad) window.cloudLoad(fakeID);
+            return;
+        }
+
+        document.getElementById('loginStatus').innerText = "Verifying with World ID...";
+        
+        // สั่งให้ World App ยืนยันตัวตน (คำสั่งใหม่)
+        MiniKit.commands.verify({
+            action: 'login',
+            signal: '', 
+            verification_level: 'orb' // หรือ 'device'
+        }).then((result) => {
+            if (result && result.proof) {
+                // ถ้าสำเร็จ
+                document.getElementById('loginStatus').innerText = "Success! Loading...";
+                // ใช้ nullifier_hash เป็น ID เหมือนเดิม
+                if(window.cloudLoad) window.cloudLoad(result.nullifier_hash);
+                if(audioCtx.state === 'suspended') audioCtx.resume();
+            } else {
+                alert("Verification Failed");
+                document.getElementById('loginStatus').innerText = "Failed. Try again.";
+            }
+        }).catch((error) => {
+             console.error(error);
+             alert("Error: " + error.message);
+        });
+    };
+
+    // --- GAME LOGIC (ย่อ) ---
     let playerWLD = 10.00, playerCOIN = 0, playerMaxHP = 20, playerCurrentHP = 20, playerLevel = 1, playerEXP = 0, currentMonsterType = 'common'; 
     const levelConfig = { 1: { need: 150, bonus: 2 }, 2: { need: 300, bonus: 2 }, 3: { need: 450, bonus: 2 }, 4: { need: 700, bonus: 2 }, 5: { need: 1000, bonus: 2 } };
     const expReward = { 'common': 1, 'miniboss': 2, 'boss': 3, 'legendary': 5 };
@@ -353,7 +343,7 @@
         { id: 7, name: "THE OVERLORD", hp: 40, type: "boss", loc: "Tower", url:"https://github.com/user-attachments/assets/6dec1453-a3f9-4b8f-8499-ac45bd42da29" },
         { id: 8, name: "GOLDEN DRAGON", hp: 50, type: "legendary", loc: "Sky Realm", url:"https://github.com/user-attachments/assets/b8379da1-b55e-4c8f-bcfb-e68eaae581ed" }
     ];
-
+    
     function saveGame() { const gameData = { coin: playerCOIN, wld: playerWLD, level: playerLevel, exp: playerEXP, hp: playerCurrentHP }; if(window.cloudSave) window.cloudSave(gameData); }
     window.applyGameData = function(data) { if (data) { playerCOIN = parseInt(data.coin)||0; playerWLD = parseFloat(data.wld)||10.00; playerLevel = parseInt(data.level)||1; playerEXP = parseInt(data.exp)||0; playerMaxHP = 20 + ((playerLevel - 1) * 2); playerCurrentHP = parseInt(data.hp)||playerMaxHP; if(playerCurrentHP>playerMaxHP) playerCurrentHP=playerMaxHP; if(playerCurrentHP<=0) playerCurrentHP=playerMaxHP; } else { playerCOIN=0; playerWLD=10.00; playerLevel=1; playerEXP=0; playerMaxHP=20; playerCurrentHP=20; } updateBalance(); updateLobbyStats(); initMap(); nav('home'); const shortID = "HUMAN-" + (data ? "PRO" : Math.floor(Math.random()*999)); document.getElementById('uiPlayerName').innerText = shortID; }
 
