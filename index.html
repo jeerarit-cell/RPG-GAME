@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>CYBER RPG v6.0 (World ID)</title>
+    <title>CYBER RPG v6.1 (Debug)</title>
     <script src="https://unpkg.com/@worldcoin/idkit@1/build/idkit-js.js"></script>
     
     <style>
@@ -52,7 +52,7 @@
         .close-btn { font-size: 1.5rem; color: #aaa; cursor: pointer; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-radius: 50%; background:rgba(255,255,255,0.1); backdrop-filter:blur(5px); }
         .btn { background: linear-gradient(180deg, var(--neon-orange), #d35400); border: none; border-radius: 8px; color: #fff; font-weight: 600; cursor: pointer; padding: 10px; width:100%; font-family: 'Kanit'; }
         
-        /* ปุ่ม World ID สีดำขาวเท่ๆ */
+        /* ปุ่ม World ID */
         .btn-world-id {
             background: #ffffff; color: #000000; font-family: 'Orbitron'; letter-spacing: 1px;
             display: flex; align-items: center; justify-content: center; gap: 10px;
@@ -149,7 +149,7 @@
         <div id="screen-login" class="screen active" style="justify-content: center; align-items: center;">
             <div style="font-family: 'Orbitron'; font-size: 3rem; text-align: center; color:white; text-shadow: 0 0 20px var(--neon-orange); margin-bottom: 20px;">
                 PROJECT<br><span style="color:var(--neon-orange)">CHASER</span>
-                <div style="font-size: 0.8rem; color:#aaa; margin-top:10px;">V6.0 WORLD ID</div>
+                <div style="font-size: 0.8rem; color:#aaa; margin-top:10px;">V6.1 DEBUG</div>
             </div>
             <button class="btn btn-world-id" style="width: 260px; height: 50px;" id="btnWorldID">
                 <span style="font-size: 1.5rem;">⚫</span> VERIFY WITH WORLD ID
@@ -250,7 +250,6 @@
         import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-analytics.js";
         import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
 
-        // CONFIG เดิมของคุณ (ผมใส่คืนให้แล้วครับ)
         const firebaseConfig = {
             apiKey: "AIzaSyDPxiP-isMK4VOnwRip2RczXOnqxHSyPtk",
             authDomain: "project-chaser-bc0bd.firebaseapp.com",
@@ -265,12 +264,10 @@
         const analytics = getAnalytics(app);
         const db = getFirestore(app);
 
-        // ตัวแปรเก็บ ID จาก World ID
         let REAL_USER_ID = null;
 
-        // --- EXPORT FUNCTIONS ---
         window.cloudSave = async function(data) {
-            if(!REAL_USER_ID) return; // ถ้ายังไม่ยืนยันตัวตน ไม่เซฟ
+            if(!REAL_USER_ID) return;
             document.getElementById('cloud-loader').style.display = 'block';
             try {
                 await setDoc(doc(db, "users", REAL_USER_ID), data);
@@ -281,7 +278,7 @@
         }
 
         window.cloudLoad = async function(worldID) {
-            REAL_USER_ID = worldID; // จำค่า ID ไว้ใช้ตลอดเกม
+            REAL_USER_ID = worldID;
             document.getElementById('cloud-loader').style.display = 'block';
             try {
                 const docRef = doc(db, "users", REAL_USER_ID);
@@ -290,7 +287,7 @@
                     window.applyGameData(docSnap.data());
                 } else {
                     console.log("New World ID User!");
-                    window.applyGameData(null); // เริ่มเกมใหม่
+                    window.applyGameData(null);
                 }
             } catch (e) {
                 console.error("Load Error: ", e);
@@ -301,44 +298,43 @@
     </script>
 
     <script>
-    // --- 1. WORLD ID SETUP (สำคัญ!) ---
-    // ✅ กำหนดค่า App ID และ Action
-    const WORLD_APP_ID = "app_6203a46daf3053d01617ef5293135678"; // ใส่ ID ของคุณให้แล้ว
-    const WORLD_ACTION = "login"; // ใช้ชื่อ action พื้นฐาน
+    // --- 1. WORLD ID SETUP ---
+    // ✅ ผมลองใช้ "app_" ตัวพิมพ์เล็กให้ตามมาตรฐานครับ
+    const WORLD_APP_ID = "app_6203a46daf3053d01617ef5293135678"; 
+    const WORLD_ACTION = "login";
 
     document.getElementById('btnWorldID').onclick = function() {
-        document.getElementById('loginStatus').innerText = "Connecting to World App...";
+        document.getElementById('loginStatus').innerText = "Initializing World ID...";
         
         try {
-            // เรียกใช้เครื่องมือ IDKit
+            // เช็คก่อนว่าโหลด IDKit มาจริงไหม
+            if (!window.IDKit) {
+                alert("Error: IDKit library not loaded. Check internet?");
+                return;
+            }
+
             IDKit.init({
                 app_id: WORLD_APP_ID,
                 action: WORLD_ACTION,
                 onSuccess: (result) => {
-                    // 🎉 เมื่อยืนยันผ่านแล้ว
                     console.log("Verified!", result);
-                    document.getElementById('loginStatus').innerText = "Verification Success! Loading...";
+                    document.getElementById('loginStatus').innerText = "Success! Loading data...";
                     document.getElementById('loginStatus').style.color = "#00eaff";
-                    
-                    // เอา "nullifier_hash" (รหัสลับเฉพาะตัว) มาเป็น User ID
-                    // นี่คือทีเด็ด! รหัสนี้จะเหมือนเดิมเสมอสำหรับคนเดิม
                     if(window.cloudLoad) window.cloudLoad(result.nullifier_hash);
-                    
-                    // เริ่มเสียง
                     if(audioCtx.state === 'suspended') audioCtx.resume();
                 }
             });
             
-            // เปิดหน้าต่าง Verify
             IDKit.open();
             
         } catch (e) {
             console.error(e);
-            alert("Error initializing World ID");
+            // 🔥 แสดง Error แบบละเอียด ให้คุณแคปมาบอกผมได้
+            alert("WORLD ID ERROR:\n" + e.message);
         }
     };
 
-    // --- GAME VARIABLES ---
+    // --- GAME VARIABLES & DATABASE ---
     let playerWLD = 10.00; 
     let playerCOIN = 0;    
     let playerMaxHP = 20;       
@@ -355,15 +351,17 @@
         5: { need: 1000, bonus: 2 }
     };
     const expReward = { 'common': 1, 'miniboss': 2, 'boss': 3, 'legendary': 5 };
+    
+    // ✅ แตกโค้ด MonsterDB ออกมาให้แล้ว จะได้ไม่ขึ้นตัวแดง
     const monsterDB = [
-        { id: 1, name: "Duck Fighter",    hp: 20,  type: "common",   loc: "Sewers",  url:"https://images.unsplash.com/photo-1459682687441-7761439a709d?q=80&w=500" },
-        { id: 2, name: "Dog Fighter",   hp: 20,  type: "common",   loc: "Sewers",  url:"https://github.com/user-attachments/assets/4740cb53-19dd-4186-9c7f-d8af3e3aaddb" },
-        { id: 3, name: "Scorpion Fighter",   hp: 20,  type: "common",   loc: "Digital", url:"https://github.com/user-attachments/assets/43953afd-66b6-4ae5-83b9-6121ba7ff05d" },
-        { id: 4, name: "Rabbit Fighter",   hp: 20,  type: "common",   loc: "Digital", url:"https://github.com/user-attachments/assets/912e9583-da84-4f1a-adce-e9fe5ae54490" },
-        { id: 5, name: "Wolf Fighter",   hp: 20,  type: "common",   loc: "Digital", url:"https://github.com/user-attachments/assets/8e3523b7-7ed7-4d27-b6cf-2f10373738e9" },
-        { id: 6, name: "Fire Gobin",  hp: 30,  type: "miniboss", loc: "Factory", url:"https://github.com/user-attachments/assets/8a354949-f700-4d7e-9ff4-dd5b90164296" }, 
-        { id: 7, name: "THE OVERLORD", hp: 40,  type: "boss",    loc: "Tower",   url:"https://github.com/user-attachments/assets/6dec1453-a3f9-4b8f-8499-ac45bd42da29" },
-        { id: 8, name: "GOLDEN DRAGON", hp: 50,  type: "legendary",   loc: "Sky Realm",   url:"https://github.com/user-attachments/assets/b8379da1-b55e-4c8f-bcfb-e68eaae581ed" }
+        { id: 1, name: "Duck Fighter", hp: 20, type: "common", loc: "Sewers", url:"https://images.unsplash.com/photo-1459682687441-7761439a709d?q=80&w=500" },
+        { id: 2, name: "Dog Fighter", hp: 20, type: "common", loc: "Sewers", url:"https://github.com/user-attachments/assets/4740cb53-19dd-4186-9c7f-d8af3e3aaddb" },
+        { id: 3, name: "Scorpion Fighter", hp: 20, type: "common", loc: "Digital", url:"https://github.com/user-attachments/assets/43953afd-66b6-4ae5-83b9-6121ba7ff05d" },
+        { id: 4, name: "Rabbit Fighter", hp: 20, type: "common", loc: "Digital", url:"https://github.com/user-attachments/assets/912e9583-da84-4f1a-adce-e9fe5ae54490" },
+        { id: 5, name: "Wolf Fighter", hp: 20, type: "common", loc: "Digital", url:"https://github.com/user-attachments/assets/8e3523b7-7ed7-4d27-b6cf-2f10373738e9" },
+        { id: 6, name: "Fire Gobin", hp: 30, type: "miniboss", loc: "Factory", url:"https://github.com/user-attachments/assets/8a354949-f700-4d7e-9ff4-dd5b90164296" }, 
+        { id: 7, name: "THE OVERLORD", hp: 40, type: "boss", loc: "Tower", url:"https://github.com/user-attachments/assets/6dec1453-a3f9-4b8f-8499-ac45bd42da29" },
+        { id: 8, name: "GOLDEN DRAGON", hp: 50, type: "legendary", loc: "Sky Realm", url:"https://github.com/user-attachments/assets/b8379da1-b55e-4c8f-bcfb-e68eaae581ed" }
     ];
 
     function saveGame() {
@@ -387,8 +385,7 @@
         updateBalance(); 
         updateLobbyStats();
         initMap();
-        nav('home'); // เข้าหน้า Lobby
-        // โชว์ชื่อตัวละครเท่ๆ (ตัดเอาแค่ 6 ตัวท้ายของรหัส World ID)
+        nav('home');
         const shortID = "HUMAN-" + (data ? "PRO" : Math.floor(Math.random()*999));
         document.getElementById('uiPlayerName').innerText = shortID;
     }
@@ -413,7 +410,6 @@
         document.getElementById('btnConfirmSell').onclick = () => { let amountCoin = parseInt(inpSell.value) || 0; if (amountCoin < 110) { gameAlert("ERROR", "ขั้นต่ำ 110 COINS"); return; } if (playerCOIN < amountCoin) { gameAlert("ERROR", "COINS ไม่พอ"); return; } playerCOIN -= amountCoin; let getWLD = parseFloat((amountCoin / 1100).toFixed(2)); playerWLD += getWLD; saveGame(); updateBalance(); overlay.remove(); gameAlert("SUCCESS", `ได้รับ ${getWLD} WLD`); playSfx('place'); };
     }
 
-    // AUDIO & START
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     function playSfx(type) {
         if(audioCtx.state === 'suspended') audioCtx.resume();
@@ -431,15 +427,52 @@
     function nav(target) { document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); let screenId = 'screen-' + target; if(target === 'home') screenId = 'screen-lobby'; const targetScreen = document.getElementById(screenId); if(targetScreen) targetScreen.classList.add('active'); updateBalance(); updateLobbyStats(); }
     function initMap() { const container = document.getElementById('monster-list-container'); if(!container) return; container.innerHTML = ''; monsterDB.forEach(m => { let cardClass = 'rank-common'; let badgeStyle = ''; let infoExtra = ''; if(m.type === 'miniboss') { cardClass = 'rank-miniboss'; badgeStyle = 'color:#00eaff; border-color:#00eaff;'; infoExtra = '<p style="color:#00eaff; font-size:0.7rem; font-weight:bold;">★ MINI BOSS</p>'; } else if (m.type === 'boss') { cardClass = 'rank-boss'; badgeStyle = 'background:#ffd700; color:black; font-weight:bold; border:none;'; infoExtra = '<p style="color:#ffd700; font-weight:bold; font-size:0.7rem;">☠️ WORLD BOSS</p>'; } else if (m.type === 'legendary') { cardClass = 'rank-legendary'; badgeStyle = 'background:white; color:#FF8C00; font-weight:900; border:none; box-shadow: 0 0 10px white;'; infoExtra = '<p style="color:white; font-weight:900; font-size:0.8rem; text-shadow: 0 1px 2px black;">👑 LEGENDARY BOSS</p>'; } container.innerHTML += `<div class="monster-card ${cardClass}" onclick="prepareBattle(${m.id})"><div style="display:flex; align-items:center;"><img src="${m.url}" class="m-avatar"><div class="m-info"><h3>${m.name}</h3>${infoExtra}<p>${m.loc} • HP: ${m.hp}</p></div></div><div class="hp-badge" style="${badgeStyle}">HP: ${m.hp}</div></div>`; }); }
 
-    // BATTLE SYSTEM
+    // BATTLE SYSTEM (Unpacked)
     let battle_eMaxHP = 20; let battle_eHP = 20; let battle_pDeck = [], battle_eDeck = []; let battle_placedCards = [null, null, null, null, null]; let battle_turn = 0; let battle_isPlaying = false; let currentReward = 0;
-    window.prepareBattle = function(monsterID) { if (playerCOIN < playerMaxHP) { gameAlert("ACCESS DENIED", `เงินไม่พอ! <br>ต้องมีเงินประกัน <b style="color:#ff0000">${playerMaxHP} COINS</b>`); playSfx('click'); return; } const monster = monsterDB.find(m => m.id === monsterID); if(!monster) return; currentMonsterType = monster.type; battle_eMaxHP = monster.hp; battle_eHP = monster.hp; document.getElementById('battleEnemyName').innerText = monster.name; document.getElementById('bossImg').src = monster.url; currentReward = Math.floor(monster.hp * 0.5); document.getElementById('screen-battle').style.backgroundImage = "url('https://github.com/user-attachments/assets/13b147e2-f363-49ce-bd43-68530d231a60')"; nav('battle'); initBattleState(); }
-    function initBattleState() { battle_turn = 0; battle_placedCards = [null, null, null, null, null]; battle_isPlaying = false; document.getElementById('resultModal').style.display = 'none'; updateBattleUI(); const currentImg = document.getElementById('bossImg').src; const cZone = document.getElementById('clashZone'); cZone.innerHTML = ''; for(let i=0; i<5; i++) { const slot = document.createElement('div'); slot.className = i===0 ? 'clash-slot active' : 'clash-slot'; slot.dataset.id = i; cZone.appendChild(slot); } const eRow = document.getElementById('enemyCardRow'); eRow.innerHTML = ''; for(let i=0; i<5; i++) { const wrap = document.createElement('div'); wrap.className = 'card-perspective'; wrap.id = `eWrap${i}`; wrap.innerHTML = `<div class="card-inner"><div class="card-front"style="background-image:url('${currentImg}');background-size:cover; background-position:center;"></div><div class="card-back enemy-revealed" id="eCard${i}">?</div></div>`; eRow.appendChild(wrap); } battle_pDeck = [1, 2, 3, 4, 5].sort(() => Math.random() - 0.5); battle_eDeck = [1, 2, 3, 4, 5].sort(() => Math.random() - 0.5); const pRow = document.getElementById('playerCardRow'); pRow.innerHTML = ''; battle_pDeck.forEach((val) => { const card = document.createElement('div'); card.className = 'my-card'; card.textContent = val; card.onclick = () => selectCardAction(val, card); pRow.appendChild(card); }); const btn = document.getElementById('actionBtn'); btn.textContent = "SELECT CARDS"; btn.disabled = true; btn.className = 'main-btn'; btn.onclick = null; playSfx('place'); }
-    function selectCardAction(val, el) { if(battle_isPlaying || battle_turn >= 5 || el.classList.contains('used')) return; battle_placedCards[battle_turn] = val; playSfx('click'); const slot = document.querySelector(`.clash-slot[data-id="${battle_turn}"]`); slot.innerHTML = `<div>${val}</div>`; slot.classList.remove('active'); el.classList.add('used'); battle_turn++; if(battle_turn < 5) { document.querySelector(`.clash-slot[data-id="${battle_turn}"]`).classList.add('active'); } else { const btn = document.getElementById('actionBtn'); btn.textContent = "ATTACK !!!"; btn.disabled = false; btn.classList.add('attack'); btn.onclick = runBattleSequence; } }
+    
+    window.prepareBattle = function(monsterID) { 
+        if (playerCOIN < playerMaxHP) { gameAlert("ACCESS DENIED", `เงินไม่พอ! <br>ต้องมีเงินประกัน <b style="color:#ff0000">${playerMaxHP} COINS</b>`); playSfx('click'); return; } 
+        const monster = monsterDB.find(m => m.id === monsterID); 
+        if(!monster) return; 
+        currentMonsterType = monster.type; battle_eMaxHP = monster.hp; battle_eHP = monster.hp; 
+        document.getElementById('battleEnemyName').innerText = monster.name; 
+        document.getElementById('bossImg').src = monster.url; 
+        currentReward = Math.floor(monster.hp * 0.5); 
+        document.getElementById('screen-battle').style.backgroundImage = "url('https://github.com/user-attachments/assets/13b147e2-f363-49ce-bd43-68530d231a60')"; 
+        nav('battle'); initBattleState(); 
+    }
+
+    function initBattleState() { 
+        battle_turn = 0; battle_placedCards = [null, null, null, null, null]; battle_isPlaying = false; 
+        document.getElementById('resultModal').style.display = 'none'; updateBattleUI(); 
+        const currentImg = document.getElementById('bossImg').src; 
+        const cZone = document.getElementById('clashZone'); cZone.innerHTML = ''; 
+        for(let i=0; i<5; i++) { const slot = document.createElement('div'); slot.className = i===0 ? 'clash-slot active' : 'clash-slot'; slot.dataset.id = i; cZone.appendChild(slot); } 
+        const eRow = document.getElementById('enemyCardRow'); eRow.innerHTML = ''; 
+        for(let i=0; i<5; i++) { const wrap = document.createElement('div'); wrap.className = 'card-perspective'; wrap.id = `eWrap${i}`; wrap.innerHTML = `<div class="card-inner"><div class="card-front"style="background-image:url('${currentImg}');background-size:cover; background-position:center;"></div><div class="card-back enemy-revealed" id="eCard${i}">?</div></div>`; eRow.appendChild(wrap); } 
+        battle_pDeck = [1, 2, 3, 4, 5].sort(() => Math.random() - 0.5); battle_eDeck = [1, 2, 3, 4, 5].sort(() => Math.random() - 0.5); 
+        const pRow = document.getElementById('playerCardRow'); pRow.innerHTML = ''; 
+        battle_pDeck.forEach((val) => { const card = document.createElement('div'); card.className = 'my-card'; card.textContent = val; card.onclick = () => selectCardAction(val, card); pRow.appendChild(card); }); 
+        const btn = document.getElementById('actionBtn'); btn.textContent = "SELECT CARDS"; btn.disabled = true; btn.className = 'main-btn'; btn.onclick = null; playSfx('place'); 
+    }
+
+    function selectCardAction(val, el) { 
+        if(battle_isPlaying || battle_turn >= 5 || el.classList.contains('used')) return; 
+        battle_placedCards[battle_turn] = val; playSfx('click'); 
+        const slot = document.querySelector(`.clash-slot[data-id="${battle_turn}"]`); 
+        slot.innerHTML = `<div>${val}</div>`; slot.classList.remove('active'); el.classList.add('used'); battle_turn++; 
+        if(battle_turn < 5) { document.querySelector(`.clash-slot[data-id="${battle_turn}"]`).classList.add('active'); } 
+        else { const btn = document.getElementById('actionBtn'); btn.textContent = "ATTACK !!!"; btn.disabled = false; btn.classList.add('attack'); btn.onclick = runBattleSequence; } 
+    }
+
     async function runBattleSequence() { battle_isPlaying = true; document.getElementById('actionBtn').disabled = true; let pSurvivors = []; let eSurvivors = []; for(let i=0; i<5; i++) { const eVal = battle_eDeck[i]; const pVal = battle_placedCards[i]; const eWrap = document.getElementById(`eWrap${i}`); const eBack = document.getElementById(`eCard${i}`); eBack.textContent = eVal; eWrap.classList.add('flipped'); playSfx('place'); await new Promise(r => setTimeout(r, 600)); const pSlot = document.querySelector(`.clash-slot[data-id="${i}"]`); const pCard = pSlot.querySelector('div'); if (pVal > eVal) { eBack.classList.add('dead-content'); pCard.parentElement.classList.add('win-pulse'); pSurvivors.push({val: pVal}); } else if (eVal > pVal) { pCard.classList.add('dead-content'); eBack.classList.add('win-pulse'); eSurvivors.push({val: eVal}); } else { eBack.classList.add('dead-content'); pCard.classList.add('dead-content'); } playSfx('click'); await new Promise(r => setTimeout(r, 400)); } await new Promise(r => setTimeout(r, 500)); const pCount = pSurvivors.length; const eCount = eSurvivors.length; let dmgToEnemy = 0; let dmgToPlayer = 0; if (pCount > eCount) { dmgToEnemy = pSurvivors.reduce((a, b) => a + b.val, 0); } else if (eCount > pCount) { dmgToPlayer = eSurvivors.reduce((a, b) => a + b.val, 0); } else { dmgToEnemy = pSurvivors.reduce((a, b) => a + b.val, 0); dmgToPlayer = eSurvivors.reduce((a, b) => a + b.val, 0); } battle_eHP -= dmgToEnemy; if(dmgToEnemy > 0) flashDamage('e', dmgToEnemy); playerCurrentHP -= dmgToPlayer; if(dmgToPlayer > 0) flashDamage('p', dmgToPlayer); if(playerCurrentHP < 0) playerCurrentHP = 0; updateBattleUI(); await new Promise(r => setTimeout(r, 1500)); checkBattleResult(); }
+    
     function flashDamage(who, amount) { if(amount <= 0) return; const txt = document.getElementById(who === 'e' ? 'eDmgText' : 'pDmgText'); txt.textContent = "-" + amount; txt.classList.add('show'); playSfx('hit'); document.getElementById('battleArea').classList.add('shaking'); if(who === 'e') document.querySelector('.boss-banner').classList.add('hit'); setTimeout(() => { txt.classList.remove('show'); document.getElementById('battleArea').classList.remove('shaking'); document.querySelector('.boss-banner').classList.remove('hit'); }, 800); }
+    
     function updateBattleUI() { if(battle_eHP < 0) battle_eHP = 0; document.getElementById('enemyHpBar').style.width = (battle_eHP/battle_eMaxHP)*100 + "%"; document.getElementById('enemyHpText').textContent = battle_eHP + "/" + battle_eMaxHP; document.getElementById('playerHpBar').style.width = (playerCurrentHP/playerMaxHP)*100 + "%"; document.getElementById('playerHpText').textContent = playerCurrentHP + "/" + playerMaxHP; }
+    
     function checkBattleResult() { const modal = document.getElementById('resultModal'); const title = document.getElementById('resultTitle'); const sub = document.getElementById('resultSub'); const btn = document.getElementById('restartBtn'); if (battle_eHP <= 0 && playerCurrentHP <= 0) { title.textContent = "DOUBLE KO"; title.style.color = "yellow"; sub.innerHTML = "NO REWARD YET<br>ENTER SUDDEN DEATH MODE!"; btn.textContent = "FIGHT FOR LIFE (10 HP)"; btn.className = "main-btn sudden"; btn.onclick = () => { battle_eHP = 10; battle_eMaxHP = 10; playerCurrentHP = 10; playerMaxHP = 10; updateBattleUI(); initBattleState(); }; modal.style.display = 'flex'; playSfx('win'); } else if (battle_eHP <= 0) { const damageTaken = playerMaxHP - playerCurrentHP; let reward = battle_eMaxHP - damageTaken; if (reward < 0) reward = 0; playerCOIN += reward; let gainedEXP = expReward[currentMonsterType] || 1; playerEXP += gainedEXP; let levelUpText = ""; if (levelConfig[playerLevel]) { const needed = levelConfig[playerLevel].need; if (playerEXP >= needed) { playerEXP -= needed; playerLevel++; const prevConfig = levelConfig[playerLevel-1]; const hpBonus = prevConfig ? prevConfig.bonus : 2; playerMaxHP += hpBonus; levelUpText = `<br><span style="color:#00ff00; font-weight:bold; font-size:1.2rem;">✨ LEVEL UP! (HP +${hpBonus})</span>`; if(!levelConfig[playerLevel]) { levelUpText = `<br><span style="color:#ffd700; font-weight:bold; font-size:1.2rem;">👑 MAX LEVEL REACHED!</span>`; } playSfx('win'); } } saveGame(); updateLobbyStats(); updateBalance(); title.textContent = "VICTORY"; title.style.color = "#ff9d00"; sub.innerHTML = `REWARD: <span style="color:#00eaff;">+${reward} COINS</span><br>EXP: <span style="color:#ffff00;">+${gainedEXP}</span> ${levelUpText}`; btn.textContent = "COLLECT & HUNT"; btn.className = "main-btn"; btn.onclick = () => { playerCurrentHP = playerMaxHP; nav('map'); }; modal.style.display = 'flex'; playSfx('win'); } else if (playerCurrentHP <= 0) { let penalty = 0; const halfMonsterHP = battle_eMaxHP / 2; if (battle_eHP >= halfMonsterHP) { penalty = playerMaxHP; sub.innerHTML = `ENEMY HEALTH HIGH (${battle_eHP})<br>LOST: <span style="color:red; font-size:1.5rem;">-${penalty} COINS</span>`; } else { penalty = Math.floor(playerMaxHP / 2); sub.innerHTML = `GOOD FIGHT! (ENEMY < 50%)<br>LOST: <span style="color:red; font-size:1.5rem;">-${penalty} COINS</span>`; } playerCOIN -= penalty; saveGame(); updateBalance(); title.textContent = "DEFEATED"; title.style.color = "red"; btn.textContent = "TRY AGAIN"; btn.className = "main-btn"; btn.onclick = () => { playerCurrentHP = playerMaxHP; nav('map'); }; modal.style.display = 'flex'; } else { const btnAction = document.getElementById('actionBtn'); btnAction.textContent = "NEXT ROUND"; btnAction.disabled = false; btnAction.classList.remove('attack'); btnAction.onclick = initBattleState; } }
+    
     function gameAlert(title, message) { const oldModal = document.getElementById('customAlert'); if (oldModal) oldModal.remove(); const overlay = document.createElement('div'); overlay.id = 'customAlert'; overlay.style.cssText = `position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 9999; display: flex; justify-content: center; align-items: center; backdrop-filter: blur(5px);`; const box = document.createElement('div'); box.style.cssText = `background: #111; border: 2px solid #ff0000; padding: 20px; width: 80%; max-width: 350px; text-align: center; border-radius: 10px; box-shadow: 0 0 20px rgba(255, 0, 0, 0.4); font-family: 'Kanit', sans-serif; animation: popIn 0.3s ease-out;`; box.innerHTML = `<h2 style="color:#ff0000; margin:0 0 10px 0; font-family:'Orbitron'; text-transform:uppercase;">⛔ ${title}</h2><p style="color:#ddd; margin-bottom:20px; font-size:0.9rem; line-height:1.5;">${message}</p><button id="alertBtn" style="background: #ff0000; color: white; border: none; padding: 10px 30px; font-family: 'Orbitron'; font-weight: bold; cursor: pointer; clip-path: polygon(10% 0, 100% 0, 100% 70%, 90% 100%, 0 100%, 0 30%);">ACKNOWLEDGE</button>`; overlay.appendChild(box); document.body.appendChild(overlay); const btn = box.querySelector('#alertBtn'); btn.onclick = () => { playSfx('click'); overlay.remove(); }; }
     </script>
 </body>
