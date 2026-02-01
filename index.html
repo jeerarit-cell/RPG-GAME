@@ -417,7 +417,23 @@
         { id: 7, name: "THE OVERLORD", hp: 40, type: "boss", loc: "Tower", url:"https://github.com/user-attachments/assets/6dec1453-a3f9-4b8f-8499-ac45bd42da29" },
         { id: 8, name: "GOLDEN DRAGON", hp: 50, type: "legendary", loc: "Sky Realm", url:"https://github.com/user-attachments/assets/b8379da1-b55e-4c8f-bcfb-e68eaae581ed" }
     ];
-    
+
+       // =========================================================
+    // ✅ ฟังก์ชันสลับหน้าจอ (NAV) - ตัวสำคัญที่ขาดไป
+    // =========================================================
+    function nav(screenName) {
+        // 1. ซ่อนทุกหน้าก่อน
+        const screens = document.querySelectorAll('.screen');
+        screens.forEach(s => s.classList.remove('active'));
+
+        // 2. เปิดหน้าที่ต้องการ
+        const target = document.getElementById('screen-' + screenName);
+        if (target) {
+            target.classList.add('active');
+        } else {
+            console.error("หาหน้าจอไม่เจอ: " + screenName);
+        }
+    } 
     // แก้ในฟังก์ชัน saveGame()
           function saveGame() {
         // กันเหนียว: เช็คว่ามี element ชื่อ uiPlayerName ไหม (ถ้าไม่มีให้ใช้ค่าว่าง)
