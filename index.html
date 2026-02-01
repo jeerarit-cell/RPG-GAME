@@ -255,8 +255,23 @@
         const db = getFirestore(app);
 
         // --- USER ID (Simulation) ---
-        // ใช้ ID เดิมเสมอ เพื่อจำลองว่าเรา Login แล้ว (แม้จะล้างแคช ข้อมูลก็จะอยู่ เพราะ ID นี้ผูกกับ Cloud)
-        const TEST_USER_ID = "test-player-01"; 
+        // --- USER ID (Random & Persistent) ---
+        // 1. ลองหาดูซิว่าในเครื่องมี ID เดิมแปะไว้ไหม?
+        let myID = localStorage.getItem('CyberRPG_ID');
+
+        if (!myID) {
+            // 2. ถ้าไม่มี (เพิ่งเข้าครั้งแรก) ให้สุ่มเลขขึ้นมาใหม่เลย เช่น "Player_4829"
+            const randomNum = Math.floor(Math.random() * 100000);
+            myID = "Player_" + randomNum;
+            // 3. จดใส่เครื่องไว้ ครั้งหน้าจะได้จำได้
+            localStorage.setItem('CyberRPG_ID', myID);
+        }
+
+        // 4. ใช้ ID นี้แหละยื่นธนาคาร
+        const TEST_USER_ID = myID;
+        
+        // (แถม) แสดงชื่อ ID บนหน้าจอด้วย จะได้รู้ว่าเราชื่ออะไร
+        console.log("Welcome! Your ID is: " + TEST_USER_ID);
 
         // --- EXPORT FUNCTIONS TO WINDOW (เพื่อให้โค้ดเกมข้างล่างเรียกใช้ได้) ---
         window.cloudSave = async function(data) {
