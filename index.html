@@ -370,40 +370,51 @@
     ];
     
     // แก้ในฟังก์ชัน saveGame()
-        function saveGame() {
-        const currentName = document.getElementById('uiPlayerName').innerText; // ดึงชื่อปัจจุบันมา
+          function saveGame() {
+        // กันเหนียว: เช็คว่ามี element ชื่อ uiPlayerName ไหม (ถ้าไม่มีให้ใช้ค่าว่าง)
+        const elName = document.getElementById('uiPlayerName');
+        const currentName = elName ? elName.innerText : "PLAYER";
+
         const gameData = { 
-        name: currentName, // ✅ บันทึกชื่อลงไปด้วย
-        coin: playerCOIN, 
-        wld: playerWLD, 
-        level: playerLevel, 
-        exp: playerEXP, 
-        hp: playerCurrentHP 
-    };
+            name: currentName, // บันทึกชื่อ
+            coin: playerCOIN, 
+            wld: playerWLD, 
+            level: playerLevel, 
+            exp: playerEXP, 
+            hp: playerCurrentHP 
+        };
         if(window.cloudSave) window.cloudSave(gameData);
-}
-    // แก้ในฟังก์ชัน applyGameData(data)
-        window.applyGameData = function(data) {
-        if (data) {
-        // ✅ ดึงชื่อมาแสดง (ถ้าไม่มีให้ใช้ชื่อเดิม)
-        if(data.name) document.getElementById('uiPlayerName').innerText = data.name;
-        
-        playerCOIN = parseInt(data.coin) || 0;
-        playerWLD = parseFloat(data.wld) || 10.00; 
-        playerLevel = parseInt(data.level) || 1;
-        playerEXP = parseInt(data.exp) || 0;
-        // ... (ส่วนคำนวณ HP เหมือนเดิม)
-        playerMaxHP = 20 + ((playerLevel - 1) * 2);
-        playerCurrentHP = parseInt(data.hp) || playerMaxHP;
-    } else {
-        // ถ้าเป็น ID ใหม่ซิงๆ
-        document.getElementById('uiPlayerName').innerText = "NEW HUNTER";
-        playerCOIN = 0; playerWLD = 10.00; playerLevel = 1; playerEXP = 0;
     }
-    updateBalance(); 
-    updateLobbyStats();
-    // ...
-}
+
+    window.applyGameData = function(data) {
+        if (data) {
+            // โหลดชื่อ
+            if(data.name && document.getElementById('uiPlayerName')) {
+                document.getElementById('uiPlayerName').innerText = data.name;
+            }
+            
+            playerCOIN = parseInt(data.coin) || 0;
+            playerWLD = parseFloat(data.wld) || 10.00; 
+            playerLevel = parseInt(data.level) || 1;
+            playerEXP = parseInt(data.exp) || 0;
+            playerMaxHP = 20 + ((playerLevel - 1) * 2);
+            playerCurrentHP = parseInt(data.hp) || playerMaxHP;
+            
+            // กันตาย (ถ้าเลือดเป็น 0 หรือเกิน Max)
+            if(playerCurrentHP > playerMaxHP) playerCurrentHP = playerMaxHP;
+            if(playerCurrentHP <= 0) playerCurrentHP = playerMaxHP; 
+        } else {
+            // ไอดีใหม่
+            if(document.getElementById('uiPlayerName')) {
+                document.getElementById('uiPlayerName').innerText = "NEW HUNTER";
+            }
+            playerCOIN = 0; playerWLD = 10.00; playerLevel = 1; playerEXP = 0; playerMaxHP = 20; playerCurrentHP = 20;
+        }
+        updateBalance(); 
+        updateLobbyStats();
+        initMap();
+        nav('home');
+    }
 
     document.getElementById('btnWallet').onclick = openExchangeModal;
     document.getElementById('btnStartGame').onclick = () => nav('map');
@@ -441,34 +452,37 @@
     function checkBattleResult() { const modal = document.getElementById('resultModal'); const title = document.getElementById('resultTitle'); const sub = document.getElementById('resultSub'); const btn = document.getElementById('restartBtn'); if (battle_eHP <= 0 && playerCurrentHP <= 0) { title.textContent = "DOUBLE KO"; title.style.color = "yellow"; sub.innerHTML = "NO REWARD YET<br>ENTER SUDDEN DEATH MODE!"; btn.textContent = "FIGHT FOR LIFE (10 HP)"; btn.className = "main-btn sudden"; btn.onclick = () => { battle_eHP = 10; battle_eMaxHP = 10; playerCurrentHP = 10; playerMaxHP = 10; updateBattleUI(); initBattleState(); }; modal.style.display = 'flex'; playSfx('win'); } else if (battle_eHP <= 0) { const damageTaken = playerMaxHP - playerCurrentHP; let reward = battle_eMaxHP - damageTaken; if (reward < 0) reward = 0; playerCOIN += reward; let gainedEXP = expReward[currentMonsterType] || 1; playerEXP += gainedEXP; let levelUpText = ""; if (levelConfig[playerLevel]) { const needed = levelConfig[playerLevel].need; if (playerEXP >= needed) { playerEXP -= needed; playerLevel++; const prevConfig = levelConfig[playerLevel-1]; const hpBonus = prevConfig ? prevConfig.bonus : 2; playerMaxHP += hpBonus; levelUpText = `<br><span style="color:#00ff00; font-weight:bold; font-size:1.2rem;">✨ LEVEL UP! (HP +${hpBonus})</span>`; if(!levelConfig[playerLevel]) { levelUpText = `<br><span style="color:#ffd700; font-weight:bold; font-size:1.2rem;">👑 MAX LEVEL REACHED!</span>`; } playSfx('win'); } } saveGame(); updateLobbyStats(); updateBalance(); title.textContent = "VICTORY"; title.style.color = "#ff9d00"; sub.innerHTML = `REWARD: <span style="color:#00eaff;">+${reward} COINS</span><br>EXP: <span style="color:#ffff00;">+${gainedEXP}</span> ${levelUpText}`; btn.textContent = "COLLECT & HUNT"; btn.className = "main-btn"; btn.onclick = () => { playerCurrentHP = playerMaxHP; nav('map'); }; modal.style.display = 'flex'; playSfx('win'); } else if (playerCurrentHP <= 0) { let penalty = 0; const halfMonsterHP = battle_eMaxHP / 2; if (battle_eHP >= halfMonsterHP) { penalty = playerMaxHP; sub.innerHTML = `ENEMY HEALTH HIGH (${battle_eHP})<br>LOST: <span style="color:red; font-size:1.5rem;">-${penalty} COINS</span>`; } else { penalty = Math.floor(playerMaxHP / 2); sub.innerHTML = `GOOD FIGHT! (ENEMY < 50%)<br>LOST: <span style="color:red; font-size:1.5rem;">-${penalty} COINS</span>`; } playerCOIN -= penalty; saveGame(); updateBalance(); title.textContent = "DEFEATED"; title.style.color = "red"; btn.textContent = "TRY AGAIN"; btn.className = "main-btn"; btn.onclick = () => { playerCurrentHP = playerMaxHP; nav('map'); }; modal.style.display = 'flex'; } else { const btnAction = document.getElementById('actionBtn'); btnAction.textContent = "NEXT ROUND"; btnAction.disabled = false; btnAction.classList.remove('attack'); btnAction.onclick = initBattleState; } }
     function gameAlert(title, message) { const oldModal = document.getElementById('customAlert'); if (oldModal) oldModal.remove(); const overlay = document.createElement('div'); overlay.id = 'customAlert'; overlay.style.cssText = `position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 9999; display: flex; justify-content: center; align-items: center; backdrop-filter: blur(5px);`; const box = document.createElement('div'); box.style.cssText = `background: #111; border: 2px solid #ff0000; padding: 20px; width: 80%; max-width: 350px; text-align: center; border-radius: 10px; box-shadow: 0 0 20px rgba(255, 0, 0, 0.4); font-family: 'Kanit', sans-serif; animation: popIn 0.3s ease-out;`; box.innerHTML = `<h2 style="color:#ff0000; margin:0 0 10px 0; font-family:'Orbitron'; text-transform:uppercase;">⛔ ${title}</h2><p style="color:#ddd; margin-bottom:20px; font-size:0.9rem; line-height:1.5;">${message}</p><button id="alertBtn" style="background: #ff0000; color: white; border: none; padding: 10px 30px; font-family: 'Orbitron'; font-weight: bold; cursor: pointer; clip-path: polygon(10% 0, 100% 0, 100% 70%, 90% 100%, 0 100%, 0 30%);">ACKNOWLEDGE</button>`; overlay.appendChild(box); document.body.appendChild(overlay); const btn = box.querySelector('#alertBtn'); btn.onclick = () => { playSfx('click'); overlay.remove(); }; }
     // ฟังก์ชันเปลี่ยนชื่อ (แบบปลอดภัย 100%)
-     window.changeName = function() {
-    let newName = prompt("ตั้งชื่อใหม่ (เฉพาะภาษาไทย, อังกฤษ, ตัวเลข):", "Hunter");
-    
-    if (newName) {
-        // 1. ลบช่องว่างหัว-ท้ายออกก่อน
-        newName = newName.trim();
-
-        // 2. เช็คความยาว (ไม่เกิน 12 ตัว)
-        if (newName.length > 12) {
-            alert("❌ ชื่อยาวเกินไป! (ขอไม่เกิน 12 ตัวอักษร)");
-            return;
-        }
-
-        // 3. 🛡️ เช็คอักขระต้องห้าม (ด้วย Regex)
-        // อนุญาตแค่: ก-๙ (ไทย), a-z, A-Z, 0-9
-        const regex = /^[ก-๙a-zA-Z0-9]+$/;
+    // -----------------------------------------------------
+    // ✅ วางก้อนนี้ไว้ล่างสุด (ก่อนปิด script)
+    // -----------------------------------------------------
+    window.changeName = function() {
+        let newName = prompt("ตั้งชื่อใหม่ (เฉพาะภาษาไทย, อังกฤษ, ตัวเลข):", "Hunter");
         
-        if (!regex.test(newName)) {
-            alert("⛔ ห้ามใช้อักขระพิเศษ / เว้นวรรค / อีโมจิ \n(ใช้ได้แค่: ไทย, อังกฤษ, ตัวเลข)");
-            return;
-        }
+        if (newName) {
+            newName = newName.trim(); // ตัดช่องว่างหน้าหลัง
+            
+            // เช็คความยาว
+            if (newName.length > 12) {
+                alert("❌ ชื่อยาวเกินไป! (ขอไม่เกิน 12 ตัวอักษร)");
+                return;
+            }
 
-        // ถ้าผ่านด่านหมด -> อัปเดตชื่อได้!
-        document.getElementById('uiPlayerName').innerText = newName.toUpperCase();
-        saveGame(); // บันทึกทันที
-        alert("✅ เปลี่ยนชื่อเป็น " + newName + " เรียบร้อย!");
+            // เช็คอักขระแปลกปลอม (กันคนแฮก)
+            const regex = /^[ก-๙a-zA-Z0-9]+$/;
+            if (!regex.test(newName)) {
+                alert("⛔ ห้ามใช้อักขระพิเศษ / เว้นวรรค / อีโมจิ");
+                return;
+            }
+
+            // ผ่านหมด -> เปลี่ยนชื่อได้
+            const elName = document.getElementById('uiPlayerName');
+            if(elName) {
+                elName.innerText = newName.toUpperCase();
+                saveGame(); // บันทึกทันที
+                alert("✅ เปลี่ยนชื่อเป็น " + newName + " เรียบร้อย!");
+            }
+        }
     }
-}    
     </script>
 </body>
 </html>
