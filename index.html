@@ -174,39 +174,50 @@
 
         <div id="screen-lobby" class="screen">
             <div class="top-bar">
-                <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px;">
-    <div style="position: relative;">
-        <img src="https://ui-avatars.com/api/?name=User&background=random" 
-             style="width: 60px; height: 60px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 10px var(--neon-blue);">
-        <div style="position: absolute; bottom: -5px; right: -5px; background: #000; border: 1px solid var(--neon-blue); color: var(--neon-blue); font-size: 0.7rem; padding: 2px 6px; border-radius: 10px; font-weight: bold;">
-            LV.<span id="uiLobbyLevel">1</span>
-        </div>
-    </div>
-
-    <div style="flex: 1;">
-        <div id="uiPlayerName" onclick="changeName()" 
-             style="font-family: 'Orbitron'; font-size: 1.2rem; color: white; cursor: pointer; text-shadow: 0 0 5px var(--neon-blue); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px;">
-            LOADING...
-        </div>
-
-        <div style="font-size: 0.8rem; color: #aaa; margin-top: 4px;">
-            <span style="color: #ff2a2a;">❤️ <span id="uiLobbyHP">20</span></span> 
-            <span style="color: #444;"> | </span>
-            <span style="color: #ffd700;">⚡ <span id="uiLobbyXP">0</span> XP</span>
-        </div>
+               <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 25px; padding: 10px; background: rgba(0,0,0,0.5); border-radius: 12px; border: 1px solid #333;">
         
-        <div style="font-size: 0.8rem; color: #ffd700; margin-top: 2px;">
-            🟡 <span id="uiLobbyCoin">0</span> COINS
+        <div style="position: relative;">
+            <img src="https://ui-avatars.com/api/?name=User&background=random" 
+                 style="width: 65px; height: 65px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 15px var(--neon-blue);">
+            
+            <div style="position: absolute; bottom: -5px; right: -5px; background: #000; border: 1px solid var(--neon-blue); color: var(--neon-blue); font-size: 0.75rem; padding: 2px 8px; border-radius: 10px; font-weight: bold; box-shadow: 0 0 5px #000;">
+                LV.<span id="uiLobbyLevel">1</span>
+            </div>
+        </div>
+
+        <div style="flex: 1;">
+            <div id="uiPlayerName" onclick="changeName()" 
+                 style="font-family: 'Orbitron'; font-size: 1.3rem; color: white; cursor: pointer; text-shadow: 0 0 5px var(--neon-blue); margin-bottom: 5px;">
+                LOADING...
+            </div>
+
+            <div style="font-size: 0.85rem; color: #ccc;">
+                <span style="color: #ff2a2a; font-weight:bold;">❤️ <span id="uiLobbyHP">20/20</span></span> 
+                <span style="margin: 0 8px; color: #555;">|</span>
+                <span style="color: #ffd700;">⚡ <span id="uiLobbyXP">0</span> XP</span>
+            </div>
+        </div>
+
+        <div id="btnWallet" style="text-align: center; cursor: pointer; background: rgba(0,234,255,0.1); padding: 5px 10px; border-radius: 8px; border: 1px solid rgba(0,234,255,0.3);">
+            <img src="https://cdn-icons-png.flaticon.com/512/8675/8675971.png" style="width: 30px; height: 30px;">
+            <div style="color: var(--neon-blue); font-family: 'Orbitron'; font-size: 0.8rem; margin-top: 2px;">
+                <span id="uiLobbyWLD">10.00</span>
+            </div>
         </div>
     </div>
 
-    <div id="btnWallet" style="text-align: center; cursor: pointer;">
-        <img src="https://cdn-icons-png.flaticon.com/512/8675/8675971.png" style="width: 35px; height: 35px; drop-shadow: 0 0 5px #ff9d00;">
-        <div style="color: var(--neon-blue); font-family: 'Orbitron'; font-size: 0.8rem; margin-top: 3px;">
-            <span id="uiLobbyWLD">10.00</span> WLD
-        </div>
+    <div style="margin-bottom: 20px; border-radius: 8px; overflow: hidden; border: 1px solid #444;">
+        <img src="https://placehold.co/600x200/111/444?text=EVENT:+BOSS+HUNTING" style="width: 100%; display: block;">
     </div>
-</div>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+        <button id="btnStartGame" class="main-btn" style="grid-column: span 2; padding: 20px; font-size: 1.5rem; background: linear-gradient(45deg, #ff9d00, #ff5e00);">
+            🚀 START MISSION
+        </button>
+
+        <button class="main-btn" style="background: #222; border: 1px solid #444; font-size: 0.9rem;">🎒 ITEM</button>
+        <button class="main-btn" style="background: #222; border: 1px solid #444; font-size: 0.9rem;">🏆 RANK</button>
+    </div>
             <div class="marquee-container"><div class="marquee-text">🎉 SYSTEM: VERIFIED HUMAN DETECTED! - WELCOME TO PROJECT CHASER 👁️</div></div>
             <div class="ad-banner" onclick="window.open('https://www.youtube.com/watch?v=7YtWwxA9sC4')" style="cursor: pointer;">
                 <img src="https://github.com/user-attachments/assets/95431a34-e841-4114-967c-797641a63055">
