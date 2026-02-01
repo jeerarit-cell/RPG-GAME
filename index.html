@@ -173,34 +173,44 @@
         </div>
 
         <div id="screen-lobby" class="screen">
-           <div class="top-bar">
+                       <div class="top-bar" style="height: auto; min-height: 80px; padding-top: 5px; padding-bottom: 5px;">
                 <div style="display:flex; align-items:center; flex: 1; min-width: 0;">
                     
-                 <div class="avatar" style="margin-right: 12px;">
+                    <div class="avatar" style="margin-right: 10px; width: 55px; height: 55px;">
                         <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=200">
                     </div>
 
-                  <div style="display: flex; flex-direction: column; justify-content: center; min-width: 0;">
+                    <div style="display: flex; flex-direction: column; justify-content: center; min-width: 0; gap: 2px;">
                         
-                   <div style="display:flex; align-items:center; gap: 8px; margin-bottom: 2px;"><span id="uiLevel" style="background:var(--neon-blue); color:#000; padding:2px 6px; border-radius:4px; font-size:0.8rem; font-weight:900; font-family:'Orbitron'; flex-shrink: 0;"> LV.1</span>
-     <span id="uiPlayerName" style="font-family:'Orbitron'; font-size: 1.1rem; color:#fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight:bold; letter-spacing:1px;"> PLAYER </span> 
+                        <div style="display:flex; align-items:center; gap: 6px; line-height: 1;">
+                            <span id="uiLevel" style="background:var(--neon-blue); color:#000; padding:1px 4px; border-radius:3px; font-size:0.7rem; font-weight:900; font-family:'Orbitron'; flex-shrink: 0;">
+                                LV.1
+                            </span>
+                            <span id="uiPlayerName" onclick="changeName()" style="font-family:'Orbitron'; font-size: 1rem; color:#fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight:bold; letter-spacing:1px; cursor: pointer;">
+                                PLAYER
+                            </span> 
                         </div>
 
-                        <div style="font-size: 0.75rem; white-space: nowrap; color:#ccc;">
+                        <div style="font-size: 0.7rem; white-space: nowrap; color:#ccc; line-height: 1.2;">
                             <span style="color:#ff2a2a; font-weight:bold;">❤ <span id="uiLobbyHP">20/20</span></span>
-                            <span style="color:#444; margin: 0 6px;">|</span>
+                            <span style="color:#444; margin: 0 4px;">|</span>
                             <span id="uiExp" style="color:#888;">0/150 XP</span>
+                        </div>
+
+                        <div style="font-size: 0.8rem; color:#ffd700; font-weight:bold; line-height: 1;">
+                            🟡 <span id="uiCoin" style="text-shadow:0 0 5px #ffd700;">0</span> COINS
                         </div>
                     </div>
                 </div>
 
-                <div id="btnWallet" style="display:flex; flex-direction:column; align-items:center; cursor:pointer; background:rgba(255,255,255,0.05); padding:5px 10px; border-radius:8px; border:1px solid #444; min-width: 70px; margin-left:10px;">
-                    <div style="font-size:1.4rem; filter: drop-shadow(0 0 5px #00eaff);">🎒</div>
-                    <div style="font-size:0.7rem; color:#00eaff; font-family:'Orbitron'; margin-top:2px;">
+                <div id="btnWallet" style="display:flex; flex-direction:column; align-items:center; justify-content:center; cursor:pointer; background:rgba(255,255,255,0.05); padding:5px 8px; border-radius:8px; border:1px solid #444; min-width: 65px; margin-left:5px;">
+                    <div style="font-size:1.2rem; filter: drop-shadow(0 0 5px #00eaff); line-height: 1;">🎒</div>
+                    <div style="font-size:0.65rem; color:#00eaff; font-family:'Orbitron'; margin-top:3px;">
                         <span id="uiWLD">0.00</span> WLD
                     </div>
                 </div>
             </div>
+
 
             <div class="marquee-container"><div class="marquee-text">🎉 SYSTEM: VERIFIED HUMAN DETECTED! - WELCOME TO PROJECT CHASER 👁️</div></div>
             <div class="ad-banner" onclick="window.open('https://www.youtube.com/watch?v=7YtWwxA9sC4')" style="cursor: pointer;">
