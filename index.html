@@ -174,50 +174,30 @@
 
         <div id="screen-lobby" class="screen">
             <div class="top-bar">
-               <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 25px; padding: 10px; background: rgba(0,0,0,0.5); border-radius: 12px; border: 1px solid #333;">
-        
-        <div style="position: relative;">
-            <img src="https://ui-avatars.com/api/?name=User&background=random" 
-                 style="width: 65px; height: 65px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 15px var(--neon-blue);">
-            
-            <div style="position: absolute; bottom: -5px; right: -5px; background: #000; border: 1px solid var(--neon-blue); color: var(--neon-blue); font-size: 0.75rem; padding: 2px 8px; border-radius: 10px; font-weight: bold; box-shadow: 0 0 5px #000;">
-                LV.<span id="uiLobbyLevel">1</span>
+                <div style="display:flex; align-items:center;">
+                    <div class="avatar"><img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=200"></div>
+                    <div style="margin-left: 10px; display: flex; flex-direction: column; justify-content: center;">
+                        <div style="font-family:'Orbitron'; font-size: 0.9rem; line-height: 1.2; width: 120px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                            <span id="uiPlayerName">PLAYER</span> 
+                            <span id="uiLevel" style="background:#333; padding:1px 6px; border-radius:4px; font-size:0.7rem; color:#00eaff; vertical-align: middle;">LV.1</span>
+                        </div>
+                        <div style="font-size: 0.75rem; margin: 3px 0; white-space: nowrap;">
+                            <span style="color:#ff2a2a; font-weight:bold;">❤ <span id="uiLobbyHP">20/20</span></span>
+                            <span style="color:#444; margin: 0 4px;">|</span>
+                            <span id="uiExp" style="color:#888;">0/150 XP</span>
+                        </div>
+                        <div style="font-size: 0.9rem; line-height: 1;">
+                            <span style="color:#ffd700; font-weight:bold; text-shadow:0 0 5px #ffd700;" id="uiCoin">0</span> COINS
+                        </div>
+                    </div>
+                </div>
+                <div id="btnWallet" style="display:flex; flex-direction:column; align-items:center; cursor:pointer; background:rgba(255,255,255,0.05); padding:5px 10px; border-radius:8px; border:1px solid #444; min-width: 70px;">
+                    <div style="font-size:1.5rem; filter: drop-shadow(0 0 5px #00eaff);">🎒</div>
+                    <div style="font-size:0.7rem; color:#00eaff; font-family:'Orbitron'; margin-top:2px;">
+                        <span id="uiWLD">0.00</span> WLD
+                    </div>
+                </div>
             </div>
-        </div>
-
-        <div style="flex: 1;">
-            <div id="uiPlayerName" onclick="changeName()" 
-                 style="font-family: 'Orbitron'; font-size: 1.3rem; color: white; cursor: pointer; text-shadow: 0 0 5px var(--neon-blue); margin-bottom: 5px;">
-                LOADING...
-            </div>
-
-            <div style="font-size: 0.85rem; color: #ccc;">
-                <span style="color: #ff2a2a; font-weight:bold;">❤️ <span id="uiLobbyHP">20/20</span></span> 
-                <span style="margin: 0 8px; color: #555;">|</span>
-                <span style="color: #ffd700;">⚡ <span id="uiLobbyXP">0</span> XP</span>
-            </div>
-        </div>
-
-        <div id="btnWallet" style="text-align: center; cursor: pointer; background: rgba(0,234,255,0.1); padding: 5px 10px; border-radius: 8px; border: 1px solid rgba(0,234,255,0.3);">
-            <img src="https://cdn-icons-png.flaticon.com/512/8675/8675971.png" style="width: 30px; height: 30px;">
-            <div style="color: var(--neon-blue); font-family: 'Orbitron'; font-size: 0.8rem; margin-top: 2px;">
-                <span id="uiLobbyWLD">10.00</span>
-            </div>
-        </div>
-    </div>
-
-    <div style="margin-bottom: 20px; border-radius: 8px; overflow: hidden; border: 1px solid #444;">
-        <img src="https://placehold.co/600x200/111/444?text=EVENT:+BOSS+HUNTING" style="width: 100%; display: block;">
-    </div>
-
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-        <button id="btnStartGame" class="main-btn" style="grid-column: span 2; padding: 20px; font-size: 1.5rem; background: linear-gradient(45deg, #ff9d00, #ff5e00);">
-            🚀 START MISSION
-        </button>
-
-        <button class="main-btn" style="background: #222; border: 1px solid #444; font-size: 0.9rem;">🎒 ITEM</button>
-        <button class="main-btn" style="background: #222; border: 1px solid #444; font-size: 0.9rem;">🏆 RANK</button>
-    </div>
             <div class="marquee-container"><div class="marquee-text">🎉 SYSTEM: VERIFIED HUMAN DETECTED! - WELCOME TO PROJECT CHASER 👁️</div></div>
             <div class="ad-banner" onclick="window.open('https://www.youtube.com/watch?v=7YtWwxA9sC4')" style="cursor: pointer;">
                 <img src="https://github.com/user-attachments/assets/95431a34-e841-4114-967c-797641a63055">
@@ -300,60 +280,20 @@
             document.getElementById('cloud-loader').style.display = 'none';
         }
 
-       window.cloudLoad = async function(worldID) {
-        console.log("🔑 Key Received:", worldID);
-
-        // 1. เปลี่ยนสถานะบนหน้าจอเป็น "กำลังโหลด..."
-        const status = document.getElementById('loginStatus');
-        if(status) {
-            status.innerText = "Connecting to Server...";
-            status.style.color = "#00eaff";
+        window.cloudLoad = async function(worldID) {
+            REAL_USER_ID = worldID;
+            document.getElementById('cloud-loader').style.display = 'block';
+            try {
+                const docRef = doc(db, "users", REAL_USER_ID);
+                const docSnap = await getDoc(docRef);
+                if (docSnap.exists()) window.applyGameData(docSnap.data());
+                else window.applyGameData(null);
+            } catch (e) {
+                console.error("Load Error: ", e);
+                window.applyGameData(null);
+            }
+            document.getElementById('cloud-loader').style.display = 'none';
         }
-
-        try {
-            // 2. ดึงข้อมูลจาก Firebase
-            const docRef = doc(db, "players", worldID);
-            const docSnap = await getDoc(docRef);
-
-            // 3. เตรียมข้อมูล
-            let finalData = null;
-
-            if (docSnap.exists()) {
-                console.log("📂 Old Save Found!");
-                finalData = docSnap.data();
-            } else {
-                console.log("✨ New Player Created!");
-                // สร้างข้อมูลเริ่มต้นสำหรับคนใหม่
-                finalData = {
-                    name: "NEW HUNTER",
-                    coin: 0, wld: 10.00,
-                    level: 1, exp: 0,
-                    hp: 20
-                };
-                // บันทึกคนใหม่ลงฐานข้อมูลทันที
-                await setDoc(docRef, finalData);
-            }
-
-            // 4. บันทึก ID ผู้เล่นไว้ใช้งานตลอดเกม
-            window.currentPlayerID = worldID;
-
-            // 5. ส่งข้อมูลไปให้เกมเริ่มทำงาน (สำคัญมาก! ถ้าไม่เรียกบรรทัดนี้ เกมจะไม่เริ่ม)
-            if (typeof window.applyGameData === "function") {
-                window.applyGameData(finalData);
-            } else {
-                console.error("❌ Error: function applyGameData not found!");
-                alert("Game Error: applyGameData missing");
-            }
-
-        } catch (error) {
-            console.error("🔥 Load Error:", error);
-            if(status) {
-                status.innerText = "Database Error";
-                status.style.color = "red";
-            }
-            alert("โหลดข้อมูลไม่สำเร็จ: " + error.message);
-        }
-    };
     </script>
 
     <script>
@@ -428,80 +368,13 @@
         { id: 7, name: "THE OVERLORD", hp: 40, type: "boss", loc: "Tower", url:"https://github.com/user-attachments/assets/6dec1453-a3f9-4b8f-8499-ac45bd42da29" },
         { id: 8, name: "GOLDEN DRAGON", hp: 50, type: "legendary", loc: "Sky Realm", url:"https://github.com/user-attachments/assets/b8379da1-b55e-4c8f-bcfb-e68eaae581ed" }
     ];
-
-       // =========================================================
-    // ✅ ฟังก์ชันสลับหน้าจอ (NAV) - ตัวสำคัญที่ขาดไป
-    // =========================================================
-    function nav(screenName) {
-        // 1. ซ่อนทุกหน้าก่อน
-        const screens = document.querySelectorAll('.screen');
-        screens.forEach(s => s.classList.remove('active'));
-
-        // 2. เปิดหน้าที่ต้องการ
-        const target = document.getElementById('screen-' + screenName);
-        if (target) {
-            target.classList.add('active');
-        } else {
-            console.error("หาหน้าจอไม่เจอ: " + screenName);
-        }
-    } 
-    // แก้ในฟังก์ชัน saveGame()
-          function saveGame() {
-        // กันเหนียว: เช็คว่ามี element ชื่อ uiPlayerName ไหม (ถ้าไม่มีให้ใช้ค่าว่าง)
-        const elName = document.getElementById('uiPlayerName');
-        const currentName = elName ? elName.innerText : "PLAYER";
-
-        const gameData = { 
-            name: currentName, // บันทึกชื่อ
-            coin: playerCOIN, 
-            wld: playerWLD, 
-            level: playerLevel, 
-            exp: playerEXP, 
-            hp: playerCurrentHP 
-        };
-        if(window.cloudSave) window.cloudSave(gameData);
-    }
-
-    window.applyGameData = function(data) {
-        if (data) {
-            // โหลดชื่อ
-            if(data.name && document.getElementById('uiPlayerName')) {
-                document.getElementById('uiPlayerName').innerText = data.name;
-            }
-            
-            playerCOIN = parseInt(data.coin) || 0;
-            playerWLD = parseFloat(data.wld) || 10.00; 
-            playerLevel = parseInt(data.level) || 1;
-            playerEXP = parseInt(data.exp) || 0;
-            playerMaxHP = 20 + ((playerLevel - 1) * 2);
-            playerCurrentHP = parseInt(data.hp) || playerMaxHP;
-            
-            // กันตาย (ถ้าเลือดเป็น 0 หรือเกิน Max)
-            if(playerCurrentHP > playerMaxHP) playerCurrentHP = playerMaxHP;
-            if(playerCurrentHP <= 0) playerCurrentHP = playerMaxHP; 
-        } else {
-            // ไอดีใหม่
-            if(document.getElementById('uiPlayerName')) {
-                document.getElementById('uiPlayerName').innerText = "NEW HUNTER";
-            }
-            playerCOIN = 0; playerWLD = 10.00; playerLevel = 1; playerEXP = 0; playerMaxHP = 20; playerCurrentHP = 20;
-        }
-        updateBalance(); 
-        updateLobbyStats();
-        initMap();
-        nav('lobby');     
-          // เช็คว่าถ้าเป็นเด็กใหม่ (หรือยังไม่ได้ตั้งชื่อ) ให้เด้งถามชื่อทันที!
-        const currentName = document.getElementById('uiPlayerName').innerText;
-        if (currentName === "NEW HUNTER" || currentName === "PLAYER") {
-        setTimeout(() => {
-            changeName(); // เรียกฟังก์ชันเปลี่ยนชื่อเด้งขึ้นมาเลย
-        }, 800); // รอ 0.8 วินาทีให้หน้าจอโหลดเสร็จก่อนค่อยเด้ง
-    }
-}
+    
+    function saveGame() { const gameData = { coin: playerCOIN, wld: playerWLD, level: playerLevel, exp: playerEXP, hp: playerCurrentHP }; if(window.cloudSave) window.cloudSave(gameData); }
+    window.applyGameData = function(data) { if (data) { playerCOIN = parseInt(data.coin)||0; playerWLD = parseFloat(data.wld)||10.00; playerLevel = parseInt(data.level)||1; playerEXP = parseInt(data.exp)||0; playerMaxHP = 20 + ((playerLevel - 1) * 2); playerCurrentHP = parseInt(data.hp)||playerMaxHP; if(playerCurrentHP>playerMaxHP) playerCurrentHP=playerMaxHP; if(playerCurrentHP<=0) playerCurrentHP=playerMaxHP; } else { playerCOIN=0; playerWLD=10.00; playerLevel=1; playerEXP=0; playerMaxHP=20; playerCurrentHP=20; } updateBalance(); updateLobbyStats(); initMap(); nav('home'); const shortID = "HUMAN-" + (data ? "PRO" : Math.floor(Math.random()*999)); document.getElementById('uiPlayerName').innerText = shortID; }
 
     document.getElementById('btnWallet').onclick = openExchangeModal;
     document.getElementById('btnStartGame').onclick = () => nav('map');
-    document.getElementById('btnCloseMap').onclick = () => nav('lobby');
+    document.getElementById('btnCloseMap').onclick = () => nav('home');
 
     function openExchangeModal() {
         const oldModal = document.getElementById('exchangeModal'); if (oldModal) oldModal.remove();
@@ -521,29 +394,8 @@
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     function playSfx(type) { if(audioCtx.state === 'suspended') audioCtx.resume(); const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain(); const now = audioCtx.currentTime; osc.connect(gain); gain.connect(audioCtx.destination); if (type === 'click') { osc.type = 'triangle'; osc.frequency.setValueAtTime(800, now); gain.gain.setValueAtTime(0.3, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1); osc.start(now); osc.stop(now + 0.1); } else if (type === 'place') { osc.type = 'sine'; osc.frequency.setValueAtTime(200, now); gain.gain.setValueAtTime(0.5, now); gain.gain.linearRampToValueAtTime(0, now + 0.1); osc.start(now); osc.stop(now + 0.1); } else if (type === 'hit') { osc.type = 'sawtooth'; osc.frequency.setValueAtTime(150, now); osc.frequency.exponentialRampToValueAtTime(10, now + 0.4); gain.gain.setValueAtTime(0.3, now); gain.gain.linearRampToValueAtTime(0, now + 0.4); osc.start(now); osc.stop(now + 0.4); } else if (type === 'win') { osc.type = 'triangle'; osc.frequency.setValueAtTime(440, now); osc.frequency.setValueAtTime(554, now + 0.1); osc.frequency.setValueAtTime(659, now + 0.2); gain.gain.setValueAtTime(0.9, now); gain.gain.linearRampToValueAtTime(0, now + 0.5); osc.start(now); osc.stop(now + 0.5); } }
     function updateBalance() { const elCoin = document.getElementById('uiCoin'); const elWLD = document.getElementById('uiWLD'); if(elCoin) elCoin.innerText = playerCOIN; if(elWLD) elWLD.innerText = playerWLD.toFixed(2); }
-    // หาฟังก์ชันนี้ แล้วแก้ข้างในให้เป็นแบบนี้ครับ
-function updateLobbyStats() {
-    // ชื่อ (Name)
-    if(document.getElementById('uiPlayerName')) {
-        // ดึงชื่อจากตัวแปรเกม (หรือถ้าไม่มีให้ใช้ NEW HUNTER)
-        // หมายเหตุ: ตรงนี้ไม่ต้องแก้เยอะ เพราะเราใช้ ID เดิม
-    }
-
-    // เลเวล (Level) -> แก้ให้ชี้ไปที่ uiLobbyLevel
-    if(document.getElementById('uiLobbyLevel')) document.getElementById('uiLobbyLevel').innerText = playerLevel;
-
-    // เลือด (HP) -> แก้ให้ชี้ไปที่ uiLobbyHP
-    if(document.getElementById('uiLobbyHP')) document.getElementById('uiLobbyHP').innerText = playerCurrentHP + "/" + playerMaxHP;
-
-    // XP -> แก้ให้ชี้ไปที่ uiLobbyXP
-    if(document.getElementById('uiLobbyXP')) document.getElementById('uiLobbyXP').innerText = playerEXP;
-    
-    // เหรียญ (Coin) -> แก้ให้ชี้ไปที่ uiLobbyCoin
-    if(document.getElementById('uiLobbyCoin')) document.getElementById('uiLobbyCoin').innerText = playerCOIN;
-    
-    // WLD -> แก้ให้ชี้ไปที่ uiLobbyWLD
-    if(document.getElementById('uiLobbyWLD')) document.getElementById('uiLobbyWLD').innerText = playerWLD.toFixed(2);
-}
+    function updateLobbyStats() { const elLevel = document.getElementById('uiLevel'); const elExp = document.getElementById('uiExp'); const elHP = document.getElementById('uiLobbyHP'); if (!levelConfig[playerLevel]) { if(elLevel) { elLevel.innerText = "LV.MAX"; elLevel.style.color = "#ffd700"; elLevel.style.border = "1px solid #ffd700"; } if(elExp) elExp.innerText = "----/---- XP"; } else { if(elLevel) { elLevel.innerText = "LV." + playerLevel; elLevel.style.color = "#00eaff"; elLevel.style.border = "none"; } if(elExp) { const nextNeed = levelConfig[playerLevel].need; elExp.innerText = `${playerEXP}/${nextNeed} XP`; } } if(elHP) elHP.innerText = `${playerCurrentHP}/${playerMaxHP}`; }
+    function nav(target) { document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); let screenId = 'screen-' + target; if(target === 'home') screenId = 'screen-lobby'; const targetScreen = document.getElementById(screenId); if(targetScreen) targetScreen.classList.add('active'); updateBalance(); updateLobbyStats(); }
     function initMap() { const container = document.getElementById('monster-list-container'); if(!container) return; container.innerHTML = ''; monsterDB.forEach(m => { let cardClass = 'rank-common'; let badgeStyle = ''; let infoExtra = ''; if(m.type === 'miniboss') { cardClass = 'rank-miniboss'; badgeStyle = 'color:#00eaff; border-color:#00eaff;'; infoExtra = '<p style="color:#00eaff; font-size:0.7rem; font-weight:bold;">★ MINI BOSS</p>'; } else if (m.type === 'boss') { cardClass = 'rank-boss'; badgeStyle = 'background:#ffd700; color:black; font-weight:bold; border:none;'; infoExtra = '<p style="color:#ffd700; font-weight:bold; font-size:0.7rem;">☠️ WORLD BOSS</p>'; } else if (m.type === 'legendary') { cardClass = 'rank-legendary'; badgeStyle = 'background:white; color:#FF8C00; font-weight:900; border:none; box-shadow: 0 0 10px white;'; infoExtra = '<p style="color:white; font-weight:900; font-size:0.8rem; text-shadow: 0 1px 2px black;">👑 LEGENDARY BOSS</p>'; } container.innerHTML += `<div class="monster-card ${cardClass}" onclick="prepareBattle(${m.id})"><div style="display:flex; align-items:center;"><img src="${m.url}" class="m-avatar"><div class="m-info"><h3>${m.name}</h3>${infoExtra}<p>${m.loc} • HP: ${m.hp}</p></div></div><div class="hp-badge" style="${badgeStyle}">HP: ${m.hp}</div></div>`; }); }
     
     let battle_eMaxHP = 20; let battle_eHP = 20; let battle_pDeck = [], battle_eDeck = []; let battle_placedCards = [null, null, null, null, null]; let battle_turn = 0; let battle_isPlaying = false; let currentReward = 0;
@@ -555,87 +407,6 @@ function updateLobbyStats() {
     function updateBattleUI() { if(battle_eHP < 0) battle_eHP = 0; document.getElementById('enemyHpBar').style.width = (battle_eHP/battle_eMaxHP)*100 + "%"; document.getElementById('enemyHpText').textContent = battle_eHP + "/" + battle_eMaxHP; document.getElementById('playerHpBar').style.width = (playerCurrentHP/playerMaxHP)*100 + "%"; document.getElementById('playerHpText').textContent = playerCurrentHP + "/" + playerMaxHP; }
     function checkBattleResult() { const modal = document.getElementById('resultModal'); const title = document.getElementById('resultTitle'); const sub = document.getElementById('resultSub'); const btn = document.getElementById('restartBtn'); if (battle_eHP <= 0 && playerCurrentHP <= 0) { title.textContent = "DOUBLE KO"; title.style.color = "yellow"; sub.innerHTML = "NO REWARD YET<br>ENTER SUDDEN DEATH MODE!"; btn.textContent = "FIGHT FOR LIFE (10 HP)"; btn.className = "main-btn sudden"; btn.onclick = () => { battle_eHP = 10; battle_eMaxHP = 10; playerCurrentHP = 10; playerMaxHP = 10; updateBattleUI(); initBattleState(); }; modal.style.display = 'flex'; playSfx('win'); } else if (battle_eHP <= 0) { const damageTaken = playerMaxHP - playerCurrentHP; let reward = battle_eMaxHP - damageTaken; if (reward < 0) reward = 0; playerCOIN += reward; let gainedEXP = expReward[currentMonsterType] || 1; playerEXP += gainedEXP; let levelUpText = ""; if (levelConfig[playerLevel]) { const needed = levelConfig[playerLevel].need; if (playerEXP >= needed) { playerEXP -= needed; playerLevel++; const prevConfig = levelConfig[playerLevel-1]; const hpBonus = prevConfig ? prevConfig.bonus : 2; playerMaxHP += hpBonus; levelUpText = `<br><span style="color:#00ff00; font-weight:bold; font-size:1.2rem;">✨ LEVEL UP! (HP +${hpBonus})</span>`; if(!levelConfig[playerLevel]) { levelUpText = `<br><span style="color:#ffd700; font-weight:bold; font-size:1.2rem;">👑 MAX LEVEL REACHED!</span>`; } playSfx('win'); } } saveGame(); updateLobbyStats(); updateBalance(); title.textContent = "VICTORY"; title.style.color = "#ff9d00"; sub.innerHTML = `REWARD: <span style="color:#00eaff;">+${reward} COINS</span><br>EXP: <span style="color:#ffff00;">+${gainedEXP}</span> ${levelUpText}`; btn.textContent = "COLLECT & HUNT"; btn.className = "main-btn"; btn.onclick = () => { playerCurrentHP = playerMaxHP; nav('map'); }; modal.style.display = 'flex'; playSfx('win'); } else if (playerCurrentHP <= 0) { let penalty = 0; const halfMonsterHP = battle_eMaxHP / 2; if (battle_eHP >= halfMonsterHP) { penalty = playerMaxHP; sub.innerHTML = `ENEMY HEALTH HIGH (${battle_eHP})<br>LOST: <span style="color:red; font-size:1.5rem;">-${penalty} COINS</span>`; } else { penalty = Math.floor(playerMaxHP / 2); sub.innerHTML = `GOOD FIGHT! (ENEMY < 50%)<br>LOST: <span style="color:red; font-size:1.5rem;">-${penalty} COINS</span>`; } playerCOIN -= penalty; saveGame(); updateBalance(); title.textContent = "DEFEATED"; title.style.color = "red"; btn.textContent = "TRY AGAIN"; btn.className = "main-btn"; btn.onclick = () => { playerCurrentHP = playerMaxHP; nav('map'); }; modal.style.display = 'flex'; } else { const btnAction = document.getElementById('actionBtn'); btnAction.textContent = "NEXT ROUND"; btnAction.disabled = false; btnAction.classList.remove('attack'); btnAction.onclick = initBattleState; } }
     function gameAlert(title, message) { const oldModal = document.getElementById('customAlert'); if (oldModal) oldModal.remove(); const overlay = document.createElement('div'); overlay.id = 'customAlert'; overlay.style.cssText = `position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 9999; display: flex; justify-content: center; align-items: center; backdrop-filter: blur(5px);`; const box = document.createElement('div'); box.style.cssText = `background: #111; border: 2px solid #ff0000; padding: 20px; width: 80%; max-width: 350px; text-align: center; border-radius: 10px; box-shadow: 0 0 20px rgba(255, 0, 0, 0.4); font-family: 'Kanit', sans-serif; animation: popIn 0.3s ease-out;`; box.innerHTML = `<h2 style="color:#ff0000; margin:0 0 10px 0; font-family:'Orbitron'; text-transform:uppercase;">⛔ ${title}</h2><p style="color:#ddd; margin-bottom:20px; font-size:0.9rem; line-height:1.5;">${message}</p><button id="alertBtn" style="background: #ff0000; color: white; border: none; padding: 10px 30px; font-family: 'Orbitron'; font-weight: bold; cursor: pointer; clip-path: polygon(10% 0, 100% 0, 100% 70%, 90% 100%, 0 100%, 0 30%);">ACKNOWLEDGE</button>`; overlay.appendChild(box); document.body.appendChild(overlay); const btn = box.querySelector('#alertBtn'); btn.onclick = () => { playSfx('click'); overlay.remove(); }; }
-    // ฟังก์ชันเปลี่ยนชื่อ (แบบปลอดภัย 100%)
-    // -----------------------------------------------------
-    // ✅ วางก้อนนี้ไว้ล่างสุด (ก่อนปิด script)
-    // -----------------------------------------------------
-    window.changeName = function() {
-        // 1. ลบหน้าต่างเก่าถ้ามีค้างอยู่
-        const oldModal = document.getElementById('nameModal');
-        if (oldModal) oldModal.remove();
-
-        // 2. สร้างฉากหลังมืดๆ
-        const overlay = document.createElement('div');
-        overlay.id = 'nameModal';
-        overlay.style.cssText = `
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.9); z-index: 10000;
-            display: flex; justify-content: center; align-items: center;
-            backdrop-filter: blur(5px); animation: fadeIn 0.3s;
-        `;
-
-        // 3. สร้างกล่อง (ดีไซน์เดียวกับตอนเงินไม่พอ)
-        const box = document.createElement('div');
-        box.style.cssText = `
-            background: #111; border: 2px solid var(--neon-blue);
-            box-shadow: 0 0 25px rgba(0, 234, 255, 0.2);
-            padding: 30px 20px; width: 85%; max-width: 320px;
-            text-align: center; border-radius: 15px;
-            font-family: 'Kanit', sans-serif;
-        `;
-
-        // 4. ใส่เนื้อหา (เน้นเรียบง่าย ไม่มีหัวข้อใหญ่ๆ)
-        box.innerHTML = `
-            <p style="color:#ccc; font-size:1rem; margin-bottom:15px;">
-                กรุณาระบุชื่อ HUNTER
-            </p>
-
-            <input type="text" id="inpName" placeholder="MAX 12 CHARS" maxlength="12"
-                style="
-                    width: 100%; background: #050505; color: var(--neon-orange);
-                    border: 1px solid #444; padding: 15px;
-                    font-family: 'Orbitron'; font-size: 1.4rem; letter-spacing: 1px;
-                    text-align: center; border-radius: 8px;
-                    margin-bottom: 25px; outline: none;
-                "
-            >
-
-            <button id="btnConfirmName" class="main-btn" style="height:50px; font-size:1.1rem;">
-                CONFIRM
-            </button>
-        `;
-
-        overlay.appendChild(box);
-        document.body.appendChild(overlay);
-
-        // 5. โฟกัสที่ช่องพิมพ์ทันที (แป้นพิมพ์จะได้เด้งขึ้นมา)
-        const input = document.getElementById('inpName');
-        input.focus();
-
-        // 6. กดปุ่มยืนยัน
-        document.getElementById('btnConfirmName').onclick = () => {
-            let newName = input.value.trim();
-            
-            if (!newName) return; // ถ้าไม่พิมพ์อะไรเลย ไม่ทำอะไร
-
-            // กรองคำหยาบ/อักขระพิเศษ
-            const regex = /^[ก-๙a-zA-Z0-9]+$/;
-            if (!regex.test(newName)) {
-                alert("⛔ ใช้ได้เฉพาะ: ไทย, อังกฤษ, ตัวเลข");
-                return;
-            }
-
-            // ผ่าน! บันทึกชื่อ
-            document.getElementById('uiPlayerName').innerText = newName.toUpperCase();
-            saveGame();
-            
-            // ปิดหน้าต่าง
-            overlay.remove();
-            
-            // เสียงวิ้งงง!
-            if(window.playSfx) playSfx('win');
-        };
-    };
     </script>
 </body>
 </html>
