@@ -289,20 +289,60 @@
             document.getElementById('cloud-loader').style.display = 'none';
         }
 
-        window.cloudLoad = async function(worldID) {
-            REAL_USER_ID = worldID;
-            document.getElementById('cloud-loader').style.display = 'block';
-            try {
-                const docRef = doc(db, "users", REAL_USER_ID);
-                const docSnap = await getDoc(docRef);
-                if (docSnap.exists()) window.applyGameData(docSnap.data());
-                else window.applyGameData(null);
-            } catch (e) {
-                console.error("Load Error: ", e);
-                window.applyGameData(null);
-            }
-            document.getElementById('cloud-loader').style.display = 'none';
+       window.cloudLoad = async function(worldID) {
+        console.log("🔑 Key Received:", worldID);
+
+        // 1. เปลี่ยนสถานะบนหน้าจอเป็น "กำลังโหลด..."
+        const status = document.getElementById('loginStatus');
+        if(status) {
+            status.innerText = "Connecting to Server...";
+            status.style.color = "#00eaff";
         }
+
+        try {
+            // 2. ดึงข้อมูลจาก Firebase
+            const docRef = doc(db, "players", worldID);
+            const docSnap = await getDoc(docRef);
+
+            // 3. เตรียมข้อมูล
+            let finalData = null;
+
+            if (docSnap.exists()) {
+                console.log("📂 Old Save Found!");
+                finalData = docSnap.data();
+            } else {
+                console.log("✨ New Player Created!");
+                // สร้างข้อมูลเริ่มต้นสำหรับคนใหม่
+                finalData = {
+                    name: "NEW HUNTER",
+                    coin: 0, wld: 10.00,
+                    level: 1, exp: 0,
+                    hp: 20
+                };
+                // บันทึกคนใหม่ลงฐานข้อมูลทันที
+                await setDoc(docRef, finalData);
+            }
+
+            // 4. บันทึก ID ผู้เล่นไว้ใช้งานตลอดเกม
+            window.currentPlayerID = worldID;
+
+            // 5. ส่งข้อมูลไปให้เกมเริ่มทำงาน (สำคัญมาก! ถ้าไม่เรียกบรรทัดนี้ เกมจะไม่เริ่ม)
+            if (typeof window.applyGameData === "function") {
+                window.applyGameData(finalData);
+            } else {
+                console.error("❌ Error: function applyGameData not found!");
+                alert("Game Error: applyGameData missing");
+            }
+
+        } catch (error) {
+            console.error("🔥 Load Error:", error);
+            if(status) {
+                status.innerText = "Database Error";
+                status.style.color = "red";
+            }
+            alert("โหลดข้อมูลไม่สำเร็จ: " + error.message);
+        }
+    };
     </script>
 
     <script>
