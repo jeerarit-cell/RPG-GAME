@@ -478,7 +478,7 @@
         updateBalance(); 
         updateLobbyStats();
         initMap();
-        nav('home');     
+        nav('lobby');     
           // เช็คว่าถ้าเป็นเด็กใหม่ (หรือยังไม่ได้ตั้งชื่อ) ให้เด้งถามชื่อทันที!
         const currentName = document.getElementById('uiPlayerName').innerText;
         if (currentName === "NEW HUNTER" || currentName === "PLAYER") {
@@ -490,7 +490,7 @@
 
     document.getElementById('btnWallet').onclick = openExchangeModal;
     document.getElementById('btnStartGame').onclick = () => nav('map');
-    document.getElementById('btnCloseMap').onclick = () => nav('home');
+    document.getElementById('btnCloseMap').onclick = () => nav('lobby');
 
     function openExchangeModal() {
         const oldModal = document.getElementById('exchangeModal'); if (oldModal) oldModal.remove();
