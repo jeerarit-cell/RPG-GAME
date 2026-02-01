@@ -464,33 +464,82 @@
     // ✅ วางก้อนนี้ไว้ล่างสุด (ก่อนปิด script)
     // -----------------------------------------------------
     window.changeName = function() {
-        let newName = prompt("ตั้งชื่อใหม่ (เฉพาะภาษาไทย, อังกฤษ, ตัวเลข):", "Hunter");
-        
-        if (newName) {
-            newName = newName.trim(); // ตัดช่องว่างหน้าหลัง
-            
-            // เช็คความยาว
-            if (newName.length > 12) {
-                alert("❌ ชื่อยาวเกินไป! (ขอไม่เกิน 12 ตัวอักษร)");
-                return;
-            }
+        // 1. ลบหน้าต่างเก่าถ้ามีค้างอยู่
+        const oldModal = document.getElementById('nameModal');
+        if (oldModal) oldModal.remove();
 
-            // เช็คอักขระแปลกปลอม (กันคนแฮก)
+        // 2. สร้างฉากหลังมืดๆ
+        const overlay = document.createElement('div');
+        overlay.id = 'nameModal';
+        overlay.style.cssText = `
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9); z-index: 10000;
+            display: flex; justify-content: center; align-items: center;
+            backdrop-filter: blur(5px); animation: fadeIn 0.3s;
+        `;
+
+        // 3. สร้างกล่อง (ดีไซน์เดียวกับตอนเงินไม่พอ)
+        const box = document.createElement('div');
+        box.style.cssText = `
+            background: #111; border: 2px solid var(--neon-blue);
+            box-shadow: 0 0 25px rgba(0, 234, 255, 0.2);
+            padding: 30px 20px; width: 85%; max-width: 320px;
+            text-align: center; border-radius: 15px;
+            font-family: 'Kanit', sans-serif;
+        `;
+
+        // 4. ใส่เนื้อหา (เน้นเรียบง่าย ไม่มีหัวข้อใหญ่ๆ)
+        box.innerHTML = `
+            <p style="color:#ccc; font-size:1rem; margin-bottom:15px;">
+                กรุณาระบุชื่อ HUNTER
+            </p>
+
+            <input type="text" id="inpName" placeholder="MAX 12 CHARS" maxlength="12"
+                style="
+                    width: 100%; background: #050505; color: var(--neon-orange);
+                    border: 1px solid #444; padding: 15px;
+                    font-family: 'Orbitron'; font-size: 1.4rem; letter-spacing: 1px;
+                    text-align: center; border-radius: 8px;
+                    margin-bottom: 25px; outline: none;
+                "
+            >
+
+            <button id="btnConfirmName" class="main-btn" style="height:50px; font-size:1.1rem;">
+                CONFIRM
+            </button>
+        `;
+
+        overlay.appendChild(box);
+        document.body.appendChild(overlay);
+
+        // 5. โฟกัสที่ช่องพิมพ์ทันที (แป้นพิมพ์จะได้เด้งขึ้นมา)
+        const input = document.getElementById('inpName');
+        input.focus();
+
+        // 6. กดปุ่มยืนยัน
+        document.getElementById('btnConfirmName').onclick = () => {
+            let newName = input.value.trim();
+            
+            if (!newName) return; // ถ้าไม่พิมพ์อะไรเลย ไม่ทำอะไร
+
+            // กรองคำหยาบ/อักขระพิเศษ
             const regex = /^[ก-๙a-zA-Z0-9]+$/;
             if (!regex.test(newName)) {
-                alert("⛔ ห้ามใช้อักขระพิเศษ / เว้นวรรค / อีโมจิ");
+                alert("⛔ ใช้ได้เฉพาะ: ไทย, อังกฤษ, ตัวเลข");
                 return;
             }
 
-            // ผ่านหมด -> เปลี่ยนชื่อได้
-            const elName = document.getElementById('uiPlayerName');
-            if(elName) {
-                elName.innerText = newName.toUpperCase();
-                saveGame(); // บันทึกทันที
-                alert("✅ เปลี่ยนชื่อเป็น " + newName + " เรียบร้อย!");
-            }
-        }
-    }
+            // ผ่าน! บันทึกชื่อ
+            document.getElementById('uiPlayerName').innerText = newName.toUpperCase();
+            saveGame();
+            
+            // ปิดหน้าต่าง
+            overlay.remove();
+            
+            // เสียงวิ้งงง!
+            if(window.playSfx) playSfx('win');
+        };
+    };
     </script>
 </body>
 </html>
