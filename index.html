@@ -432,31 +432,38 @@
     function checkBattleResult() { const modal = document.getElementById('resultModal'); const title = document.getElementById('resultTitle'); const sub = document.getElementById('resultSub'); const btn = document.getElementById('restartBtn'); if (battle_eHP <= 0 && playerCurrentHP <= 0) { title.textContent = "DOUBLE KO"; title.style.color = "yellow"; sub.innerHTML = "NO REWARD YET<br>ENTER SUDDEN DEATH MODE!"; btn.textContent = "FIGHT FOR LIFE (10 HP)"; btn.className = "main-btn sudden"; btn.onclick = () => { battle_eHP = 10; battle_eMaxHP = 10; playerCurrentHP = 10; playerMaxHP = 10; updateBattleUI(); initBattleState(); }; modal.style.display = 'flex'; playSfx('win'); } else if (battle_eHP <= 0) { const damageTaken = playerMaxHP - playerCurrentHP; let reward = battle_eMaxHP - damageTaken; if (reward < 0) reward = 0; playerCOIN += reward; let gainedEXP = expReward[currentMonsterType] || 1; playerEXP += gainedEXP; let levelUpText = ""; if (levelConfig[playerLevel]) { const needed = levelConfig[playerLevel].need; if (playerEXP >= needed) { playerEXP -= needed; playerLevel++; const prevConfig = levelConfig[playerLevel-1]; const hpBonus = prevConfig ? prevConfig.bonus : 2; playerMaxHP += hpBonus; levelUpText = `<br><span style="color:#00ff00; font-weight:bold; font-size:1.2rem;">✨ LEVEL UP! (HP +${hpBonus})</span>`; if(!levelConfig[playerLevel]) { levelUpText = `<br><span style="color:#ffd700; font-weight:bold; font-size:1.2rem;">👑 MAX LEVEL REACHED!</span>`; } playSfx('win'); } } saveGame(); updateLobbyStats(); updateBalance(); title.textContent = "VICTORY"; title.style.color = "#ff9d00"; sub.innerHTML = `REWARD: <span style="color:#00eaff;">+${reward} COINS</span><br>EXP: <span style="color:#ffff00;">+${gainedEXP}</span> ${levelUpText}`; btn.textContent = "COLLECT & HUNT"; btn.className = "main-btn"; btn.onclick = () => { playerCurrentHP = playerMaxHP; nav('map'); }; modal.style.display = 'flex'; playSfx('win'); } else if (playerCurrentHP <= 0) { let penalty = 0; const halfMonsterHP = battle_eMaxHP / 2; if (battle_eHP >= halfMonsterHP) { penalty = playerMaxHP; sub.innerHTML = `ENEMY HEALTH HIGH (${battle_eHP})<br>LOST: <span style="color:red; font-size:1.5rem;">-${penalty} COINS</span>`; } else { penalty = Math.floor(playerMaxHP / 2); sub.innerHTML = `GOOD FIGHT! (ENEMY < 50%)<br>LOST: <span style="color:red; font-size:1.5rem;">-${penalty} COINS</span>`; } playerCOIN -= penalty; saveGame(); updateBalance(); title.textContent = "DEFEATED"; title.style.color = "red"; btn.textContent = "TRY AGAIN"; btn.className = "main-btn"; btn.onclick = () => { playerCurrentHP = playerMaxHP; nav('map'); }; modal.style.display = 'flex'; } else { const btnAction = document.getElementById('actionBtn'); btnAction.textContent = "NEXT ROUND"; btnAction.disabled = false; btnAction.classList.remove('attack'); btnAction.onclick = initBattleState; } }
     function gameAlert(title, message) { const oldModal = document.getElementById('customAlert'); if (oldModal) oldModal.remove(); const overlay = document.createElement('div'); overlay.id = 'customAlert'; overlay.style.cssText = `position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 9999; display: flex; justify-content: center; align-items: center; backdrop-filter: blur(5px);`; const box = document.createElement('div'); box.style.cssText = `background: #111; border: 2px solid #ff0000; padding: 20px; width: 80%; max-width: 350px; text-align: center; border-radius: 10px; box-shadow: 0 0 20px rgba(255, 0, 0, 0.4); font-family: 'Kanit', sans-serif; animation: popIn 0.3s ease-out;`; box.innerHTML = `<h2 style="color:#ff0000; margin:0 0 10px 0; font-family:'Orbitron'; text-transform:uppercase;">⛔ ${title}</h2><p style="color:#ddd; margin-bottom:20px; font-size:0.9rem; line-height:1.5;">${message}</p><button id="alertBtn" style="background: #ff0000; color: white; border: none; padding: 10px 30px; font-family: 'Orbitron'; font-weight: bold; cursor: pointer; clip-path: polygon(10% 0, 100% 0, 100% 70%, 90% 100%, 0 100%, 0 30%);">ACKNOWLEDGE</button>`; overlay.appendChild(box); document.body.appendChild(overlay); const btn = box.querySelector('#alertBtn'); btn.onclick = () => { playSfx('click'); overlay.remove(); }; }
     
-    window.changeName = function() {
-        // 1. ลบหน้าต่างเก่าออกก่อน (ถ้ามีค้าง)
+        window.changeName = function(isForced = false) { // 1. รับค่า isForced (ถ้าไม่ส่งมาจะเป็น false)
+        
+        // ลบหน้าต่างเก่า (ถ้ามี)
         const oldModal = document.getElementById('nameModal');
         if (oldModal) oldModal.remove();
 
-        // 2. สร้างฉากหลังมืดๆ
+        // สร้างฉากหลัง
         const overlay = document.createElement('div');
         overlay.id = 'nameModal';
         overlay.style.cssText = `position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 10000; display: flex; justify-content: center; align-items: center; backdrop-filter: blur(5px); animation: fadeIn 0.2s;`;
 
-        // 3. สร้างกล่องใส่ชื่อ (ธีม Neon)
+        // สร้างกล่อง
         const box = document.createElement('div');
         box.style.cssText = `background: #111; border: 2px solid #00eaff; box-shadow: 0 0 20px rgba(0, 234, 255, 0.3); padding: 25px; width: 85%; max-width: 320px; text-align: center; border-radius: 12px; font-family: 'Kanit', sans-serif; position: relative;`;
 
-        // ปุ่มปิด X มุมขวาบน
-        const closeBtn = document.createElement('div');
-        closeBtn.innerHTML = "×";
-        closeBtn.style.cssText = "position: absolute; top: 5px; right: 15px; font-size: 2rem; color: #666; cursor: pointer;";
-        closeBtn.onclick = () => overlay.remove();
-        box.appendChild(closeBtn);
+        // 2. เช็คว่าถ้า "ไม่บังคับ" ให้โชว์ปุ่มปิด X (ถ้าบังคับ ไม่ต้องสร้างปุ่ม X)
+        if (!isForced) {
+            const closeBtn = document.createElement('div');
+            closeBtn.innerHTML = "×";
+            closeBtn.style.cssText = "position: absolute; top: 5px; right: 15px; font-size: 2rem; color: #666; cursor: pointer;";
+            closeBtn.onclick = () => overlay.remove();
+            box.appendChild(closeBtn);
+        }
 
-        // เนื้อหาข้างใน
+        // ปรับข้อความตามสถานะ
+        let titleText = isForced ? "REGISTRATION REQUIRED" : "IDENTIFICATION";
+        let subText = isForced ? "เจ้าหน้าที่ใหม่ กรุณาระบุ Code Name" : "ตั้งชื่อ Hunter ของคุณ (Max 8 Chars)";
+
+        // ใส่ HTML (สังเกต id ของปุ่มคือ btnConfirmName)
         box.innerHTML += `
-            <div style="color:#00eaff; font-family:'Orbitron'; font-size:1.2rem; margin-bottom:10px; letter-spacing:1px;">IDENTIFICATION</div>
-            <p style="color:#aaa; font-size:0.9rem; margin-bottom:15px;">ตั้งชื่อ Hunter ของคุณ (Max 8 Chars)</p>
+            <div style="color:#00eaff; font-family:'Orbitron'; font-size:1.2rem; margin-bottom:10px; letter-spacing:1px;">${titleText}</div>
+            <p style="color:#aaa; font-size:0.9rem; margin-bottom:15px;">${subText}</p>
             
             <input type="text" id="inpName" placeholder="NAME" maxlength="8"
                 style="width: 100%; background: #000; color: #fff; border: 1px solid #444; padding: 12px; font-family: 'Orbitron'; font-size: 1.4rem; text-align: center; border-radius: 6px; margin-bottom: 20px; outline: none; text-transform: uppercase;">
@@ -468,36 +475,34 @@
         overlay.appendChild(box);
         document.body.appendChild(overlay);
 
-        // โฟกัสช่องพิมพ์ทันที
         const input = document.getElementById('inpName');
         input.focus();
 
-  // ... (code ส่วนบนของ changeName เหมือนเดิม) ...
+        // 3. แก้ไข ID ให้ตรงกับ HTML ด้านบน (แก้จาก btnConfirmConfirm เป็น btnConfirmName)
+        document.getElementById('btnConfirmName').onclick = () => {
+            let newName = input.value.trim();
+            
+            if (!newName) return;
+            if (newName.length > 8) { alert("⛔ ชื่อยาวเกินไป!"); return; }
+            
+            const regex = /^[ก-๙a-zA-Z0-9]+$/;
+            if (!regex.test(newName)) { alert("⛔ ห้ามใช้อักขระพิเศษ"); return; }
 
-    document.getElementById('btnConfirmConfirm').onclick = () => { // เช็ค ID ปุ่มให้ตรงนะครับ
-        let newName = input.value.trim();
-        
-        if (!newName) return;
-        if (newName.length > 8) { alert("⛔ ชื่อยาวเกินไป!"); return; }
-        
-        const regex = /^[ก-๙a-zA-Z0-9]+$/;
-        if (!regex.test(newName)) { alert("⛔ ห้ามใช้อักขระพิเศษ"); return; }
+            // บันทึกชื่อ
+            document.getElementById('uiPlayerName').innerText = newName.toUpperCase();
+            if(typeof saveGame === 'function') saveGame(); 
 
-        // 1. บันทึกชื่อ
-        document.getElementById('uiPlayerName').innerText = newName.toUpperCase();
-        if(typeof saveGame === 'function') saveGame(); 
+            // ปิดหน้าต่าง
+            overlay.remove(); 
+            if(typeof playSfx === 'function') playSfx('win');
 
-        // 2. ปิดหน้าต่าง
-        overlay.remove(); 
-        if(typeof playSfx === 'function') playSfx('win');
-
-        // 3. เช็คว่าถ้าเป็นการบังคับ (User ใหม่) ให้พาเข้าแมพเลย!
-        if (isForced) {
-            nav('map'); 
-        }
+            // 4. จุดสำคัญ: ถ้าเป็นการบังคับ (isForced == true) ให้เด้งเข้า Map เลย
+            if (isForced) {
+                nav('map'); 
+            }
+        };
     };
 
-   };
   
     </script>
 </body>
