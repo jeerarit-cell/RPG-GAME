@@ -385,7 +385,19 @@
     window.applyGameData = function(data) { if (data) { playerCOIN = parseInt(data.coin)||0; playerWLD = parseFloat(data.wld)||10.00; playerLevel = parseInt(data.level)||1; playerEXP = parseInt(data.exp)||0; playerMaxHP = 20 + ((playerLevel - 1) * 2); playerCurrentHP = parseInt(data.hp)||playerMaxHP; if(playerCurrentHP>playerMaxHP) playerCurrentHP=playerMaxHP; if(playerCurrentHP<=0) playerCurrentHP=playerMaxHP; } else { playerCOIN=0; playerWLD=10.00; playerLevel=1; playerEXP=0; playerMaxHP=20; playerCurrentHP=20; } updateBalance(); updateLobbyStats(); initMap(); nav('home'); const shortID = "HUMAN-" + (data ? "PRO" : Math.floor(Math.random()*999)); document.getElementById('uiPlayerName').innerText = shortID; }
 
     document.getElementById('btnWallet').onclick = openExchangeModal;
-    document.getElementById('btnStartGame').onclick = () => nav('map');
+    document.getElementById('btnStartGame').onclick = function() {
+    const currentName = document.getElementById('uiPlayerName').innerText;
+    
+    // เช็คว่าชื่อเป็น Default หรือไม่
+    if (currentName.includes("HUMAN-") || currentName === "PLAYER") {
+        // เรียกหน้าต่างเปลี่ยนชื่อทันที (โหมดบังคับ = true)
+        changeName(true);
+    } else {
+        // ถ้ามีชื่อแล้ว เข้าแมพได้เลย
+        nav('map');
+    }
+};
+
     document.getElementById('btnCloseMap').onclick = () => nav('home');
 
     function openExchangeModal() {
@@ -460,35 +472,31 @@
         const input = document.getElementById('inpName');
         input.focus();
 
-        // ฟังก์ชันเมื่อกดปุ่ม Confirm
-        document.getElementById('btnConfirmName').onclick = () => {
-            let newName = input.value.trim();
-            
-            if (!newName) return; // ถ้าว่างเปล่า ไม่ทำอะไร
+  // ... (code ส่วนบนของ changeName เหมือนเดิม) ...
 
-            // เช็คความยาว
-            if (newName.length > 8) {
-                alert("⛔ ชื่อยาวเกินไป! (สูงสุด 8 ตัวอักษร)");
-                return;
-            }
+    document.getElementById('btnConfirmConfirm').onclick = () => { // เช็ค ID ปุ่มให้ตรงนะครับ
+        let newName = input.value.trim();
+        
+        if (!newName) return;
+        if (newName.length > 8) { alert("⛔ ชื่อยาวเกินไป!"); return; }
+        
+        const regex = /^[ก-๙a-zA-Z0-9]+$/;
+        if (!regex.test(newName)) { alert("⛔ ห้ามใช้อักขระพิเศษ"); return; }
 
-            // เช็คอักขระพิเศษ (ให้ใช้แค่ อังกฤษ ไทย ตัวเลข)
-            const regex = /^[ก-๙a-zA-Z0-9]+$/;
-            if (!regex.test(newName)) {
-                alert("⛔ ห้ามใช้อักขระพิเศษ หรือเว้นวรรค");
-                return;
-            }
+        // 1. บันทึกชื่อ
+        document.getElementById('uiPlayerName').innerText = newName.toUpperCase();
+        if(typeof saveGame === 'function') saveGame(); 
 
-            // ผ่าน! บันทึกชื่อลงจอ
-            document.getElementById('uiPlayerName').innerText = newName.toUpperCase();
-            
-            // เรียกฟังก์ชันบันทึกเกม (ถ้ามี)
-            if(typeof saveGame === 'function') saveGame(); 
+        // 2. ปิดหน้าต่าง
+        overlay.remove(); 
+        if(typeof playSfx === 'function') playSfx('win');
 
-            overlay.remove(); // ปิดหน้าต่าง
-            if(typeof playSfx === 'function') playSfx('win'); // เล่นเสียงวิ้งค์
-        };
+        // 3. เช็คว่าถ้าเป็นการบังคับ (User ใหม่) ให้พาเข้าแมพเลย!
+        if (isForced) {
+            nav('map'); 
+        }
     };
+
 
     </script>
 </body>
