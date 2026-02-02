@@ -6,161 +6,15 @@
     <title>CYBER RPG v7.0 (MiniKit)</title>
     
    <script type="module">
+    // เปลี่ยนเป็น @latest เพื่อดึงเวอร์ชันล่าสุดเสมอ หรือระบุ @1.9.9
     import { MiniKit } from "https://cdn.jsdelivr.net/npm/@worldcoin/minikit-js@latest/+esm";
-    import { ethers } from "https://cdn.ethers.io/lib/ethers-5.7.umd.min.js";
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
-    import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
-
+    
     const APP_ID = "app_6203a46daf3053d01617ef5293135678";
-    const WORLD_CHAIN_RPC = "https://worldchain-mainnet.g.alchemy.com/public";
-    const WLD_TOKEN_ADDRESS = "0x2cfc85d8e48f8eab294be644d9e25c3030863003";
-
-    const firebaseConfig = {
-        apiKey: "AIzaSyDPxiP-isMK4VOnwRip2RczXOnqxHSyPtk",
-        authDomain: "project-chaser-bc0bd.firebaseapp.com",
-        projectId: "project-chaser-bc0bd",
-        storageBucket: "project-chaser-bc0bd.firebasestorage.app",
-        messagingSenderId: "327717972073",
-        appId: "1:327717972073:web:49c32d904243569cd7daf8",
-        measurementId: "G-8B45RXBNED"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-    let REAL_USER_ID = null;
-
-    async function initMiniKit() {
-        try {
-            await MiniKit.install(APP_ID);
-            console.log("MiniKit ready");
-            console.log("MiniKit version:", MiniKit.version);
-        } catch (e) {
-            console.error("MiniKit install failed", e);
-        }
-    }
-    initMiniKit();
-
-    async function getUserWLDBalance(address) {
-        try {
-            const provider = new ethers.providers.JsonRpcProvider(WORLD_CHAIN_RPC);
-            const tokenContract = new ethers.Contract(
-                WLD_TOKEN_ADDRESS,
-                ["function balanceOf(address) view returns (uint256)"],
-                provider
-            );
-            const balanceRaw = await tokenContract.balanceOf(address);
-            const balance = ethers.utils.formatUnits(balanceRaw, 18);
-            return parseFloat(balance).toFixed(4);
-        } catch (err) {
-            console.error("Balance query error:", err);
-            return "0.00";
-        }
-    }
-
-    function applyUserProfile(user) {
-        if (user?.username) {
-            const displayName = user.username.toUpperCase().substring(0, 12);
-            document.getElementById('uiPlayerName').innerText = displayName;
-            document.getElementById('uiPlayerName').title = user.username;
-            window.currentUsername = user.username;
-        } else {
-            const fallback = "HUMAN-" + Math.floor(Math.random() * 9999);
-            document.getElementById('uiPlayerName').innerText = fallback;
-            window.currentUsername = fallback;
-        }
-
-        if (user?.profilePictureUrl) {
-            const avatarImg = document.querySelector('.avatar img');
-            if (avatarImg) avatarImg.src = user.profilePictureUrl;
-        }
-    }
-
-    window.cloudSave = async function(data) {
-        if(!REAL_USER_ID) return;
-        document.getElementById('cloud-loader').style.display = 'block';
-        try { await setDoc(doc(db, "users", REAL_USER_ID), data); } 
-        catch (e) { console.error("Save Error: ", e); }
-        document.getElementById('cloud-loader').style.display = 'none';
-    }
-
-    window.cloudLoad = async function(userId) {
-        REAL_USER_ID = userId;
-        document.getElementById('cloud-loader').style.display = 'block';
-        try {
-            const docRef = doc(db, "users", REAL_USER_ID);
-            const docSnap = await getDoc(docRef);
-            if (docSnap.exists()) window.applyGameData(docSnap.data());
-            else window.applyGameData(null);
-        } catch (e) {
-            console.error("Load Error: ", e);
-            window.applyGameData(null);
-        }
-        document.getElementById('cloud-loader').style.display = 'none';
-    }
-
-    document.getElementById('btnWorldID').onclick = async function() {
-        const status = document.getElementById('loginStatus');
-        status.innerText = "Connecting to World App...";
-        status.style.color = "#ff9d00";
-
-        if (!MiniKit.isInstalled()) {
-            const fakeID = "TEST_" + Date.now().toString(36);
-            applyUserProfile({ username: "TestHunter" + Math.floor(Math.random() * 1000) });
-            window.cloudLoad?.(fakeID);
-            playerWLD = 10.00;
-            updateBalance();
-            status.innerText = "Test Mode Active";
-            status.style.color = "#888";
-            return;
-        }
-
-        try {
-            const { finalPayload: walletPayload } = await MiniKit.commandsAsync.walletAuth({});
-
-            if (walletPayload.status === 'error') {
-                throw new Error(walletPayload.message || "Wallet Auth failed");
-            }
-
-            const user = MiniKit.user;
-            applyUserProfile(user);
-
-            const walletAddress = MiniKit.walletAddress || walletPayload.address;
-
-            let userId = walletAddress;
-            try {
-                const { finalPayload: verifyPayload } = await MiniKit.commandsAsync.verify({
-                    action: 'login',
-                    signal: '',
-                    verification_level: 'orb'
-                });
-                if (verifyPayload.status !== 'error') {
-                    userId = verifyPayload.nullifier_hash || userId;
-                }
-            } catch (verifyErr) {
-                console.warn("Verify optional failed", verifyErr);
-            }
-
-            if (walletAddress) {
-                const realBalance = await getUserWLDBalance(walletAddress);
-                playerWLD = parseFloat(realBalance);
-                updateBalance();
-            } else {
-                playerWLD = 0.00;
-                updateBalance();
-            }
-
-            status.innerText = `Welcome, ${user?.username || 'Human'}! Connected`;
-            status.style.color = "#00eaff";
-
-            window.cloudLoad?.(userId);
-            saveGame();
-
-        } catch (err) {
-            console.error("Login error:", err);
-            status.innerText = "Failed: " + (err.message || "Unknown");
-            status.style.color = "red";
-        }
-    };
+    
+    MiniKit.install(APP_ID);
+    
+    window.MiniKit = MiniKit;
+    console.log("MiniKit Module Loaded (Version: Latest)");
 </script>
 
     <style>
@@ -410,7 +264,12 @@
             </div>
         </div>
     </div>
-   
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-analytics.js";
+        import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
+
         const firebaseConfig = {
             apiKey: "AIzaSyDPxiP-isMK4VOnwRip2RczXOnqxHSyPtk",
             authDomain: "project-chaser-bc0bd.firebaseapp.com",
@@ -460,7 +319,52 @@
             console.log("MiniKit installed");
         }
     };
-   
+
+   document.getElementById('btnWorldID').onclick = async function() {
+    const status = document.getElementById('loginStatus');
+    status.innerText = "Processing...";
+    status.style.color = "#ff9d00"; // สีส้มตอนกำลังคิด
+
+    // 1. เช็คว่าโหลดเครื่องมือมาหรือยัง
+    if (!window.MiniKit) {
+        alert("Error: MiniKit not loaded. Check internet.");
+        return;
+    }
+
+    // 2. เช็คว่าเปิดใน World App จริงไหม?
+    if (!window.MiniKit.isInstalled()) {
+        // ถ้าเปิดในคอม/Browser มือถือ -> เข้าโหมดทดสอบ
+        alert("⚠️ Testing Mode (Outside App)\nGenerating Fake ID...");
+        const fakeID = "TEST_" + Math.floor(Math.random() * 9999);
+        if(window.cloudLoad) window.cloudLoad(fakeID);
+        return;
+    }
+
+    // 3. สั่งยืนยันตัวตน (คำสั่งใหม่ของ V7)
+    try {
+        const { finalPayload } = await window.MiniKit.commandsAsync.verify({
+            action: 'login',
+            signal: '', 
+            verification_level: 'orb' 
+        });
+
+        if (finalPayload.status === 'error') {
+            status.innerText = "Verification Failed";
+            status.style.color = "red";
+            console.error("Verify Error:", finalPayload);
+        } else {
+            // สำเร็จ!
+            status.innerText = "Success!";
+            status.style.color = "#00eaff";
+            // ส่งรหัส nullifier_hash ไปโหลดเซฟเกม
+            if(window.cloudLoad) window.cloudLoad(finalPayload.nullifier_hash);
+        }
+    } catch (error) {
+        console.error(error);
+        status.innerText = "Error occurred";
+        alert("Login Error: " + error.message);
+    }
+};
 
     // --- GAME LOGIC (ย่อ) ---
     let playerWLD = 10.00, playerCOIN = 0, playerMaxHP = 20, playerCurrentHP = 20, playerLevel = 1, playerEXP = 0, currentMonsterType = 'common'; 
@@ -477,40 +381,8 @@
         { id: 8, name: "GOLDEN DRAGON", hp: 50, type: "legendary", loc: "Sky Realm", url:"https://github.com/user-attachments/assets/b8379da1-b55e-4c8f-bcfb-e68eaae581ed" }
     ];
     
-    function saveGame() {
-    const gameData = {
-        coin: playerCOIN,
-        wld: playerWLD,
-        level: playerLevel,
-        exp: playerEXP,
-        hp: playerCurrentHP,
-        username: window.currentUsername || document.getElementById('uiPlayerName').innerText
-    };
-    if (window.cloudSave) window.cloudSave(gameData);
-}
-
-window.applyGameData = function(data) {
-    if (data) {
-        playerCOIN = parseInt(data.coin)||0;
-        playerWLD = parseFloat(data.wld)||0.00;
-        playerLevel = parseInt(data.level)||1;
-        playerEXP = parseInt(data.exp)||0;
-        playerMaxHP = 20 + ((playerLevel - 1) * 2);
-        playerCurrentHP = parseInt(data.hp)||playerMaxHP;
-        if(playerCurrentHP>playerMaxHP) playerCurrentHP=playerMaxHP;
-        if(playerCurrentHP<=0) playerCurrentHP=playerMaxHP;
-
-        if (data.username) {
-            document.getElementById('uiPlayerName').innerText = data.username.toUpperCase();
-            window.currentUsername = data.username;
-        }
-    } else {
-        playerCOIN=0; playerWLD=0.00; playerLevel=1; playerEXP=0; playerMaxHP=20; playerCurrentHP=20;
-    }
-    updateBalance(); updateLobbyStats(); initMap(); nav('home');
-    const shortID = "HUMAN-" + (data ? "PRO" : Math.floor(Math.random()*999)); 
-    if (!window.currentUsername) document.getElementById('uiPlayerName').innerText = shortID;
-};
+    function saveGame() { const gameData = { coin: playerCOIN, wld: playerWLD, level: playerLevel, exp: playerEXP, hp: playerCurrentHP }; if(window.cloudSave) window.cloudSave(gameData); }
+    window.applyGameData = function(data) { if (data) { playerCOIN = parseInt(data.coin)||0; playerWLD = parseFloat(data.wld)||10.00; playerLevel = parseInt(data.level)||1; playerEXP = parseInt(data.exp)||0; playerMaxHP = 20 + ((playerLevel - 1) * 2); playerCurrentHP = parseInt(data.hp)||playerMaxHP; if(playerCurrentHP>playerMaxHP) playerCurrentHP=playerMaxHP; if(playerCurrentHP<=0) playerCurrentHP=playerMaxHP; } else { playerCOIN=0; playerWLD=10.00; playerLevel=1; playerEXP=0; playerMaxHP=20; playerCurrentHP=20; } updateBalance(); updateLobbyStats(); initMap(); nav('home'); const shortID = "HUMAN-" + (data ? "PRO" : Math.floor(Math.random()*999)); document.getElementById('uiPlayerName').innerText = shortID; }
 
     document.getElementById('btnWallet').onclick = openExchangeModal;
     document.getElementById('btnStartGame').onclick = () => nav('map');
@@ -533,12 +405,7 @@ window.applyGameData = function(data) {
 
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     function playSfx(type) { if(audioCtx.state === 'suspended') audioCtx.resume(); const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain(); const now = audioCtx.currentTime; osc.connect(gain); gain.connect(audioCtx.destination); if (type === 'click') { osc.type = 'triangle'; osc.frequency.setValueAtTime(800, now); gain.gain.setValueAtTime(0.3, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1); osc.start(now); osc.stop(now + 0.1); } else if (type === 'place') { osc.type = 'sine'; osc.frequency.setValueAtTime(200, now); gain.gain.setValueAtTime(0.5, now); gain.gain.linearRampToValueAtTime(0, now + 0.1); osc.start(now); osc.stop(now + 0.1); } else if (type === 'hit') { osc.type = 'sawtooth'; osc.frequency.setValueAtTime(150, now); osc.frequency.exponentialRampToValueAtTime(10, now + 0.4); gain.gain.setValueAtTime(0.3, now); gain.gain.linearRampToValueAtTime(0, now + 0.4); osc.start(now); osc.stop(now + 0.4); } else if (type === 'win') { osc.type = 'triangle'; osc.frequency.setValueAtTime(440, now); osc.frequency.setValueAtTime(554, now + 0.1); osc.frequency.setValueAtTime(659, now + 0.2); gain.gain.setValueAtTime(0.9, now); gain.gain.linearRampToValueAtTime(0, now + 0.5); osc.start(now); osc.stop(now + 0.5); } }
-    function updateBalance() {
-    const elCoin = document.getElementById('uiCoin');
-    const elWLD = document.getElementById('uiWLD');
-    if (elCoin) elCoin.innerText = playerCOIN;
-    if (elWLD) elWLD.innerText = playerWLD.toFixed(2);
-}
+    function updateBalance() { const elCoin = document.getElementById('uiCoin'); const elWLD = document.getElementById('uiWLD'); if(elCoin) elCoin.innerText = playerCOIN; if(elWLD) elWLD.innerText = playerWLD.toFixed(2); }
     function updateLobbyStats() { const elLevel = document.getElementById('uiLevel'); const elExp = document.getElementById('uiExp'); const elHP = document.getElementById('uiLobbyHP'); if (!levelConfig[playerLevel]) { if(elLevel) { elLevel.innerText = "LV.MAX"; elLevel.style.color = "#ffd700"; elLevel.style.border = "1px solid #ffd700"; } if(elExp) elExp.innerText = "----/---- XP"; } else { if(elLevel) { elLevel.innerText = "LV." + playerLevel; elLevel.style.color = "#00eaff"; elLevel.style.border = "none"; } if(elExp) { const nextNeed = levelConfig[playerLevel].need; elExp.innerText = `${playerEXP}/${nextNeed} XP`; } } if(elHP) elHP.innerText = `${playerCurrentHP}/${playerMaxHP}`; }
     function nav(target) { document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); let screenId = 'screen-' + target; if(target === 'home') screenId = 'screen-lobby'; const targetScreen = document.getElementById(screenId); if(targetScreen) targetScreen.classList.add('active'); updateBalance(); updateLobbyStats(); }
     function initMap() { const container = document.getElementById('monster-list-container'); if(!container) return; container.innerHTML = ''; monsterDB.forEach(m => { let cardClass = 'rank-common'; let badgeStyle = ''; let infoExtra = ''; if(m.type === 'miniboss') { cardClass = 'rank-miniboss'; badgeStyle = 'color:#00eaff; border-color:#00eaff;'; infoExtra = '<p style="color:#00eaff; font-size:0.7rem; font-weight:bold;">★ MINI BOSS</p>'; } else if (m.type === 'boss') { cardClass = 'rank-boss'; badgeStyle = 'background:#ffd700; color:black; font-weight:bold; border:none;'; infoExtra = '<p style="color:#ffd700; font-weight:bold; font-size:0.7rem;">☠️ WORLD BOSS</p>'; } else if (m.type === 'legendary') { cardClass = 'rank-legendary'; badgeStyle = 'background:white; color:#FF8C00; font-weight:900; border:none; box-shadow: 0 0 10px white;'; infoExtra = '<p style="color:white; font-weight:900; font-size:0.8rem; text-shadow: 0 1px 2px black;">👑 LEGENDARY BOSS</p>'; } container.innerHTML += `<div class="monster-card ${cardClass}" onclick="prepareBattle(${m.id})"><div style="display:flex; align-items:center;"><img src="${m.url}" class="m-avatar"><div class="m-info"><h3>${m.name}</h3>${infoExtra}<p>${m.loc} • HP: ${m.hp}</p></div></div><div class="hp-badge" style="${badgeStyle}">HP: ${m.hp}</div></div>`; }); }
