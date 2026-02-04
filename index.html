@@ -278,20 +278,36 @@
             document.getElementById('cloud-loader').style.display = 'none';
         }
 
-        window.cloudLoad = async function(worldID) {
-            REAL_USER_ID = worldID;
-            document.getElementById('cloud-loader').style.display = 'block';
-            try {
-                const docRef = doc(db, "users", REAL_USER_ID);
-                const docSnap = await getDoc(docRef);
-                if (docSnap.exists()) window.applyGameData(docSnap.data());
-                else window.applyGameData(null);
-            } catch (e) {
-                console.error("Load Error: ", e);
-                window.applyGameData(null);
-            }
-            document.getElementById('cloud-loader').style.display = 'none';
+       window.cloudLoad = async function(worldID) {
+    alert("เริ่ม cloudLoad สำหรับ ID: " + worldID);  // 1. ถึงจุดนี้ไหม
+
+    REAL_USER_ID = worldID;
+    document.getElementById('cloud-loader').style.display = 'block';
+
+    try {
+        alert("กำลังดึงข้อมูลจาก Firebase...");  // 2. เริ่ม getDoc
+
+        const docRef = doc(db, "users", REAL_USER_ID);
+        const docSnap = await getDoc(docRef);
+
+        alert("ดึงข้อมูลเสร็จแล้ว\nมีข้อมูลไหม: " + docSnap.exists());  // 3. ได้ผลลัพธ์ไหม
+
+        if (docSnap.exists()) {
+            alert("พบข้อมูลเก่า กำลังโหลด...");
+            window.applyGameData(docSnap.data());
+        } else {
+            alert("ไม่มีข้อมูลเก่า ใช้ค่าเริ่มต้น");
+            window.applyGameData(null);
         }
+    } catch (e) {
+        alert("เกิดข้อผิดพลาดตอนโหลด:\n" + e.message);  // 4. ถ้าติด error จะเห็นตรงนี้
+        console.error("Load Error:", e);
+        window.applyGameData(null);
+    }
+
+    document.getElementById('cloud-loader').style.display = 'none';
+    alert("โหลดข้อมูลเสร็จสิ้น!");  // 5. ถึงจุดนี้แปลว่า cloudLoad จบแล้ว
+};
     </script>
 
     <script>
