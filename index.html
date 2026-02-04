@@ -385,32 +385,53 @@
     if (window.cloudSave) window.cloudSave(gameData);
 }
     
-      window.applyGameData = function(data) {
+     window.applyGameData = function(data) {
+    // กำหนดค่าเริ่มต้นก่อน
+    playerCOIN = 0;
+    playerWLD = 10.00;
+    playerLevel = 1;
+    playerEXP = 0;
+    playerMaxHP = 20;
+    playerCurrentHP = 20;
+
+    // ถ้ามีข้อมูลจาก cloud (data ไม่เป็น null/undefined)
     if (data) {
         playerCOIN = parseInt(data.coin) || 0;
         playerWLD = parseFloat(data.wld) || 10.00;
         playerLevel = parseInt(data.level) || 1;
         playerEXP = parseInt(data.exp) || 0;
+
+        // คำนวณ HP สูงสุดตามเลเวล
         playerMaxHP = 20 + ((playerLevel - 1) * 2);
+
+        // โหลด HP ปัจจุบัน และป้องกันค่าผิดปกติ
         playerCurrentHP = parseInt(data.hp) || playerMaxHP;
         if (playerCurrentHP > playerMaxHP) playerCurrentHP = playerMaxHP;
         if (playerCurrentHP <= 0) playerCurrentHP = playerMaxHP;
 
-        // เพิ่มส่วนนี้
+        // โหลดชื่อผู้เล่น (ถ้ามีในข้อมูล cloud)
         if (data.name) {
             document.getElementById('uiPlayerName').innerText = data.name;
+        } else {
+            // ถ้าไม่มีชื่อใน cloud ให้ใช้ fallback ชั่วคราว
+            const shortID = "HUMAN-" + Math.floor(Math.random() * 9999);
+            document.getElementById('uiPlayerName').innerText = shortID;
         }
     } else {
-        // ... ค่า default เดิม ...
+        // ถ้าไม่มีข้อมูล (ผู้ใช้ใหม่) → ตั้งชื่อเริ่มต้นแบบสุ่ม
+        const shortID = "HUMAN-" + Math.floor(Math.random() * 9999);
+        document.getElementById('uiPlayerName').innerText = shortID;
     }
 
+    // อัปเดต UI ทุกส่วนที่เกี่ยวข้อง
     updateBalance();
     updateLobbyStats();
     initMap();
-    nav('home');
-    // ถ้ายังไม่มีชื่อ ให้บังคับเปลี่ยนชื่อ (แต่ตอนนี้มีแล้วก็ไม่ต้อง)
-};
 
+    // ไปที่หน้าหลัก (lobby)
+    nav('home');
+}; 
+        
     function openExchangeModal() {
         const oldModal = document.getElementById('exchangeModal'); if (oldModal) oldModal.remove();
         const overlay = document.createElement('div'); overlay.id = 'exchangeModal'; overlay.style.cssText = `position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 10000; display: flex; justify-content: center; align-items: center; backdrop-filter: blur(8px);`;
