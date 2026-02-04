@@ -307,12 +307,12 @@
             }
 
             if (!window.MiniKit.isInstalled()) {
-                alert("⚠️ Testing Mode (Outside App)\nGenerating Fake ID...");
-                const fakeID = "TEST_" + Math.floor(Math.random() * 9999);
-                playerWalletAddress = "0xFakeWalletForTest"; // สำหรับทดสอบ
-                if(window.cloudLoad) window.cloudLoad(fakeID);
-                return;
-            }
+    alert("⚠️ Testing Mode");
+    const fakeID = "TEST_9999"; // ใช้ ID เดียวกันทุกครั้งเพื่อทดสอบ
+    playerWalletAddress = "0xTestWallet0000";
+    window.cloudLoad(fakeID);
+    return;
+}
 
             try {
                 const { finalPayload } = await window.MiniKit.commandsAsync.verify({
