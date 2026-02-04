@@ -355,12 +355,22 @@
             status.style.color = "red";
             console.error("Verify Error:", finalPayload);
         } else {
-            // สำเร็จ!
-            status.innerText = "Success!";
-            status.style.color = "#00eaff";
-            // ส่งรหัส nullifier_hash ไปโหลดเซฟเกม
-            if(window.cloudLoad) window.cloudLoad(finalPayload.nullifier_hash);
-        }
+    // สำเร็จ!
+    status.innerText = "Success!";
+    status.style.color = "#00eaff";
+
+    // ตั้งชื่อทันที (ถ้าใช้ verify จริง)
+    if (finalPayload && finalPayload.nullifier_hash) {
+        const shortId = "HUNTER-" + finalPayload.nullifier_hash.substring(0, 6).toUpperCase();
+        document.getElementById('uiPlayerName').innerText = shortId;
+    } else {
+        // โหมดทดสอบ หรือกรณีไม่มี nullifier
+        document.getElementById('uiPlayerName').innerText = "TESTER-" + Math.floor(Math.random() * 9999);
+    }
+
+    // โหลดข้อมูลเซฟ (ถ้ามี name ใน cloud จะ override ด้านล่าง)
+    if (window.cloudLoad) window.cloudLoad(finalPayload?.nullifier_hash || fakeID || "unknown");
+}
     } catch (error) {
         console.error(error);
         status.innerText = "Error occurred";
@@ -391,47 +401,69 @@
         level: playerLevel,
         exp: playerEXP,
         hp: playerCurrentHP,
-        name: playerName,  // ชื่อจาก World App username
+        name: playerName,  // สำคัญ! บันทึกชื่อที่แสดงอยู่
         updatedAt: new Date().toISOString()
     };
     if (window.cloudSave) window.cloudSave(gameData);
 }
-     window.applyGameData = function(data) {
+     
+      window.applyGameData = function(data) {
+    console.log("applyGameData called with data:", data); // ช่วย debug ดูว่าข้อมูลมาถึงไหม
+
     if (data) {
+        // โหลดข้อมูลตัวเลขต่าง ๆ
         playerCOIN = parseInt(data.coin) || 0;
         playerWLD = parseFloat(data.wld) || 10.00;
         playerLevel = parseInt(data.level) || 1;
         playerEXP = parseInt(data.exp) || 0;
+        
+        // คำนวณ HP ตามเลเวล
         playerMaxHP = 20 + ((playerLevel - 1) * 2);
         playerCurrentHP = parseInt(data.hp) || playerMaxHP;
 
+        // ป้องกัน HP เกิน/ติดลบ
         if (playerCurrentHP > playerMaxHP) playerCurrentHP = playerMaxHP;
         if (playerCurrentHP <= 0) playerCurrentHP = playerMaxHP;
 
-        // จัดการชื่อผู้เล่น
+        // จัดการชื่อผู้เล่น (สำคัญ!)
+        const uiName = document.getElementById('uiPlayerName');
         if (data.name && data.name.trim() !== "") {
-            // ถ้ามีชื่อใน cloud → ใช้ชื่อนั้นเลย (สำคัญที่สุด)
-            document.getElementById('uiPlayerName').innerText = data.name.toUpperCase();
+            // ถ้ามีชื่อใน cloud save → ใช้ชื่อนั้นเลย (ความสำคัญสูงสุด)
+            uiName.innerText = data.name.toUpperCase();
+            console.log("ใช้ชื่อจาก cloud:", data.name);
+        } 
+        // ถ้าไม่มีชื่อใน cloud → จะใช้ชื่อที่ตั้งไว้ตอน login แล้ว (เช่น HUNTER-XXXXXX จาก nullifier_hash)
+        // ไม่ต้องทำอะไรเพิ่ม เพราะตอน login เราตั้งชื่อไว้แล้ว
+
+        // ถ้าชื่อยังเป็นค่าเริ่มต้น (PLAYER) ให้ fallback เป็นชื่อทดสอบ
+        if (uiName.innerText === "PLAYER" || uiName.innerText.trim() === "") {
+            uiName.innerText = "GUEST-" + Math.floor(Math.random() * 9999);
+            console.log("fallback ชื่อเป็น:", uiName.innerText);
         }
-        // ถ้าไม่มีชื่อใน cloud → ชื่อจาก World App (ที่ตั้งไว้ตอน login) จะยังอยู่ ไม่ต้องทำอะไรเพิ่ม
     } else {
-        // ข้อมูลใหม่ (ไม่มีเซฟ) → ใช้ชื่อจาก World App ที่ได้มาตอน login แล้ว
+        // ไม่มีข้อมูลเซฟ (ผู้ใช้ใหม่หรือเซฟหาย)
         playerCOIN = 0;
         playerWLD = 10.00;
         playerLevel = 1;
         playerEXP = 0;
         playerMaxHP = 20;
         playerCurrentHP = 20;
-        // ไม่ต้องตั้งชื่อใหม่ เพราะ login แล้วมีชื่อจาก World App อยู่แล้ว
+
+        // ตั้งชื่อเริ่มต้นสำหรับผู้ใช้ใหม่
+        const uiName = document.getElementById('uiPlayerName');
+        uiName.innerText = "NEW-HUNTER";
+        console.log("ผู้ใช้ใหม่ ชื่อตั้งเป็น NEW-HUNTER");
     }
 
+    // อัพเดท UI ทุกอย่างให้แสดงค่าล่าสุด
     updateBalance();
     updateLobbyStats();
     initMap();
-    nav('home');
-};
+    nav('home');  // เข้าหน้า lobby
 
-    document.getElementById('btnWallet').onclick = openExchangeModal;
+    console.log("applyGameData เสร็จสิ้น ชื่อปัจจุบัน:", document.getElementById('uiPlayerName').innerText);
+}; 
+       document.getElementById('btnWallet').onclick = openExchangeModal;
     document.getElementById('btnStartGame').onclick = () => nav('map');
     document.getElementById('btnCloseMap').onclick = () => nav('home');
 
