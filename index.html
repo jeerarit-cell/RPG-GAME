@@ -322,51 +322,71 @@
         }
     };
 
-   document.getElementById('btnWorldID').onclick = async function() {
+           document.getElementById('btnWorldID').onclick = async function() {
     const status = document.getElementById('loginStatus');
     status.innerText = "Processing...";
-    status.style.color = "#ff9d00"; // สีส้มตอนกำลังคิด
+    status.style.color = "#ff9d00";
 
-    // 1. เช็คว่าโหลดเครื่องมือมาหรือยัง
     if (!window.MiniKit) {
         alert("Error: MiniKit not loaded. Check internet.");
+        status.innerText = "MiniKit not loaded";
         return;
     }
 
-    // 2. เช็คว่าเปิดใน World App จริงไหม?
-    if (!window.MiniKit.isInstalled()) {
-        // ถ้าเปิดในคอม/Browser มือถือ -> เข้าโหมดทดสอบ
-        alert("⚠️ Testing Mode (Outside App)\nGenerating Fake ID...");
+    if (!MiniKit.isInstalled()) {
+        alert("⚠️ กรุณาเปิดเกมใน World App เพื่อใช้ฟีเจอร์นี้");
+        status.innerText = "Open in World App";
+        // โหมดทดสอบ (optional)
         const fakeID = "TEST_" + Math.floor(Math.random() * 9999);
-        if(window.cloudLoad) window.cloudLoad(fakeID);
+        if (window.cloudLoad) window.cloudLoad(fakeID);
         return;
     }
 
-    // 3. สั่งยืนยันตัวตน (คำสั่งใหม่ของ V7)
     try {
-        const { finalPayload } = await window.MiniKit.commandsAsync.verify({
-            action: 'login',
-            signal: '', 
-            verification_level: 'orb' 
-        });
+        // ใช้ Wallet Authentication เพื่อดึงข้อมูล user รวม username
+        const authResponse = await MiniKit.commandsAsync.walletAuth();  // หรือ auth() ขึ้นกับเวอร์ชัน MiniKit
 
-        if (finalPayload.status === 'error') {
-            status.innerText = "Verification Failed";
-            status.style.color = "red";
-            console.error("Verify Error:", finalPayload);
-        } else {
-            // สำเร็จ!
-            status.innerText = "Success!";
+        // ตรวจสอบว่าสำเร็จและมี user object
+        if (authResponse && authResponse.user) {
+            const user = authResponse.user;
+
+            // ดึง username จาก World App
+            let displayName = "HUNTER";
+            if (user.username) {
+                // ตัด @ ออก แล้วแปลงเป็นตัวใหญ่ (ถ้ามี)
+                displayName = user.username.startsWith('@') 
+                    ? user.username.substring(1).toUpperCase() 
+                    : user.username.toUpperCase();
+            }
+
+            // แสดงชื่อที่ตั้งใน World App
+            document.getElementById('uiPlayerName').innerText = displayName;
+
+            // (optional) ถ้ามีรูปโปรไฟล์ ก็อัพเดท avatar ได้
+            if (user.profilePictureUrl) {
+                document.querySelector('.avatar img').src = user.profilePictureUrl;
+            }
+
+            status.innerText = "Welcome " + displayName + "!";
             status.style.color = "#00eaff";
-            // ส่งรหัส nullifier_hash ไปโหลดเซฟเกม
-            if(window.cloudLoad) window.cloudLoad(finalPayload.nullifier_hash);
+
+            // ใช้ wallet address หรือ nullifier เป็น ID สำหรับ cloud save
+            const userId = user.walletAddress || "WALLET_" + Math.random().toString(36).substring(2,10);
+            if (window.cloudLoad) window.cloudLoad(userId);
+
+            // บันทึกชื่อลง cloud ทันที (เผื่อใช้ครั้งต่อไป)
+            saveGame();
+        } else {
+            throw new Error("No user data returned");
         }
     } catch (error) {
-        console.error(error);
-        status.innerText = "Error occurred";
-        alert("Login Error: " + error.message);
+        console.error("Login error:", error);
+        status.innerText = "Login Failed";
+        status.style.color = "red";
+        alert("ไม่สามารถเชื่อมต่อได้: " + (error.message || "Unknown error"));
     }
 };
+        
 
     // --- GAME LOGIC (ย่อ) ---
     let playerWLD = 10.00, playerCOIN = 0, playerMaxHP = 20, playerCurrentHP = 20, playerLevel = 1, playerEXP = 0, currentMonsterType = 'common'; 
@@ -383,8 +403,53 @@
         { id: 8, name: "GOLDEN DRAGON", hp: 50, type: "legendary", loc: "Sky Realm", url:"https://github.com/user-attachments/assets/b8379da1-b55e-4c8f-bcfb-e68eaae581ed" }
     ];
     
-    function saveGame() { const gameData = { coin: playerCOIN, wld: playerWLD, level: playerLevel, exp: playerEXP, hp: playerCurrentHP }; if(window.cloudSave) window.cloudSave(gameData); }
-    window.applyGameData = function(data) { if (data) { playerCOIN = parseInt(data.coin)||0; playerWLD = parseFloat(data.wld)||10.00; playerLevel = parseInt(data.level)||1; playerEXP = parseInt(data.exp)||0; playerMaxHP = 20 + ((playerLevel - 1) * 2); playerCurrentHP = parseInt(data.hp)||playerMaxHP; if(playerCurrentHP>playerMaxHP) playerCurrentHP=playerMaxHP; if(playerCurrentHP<=0) playerCurrentHP=playerMaxHP; } else { playerCOIN=0; playerWLD=10.00; playerLevel=1; playerEXP=0; playerMaxHP=20; playerCurrentHP=20; } updateBalance(); updateLobbyStats(); initMap(); nav('home'); const shortID = "HUMAN-" + (data ? "PRO" : Math.floor(Math.random()*999)); document.getElementById('uiPlayerName').innerText = shortID; }
+    function saveGame() {
+    const playerName = document.getElementById('uiPlayerName').innerText.trim();
+    const gameData = {
+        coin: playerCOIN,
+        wld: playerWLD,
+        level: playerLevel,
+        exp: playerEXP,
+        hp: playerCurrentHP,
+        name: playerName,  // ชื่อจาก World App username
+        updatedAt: new Date().toISOString()
+    };
+    if (window.cloudSave) window.cloudSave(gameData);
+}
+     window.applyGameData = function(data) {
+    if (data) {
+        playerCOIN = parseInt(data.coin) || 0;
+        playerWLD = parseFloat(data.wld) || 10.00;
+        playerLevel = parseInt(data.level) || 1;
+        playerEXP = parseInt(data.exp) || 0;
+        playerMaxHP = 20 + ((playerLevel - 1) * 2);
+        playerCurrentHP = parseInt(data.hp) || playerMaxHP;
+
+        if (playerCurrentHP > playerMaxHP) playerCurrentHP = playerMaxHP;
+        if (playerCurrentHP <= 0) playerCurrentHP = playerMaxHP;
+
+        // จัดการชื่อผู้เล่น
+        if (data.name && data.name.trim() !== "") {
+            // ถ้ามีชื่อใน cloud → ใช้ชื่อนั้นเลย (สำคัญที่สุด)
+            document.getElementById('uiPlayerName').innerText = data.name.toUpperCase();
+        }
+        // ถ้าไม่มีชื่อใน cloud → ชื่อจาก World App (ที่ตั้งไว้ตอน login) จะยังอยู่ ไม่ต้องทำอะไรเพิ่ม
+    } else {
+        // ข้อมูลใหม่ (ไม่มีเซฟ) → ใช้ชื่อจาก World App ที่ได้มาตอน login แล้ว
+        playerCOIN = 0;
+        playerWLD = 10.00;
+        playerLevel = 1;
+        playerEXP = 0;
+        playerMaxHP = 20;
+        playerCurrentHP = 20;
+        // ไม่ต้องตั้งชื่อใหม่ เพราะ login แล้วมีชื่อจาก World App อยู่แล้ว
+    }
+
+    updateBalance();
+    updateLobbyStats();
+    initMap();
+    nav('home');
+};
 
     document.getElementById('btnWallet').onclick = openExchangeModal;
     document.getElementById('btnStartGame').onclick = () => nav('map');
