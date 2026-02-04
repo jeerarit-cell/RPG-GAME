@@ -362,7 +362,7 @@
             window.lastLoginName = displayName; // เก็บไว้ใช้ใน applyGameData
 
             // โหลดข้อมูลเซฟ
-            if (window.cloudLoad) window.cloudLoad(finalPayload.nullifier_hash);
+            if (window.cloudLoad){ await window.cloudLoad(finalPayload.nullifier_hash);}
 
             // บันทึกชื่อลง cloud ทันที
             saveGame();
