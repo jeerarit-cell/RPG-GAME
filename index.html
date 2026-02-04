@@ -268,6 +268,7 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
         let REAL_USER_ID = null;
+        let playerWalletAddress = null; // ตัวแปรสำหรับเก็บ wallet address (จะดึงจาก MiniKit ในอนาคต)
 
         window.cloudSave = async function(data) {
             if(!REAL_USER_ID) return;
@@ -294,7 +295,7 @@
     </script>
 
     <script>
-        // MiniKit login
+        // MiniKit login + ดึง wallet address (ส่วนนี้ยังสมมติ ถ้ามี API จริงค่อยเปลี่ยน)
         document.getElementById('btnWorldID').onclick = async function() {
             const status = document.getElementById('loginStatus');
             status.innerText = "Processing...";
@@ -308,6 +309,7 @@
             if (!window.MiniKit.isInstalled()) {
                 alert("⚠️ Testing Mode (Outside App)\nGenerating Fake ID...");
                 const fakeID = "TEST_" + Math.floor(Math.random() * 9999);
+                playerWalletAddress = "0xFakeWalletForTest"; // สำหรับทดสอบ
                 if(window.cloudLoad) window.cloudLoad(fakeID);
                 return;
             }
@@ -326,6 +328,12 @@
                 } else {
                     status.innerText = "Success!";
                     status.style.color = "#00eaff";
+
+                    // ดึง wallet address จาก MiniKit (ส่วนนี้ยังสมมติ ถ้ามี API จริงให้แทนที่)
+                    // ตัวอย่าง: playerWalletAddress = await MiniKit.getWalletAddress();
+                    // ตอนนี้เรายังไม่มี API จริง เลยเว้นว่างไว้ก่อน
+                    playerWalletAddress = null; // หรือ "กำลังเชื่อมต่อ..."
+
                     if(window.cloudLoad) window.cloudLoad(finalPayload.nullifier_hash);
                 }
             } catch (error) {
@@ -395,7 +403,6 @@
             nav('home');
         };
 
-        // Audio SFX
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         function playSfx(type) {
             if (audioCtx.state === 'suspended') audioCtx.resume();
@@ -494,7 +501,7 @@
             initBattleState();
         };
 
-        // Battle logic
+        // Battle logic (ครบเหมือนเดิม)
         let battle_eMaxHP = 20, battle_eHP = 20;
         let battle_pDeck = [], battle_eDeck = [];
         let battle_placedCards = [null, null, null, null, null];
@@ -747,7 +754,47 @@
             overlay.style.cssText = `position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 10000; display: flex; justify-content: center; align-items: center; backdrop-filter: blur(8px);`;
             const box = document.createElement('div');
             box.style.cssText = `background: #111; border: 1px solid #00eaff; width: 90%; max-width: 400px; padding: 20px; border-radius: 12px; font-family: 'Kanit', sans-serif; box-shadow: 0 0 30px rgba(0, 234, 255, 0.2); position: relative;`;
-            box.innerHTML = `<div style="position:absolute; top:10px; right:15px; color:#666; cursor:pointer; font-size:1.5rem;" onclick="document.getElementById('exchangeModal').remove()">×</div><h2 style="color:#00eaff; margin:0 0 20px 0; font-family:'Orbitron'; text-align:center;">EXCHANGE</h2><div style="display:flex; justify-content:space-around; margin-bottom:20px; border-bottom:1px solid #333; padding-bottom:10px;"><div id="tabBuy" style="color:#00eaff; cursor:pointer; font-weight:bold; border-bottom:2px solid #00eaff; flex:1; text-align:center;">BUY COINS</div><div id="tabSell" style="color:#666; cursor:pointer; flex:1; text-align:center;">SELL COINS</div></div><div id="panelBuy"><p style="color:#aaa; font-size:0.8rem; text-align:center;">RATE: 1 WLD = 1000 COINS</p><div style="background:#222; padding:15px; border-radius:8px; margin:10px 0;"><label style="color:#fff; display:block; margin-bottom:5px;">จ่าย WLD</label><input type="number" id="inpBuyWLD" value="0.03" step="0.01" style="width:100%; background:#000; border:1px solid #444; color:#fff; padding:10px; font-size:1.2rem; font-family:'Orbitron'; text-align:center;"><p style="color:#666; font-size:0.7rem; margin-top:5px; text-align:right;">Min: 0.03 WLD</p></div><div style="text-align:center; color:#fff; margin-bottom:15px;">⬇ ได้รับ ⬇ <br><span id="txtGetCoin" style="color:#ffd700; font-size:1.5rem; font-family:'Orbitron';">30</span> COINS</div><button id="btnConfirmBuy" class="main-btn" style="width:100%;">CONFIRM EXCHANGE</button></div><div id="panelSell" style="display:none;"><p style="color:#aaa; font-size:0.8rem; text-align:center;">RATE: 1100 COINS = 1 WLD</p><div style="background:#222; padding:15px; border-radius:8px; margin:10px 0;"><label style="color:#fff; display:block; margin-bottom:5px;">จ่าย COINS</label><input type="number" id="inpSellCoin" value="110" step="10" style="width:100%; background:#000; border:1px solid #444; color:#fff; padding:10px; font-size:1.2rem; font-family:'Orbitron'; text-align:center;"><p style="color:#666; font-size:0.7rem; margin-top:5px; text-align:right;">Min: 110 COINS</p></div><div style="text-align:center; color:#fff; margin-bottom:15px;">⬇ ได้รับ ⬇ <br><span id="txtGetWLD" style="color:#00eaff; font-size:1.5rem; font-family:'Orbitron';">0.10</span> WLD</div><button id="btnConfirmSell" class="main-btn" style="width:100%; background:#333; border:1px solid #666;">CONFIRM SELL</button></div>`;
+            box.innerHTML = `
+                <div style="position:absolute; top:10px; right:15px; color:#666; cursor:pointer; font-size:1.5rem;" onclick="document.getElementById('exchangeModal').remove()">×</div>
+                <h2 style="color:#00eaff; margin:0 0 20px 0; font-family:'Orbitron'; text-align:center;">EXCHANGE</h2>
+                <div style="display:flex; justify-content:space-around; margin-bottom:20px; border-bottom:1px solid #333; padding-bottom:10px;">
+                    <div id="tabBuy" style="color:#00eaff; cursor:pointer; font-weight:bold; border-bottom:2px solid #00eaff; flex:1; text-align:center;">BUY COINS</div>
+                    <div id="tabSell" style="color:#666; cursor:pointer; flex:1; text-align:center;">SELL COINS</div>
+                </div>
+
+                <div id="panelBuy">
+                    <p style="color:#aaa; font-size:0.8rem; text-align:center;">RATE: 1 WLD = 1000 COINS</p>
+                    <div style="background:#222; padding:15px; border-radius:8px; margin:10px 0;">
+                        <label style="color:#fff; display:block; margin-bottom:5px;">จ่าย WLD</label>
+                        <input type="number" id="inpBuyWLD" value="0.03" step="0.01" style="width:100%; background:#000; border:1px solid #444; color:#fff; padding:10px; font-size:1.2rem; font-family:'Orbitron'; text-align:center;">
+                        <p style="color:#666; font-size:0.7rem; margin-top:5px; text-align:right;">Min: 0.03 WLD</p>
+                    </div>
+                    <div style="text-align:center; color:#fff; margin-bottom:15px;">⬇ ได้รับ ⬇ <br><span id="txtGetCoin" style="color:#ffd700; font-size:1.5rem; font-family:'Orbitron';">30</span> COINS</div>
+                    <button id="btnConfirmBuy" class="main-btn" style="width:100%;">CONFIRM EXCHANGE</button>
+                </div>
+
+                <div id="panelSell" style="display:none;">
+                    <p style="color:#aaa; font-size:0.8rem; text-align:center;">RATE: 1100 COINS = 1 WLD</p>
+                    <div style="background:#222; padding:15px; border-radius:8px; margin:10px 0;">
+                        <label style="color:#fff; display:block; margin-bottom:5px;">จ่าย COINS</label>
+                        <input type="number" id="inpSellCoin" value="110" step="10" style="width:100%; background:#000; border:1px solid #444; color:#fff; padding:10px; font-size:1.2rem; font-family:'Orbitron'; text-align:center;">
+                        <p style="color:#666; font-size:0.7rem; margin-top:5px; text-align:right;">Min: 110 COINS</p>
+                    </div>
+
+                    <!-- ช่อง wallet address - เว้นว่างไว้ก่อน -->
+                    <div style="background:#222; padding:15px; border-radius:8px; margin:10px 0;">
+                        <label style="color:#fff; display:block; margin-bottom:5px;">Worldcoin Wallet Address</label>
+                        <input type="text" id="inpWalletAddress" placeholder="กำลังเชื่อมต่อจาก World App..." disabled style="width:100%; background:#222; border:1px solid #444; color:#888; padding:10px; font-size:1rem; font-family:'Orbitron'; text-align:center;" value="">
+                        <p style="color:#666; font-size:0.7rem; margin-top:5px;">ระบบจะใช้ที่อยู่กระเป๋าจาก World App โดยอัตโนมัติ</p>
+                    </div>
+
+                    <div style="text-align:center; color:#fff; margin-bottom:15px;">
+                        ⬇ ได้รับ ⬇ <br>
+                        <span id="txtGetWLD" style="color:#00eaff; font-size:1.5rem; font-family:'Orbitron';">0.10</span> WLD
+                    </div>
+                    <button id="btnConfirmSell" class="main-btn" style="width:100%; background:#333; border:1px solid #666;">CONFIRM SELL</button>
+                </div>
+            `;
             overlay.appendChild(box);
             document.body.appendChild(overlay);
 
@@ -777,6 +824,7 @@
                 let val = parseFloat(inpBuy.value) || 0;
                 txtGetCoin.innerText = Math.floor(val * 1000);
             };
+
             inpSell.oninput = () => {
                 let val = parseInt(inpSell.value) || 0;
                 txtGetWLD.innerText = (val / 1100).toFixed(2);
@@ -795,18 +843,50 @@
                 playSfx('win');
             };
 
-            document.getElementById('btnConfirmSell').onclick = () => {
+            document.getElementById('btnConfirmSell').onclick = async () => {
                 let amountCoin = parseInt(inpSell.value) || 0;
-                if (amountCoin < 110) { gameAlert("ERROR", "ขั้นต่ำ 110 COINS"); return; }
-                if (playerCOIN < amountCoin) { gameAlert("ERROR", "COINS ไม่พอ"); return; }
-                playerCOIN -= amountCoin;
+
+                if (amountCoin < 110) {
+                    gameAlert("ERROR", "ขั้นต่ำ 110 COINS");
+                    return;
+                }
+                if (playerCOIN < amountCoin) {
+                    gameAlert("ERROR", "COINS ไม่พอ");
+                    return;
+                }
+
                 let getWLD = parseFloat((amountCoin / 1100).toFixed(2));
-                playerWLD += getWLD;
+
+                // หัก COINS ทันที
+                playerCOIN -= amountCoin;
                 saveGame();
                 updateBalance();
+
+                // บันทึกคำขอถอน (wallet address ยังเว้นว่างไว้ก่อน)
+                try {
+                    const requestId = `\( {REAL_USER_ID}_ \){Date.now()}`;
+                    const requestData = {
+                        userId: REAL_USER_ID,
+                        amountCoin: amountCoin,
+                        amountWLD: getWLD,
+                        walletAddress: playerWalletAddress || "กำลังเชื่อมต่อ...", // ถ้ายังไม่มีก็เว้นว่างไว้
+                        status: "pending",
+                        timestamp: new Date().toISOString(),
+                        requestedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    };
+                    await setDoc(doc(db, "withdraw_requests", requestId), requestData);
+
+                    gameAlert("SUCCESS", `คำขอขาย ${amountCoin} COINS สำเร็จ!<br>จะได้รับ ${getWLD} WLD ภายใน 24-48 ชม. หลังทีมตรวจสอบ`);
+                    playSfx('place');
+                } catch (e) {
+                    console.error("Withdraw request failed:", e);
+                    gameAlert("ERROR", "ไม่สามารถส่งคำขอได้ กรุณาลองใหม่");
+                    playerCOIN += amountCoin;
+                    saveGame();
+                    updateBalance();
+                }
+
                 overlay.remove();
-                gameAlert("SUCCESS", `ได้รับ ${getWLD} WLD`);
-                playSfx('place');
             };
         }
 
