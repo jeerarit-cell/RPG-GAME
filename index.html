@@ -354,22 +354,29 @@
             status.innerText = "Verification Failed";
             status.style.color = "red";
             console.error("Verify Error:", finalPayload);
-        } else {
-    // สำเร็จ!
+       } else {
     status.innerText = "Success!";
     status.style.color = "#00eaff";
 
-    // ตั้งชื่อทันที (ถ้าใช้ verify จริง)
+    let displayName = "PLAYER"; // ค่าเริ่มต้นถ้าไม่ได้อะไรเลย
+
+    // ถ้า verify สำเร็จ
     if (finalPayload && finalPayload.nullifier_hash) {
-        const shortId = "HUNTER-" + finalPayload.nullifier_hash.substring(0, 6).toUpperCase();
-        document.getElementById('uiPlayerName').innerText = shortId;
-    } else {
-        // โหมดทดสอบ หรือกรณีไม่มี nullifier
-        document.getElementById('uiPlayerName').innerText = "TESTER-" + Math.floor(Math.random() * 9999);
+        displayName = "HUNTER-" + finalPayload.nullifier_hash.substring(0, 6).toUpperCase();
     }
 
-    // โหลดข้อมูลเซฟ (ถ้ามี name ใน cloud จะ override ด้านล่าง)
-    if (window.cloudLoad) window.cloudLoad(finalPayload?.nullifier_hash || fakeID || "unknown");
+    // ถ้าดึง username จาก MiniKit ได้ (ถ้าใช้ walletAuth หรือมี user object)
+    if (MiniKit.user && MiniKit.user.username) {
+        displayName = MiniKit.user.username.replace('@', '').toUpperCase();
+    }
+
+    // ตั้งชื่อใน UI
+    document.getElementById('uiPlayerName').innerText = displayName;
+
+    // เก็บชื่อไว้ใช้ใน applyGameData ด้วย
+    window.lastLoginName = displayName;
+
+    if (window.cloudLoad) window.cloudLoad(finalPayload?.nullifier_hash || "unknown");
 }
     } catch (error) {
         console.error(error);
@@ -408,7 +415,7 @@
 }
      
       window.applyGameData = function(data) {
-    console.log("applyGameData called with data:", data); // ช่วย debug ดูว่าข้อมูลมาถึงไหม
+    console.log("applyGameData called with data:", data);
 
     if (data) {
         // โหลดข้อมูลตัวเลขต่าง ๆ
@@ -417,31 +424,33 @@
         playerLevel = parseInt(data.level) || 1;
         playerEXP = parseInt(data.exp) || 0;
         
-        // คำนวณ HP ตามเลเวล
         playerMaxHP = 20 + ((playerLevel - 1) * 2);
         playerCurrentHP = parseInt(data.hp) || playerMaxHP;
 
-        // ป้องกัน HP เกิน/ติดลบ
         if (playerCurrentHP > playerMaxHP) playerCurrentHP = playerMaxHP;
         if (playerCurrentHP <= 0) playerCurrentHP = playerMaxHP;
 
-        // จัดการชื่อผู้เล่น (สำคัญ!)
+        // จัดการชื่อผู้เล่น - ลำดับความสำคัญ
         const uiName = document.getElementById('uiPlayerName');
-        if (data.name && data.name.trim() !== "") {
-            // ถ้ามีชื่อใน cloud save → ใช้ชื่อนั้นเลย (ความสำคัญสูงสุด)
-            uiName.innerText = data.name.toUpperCase();
-            console.log("ใช้ชื่อจาก cloud:", data.name);
-        } 
-        // ถ้าไม่มีชื่อใน cloud → จะใช้ชื่อที่ตั้งไว้ตอน login แล้ว (เช่น HUNTER-XXXXXX จาก nullifier_hash)
-        // ไม่ต้องทำอะไรเพิ่ม เพราะตอน login เราตั้งชื่อไว้แล้ว
 
-        // ถ้าชื่อยังเป็นค่าเริ่มต้น (PLAYER) ให้ fallback เป็นชื่อทดสอบ
-        if (uiName.innerText === "PLAYER" || uiName.innerText.trim() === "") {
-            uiName.innerText = "GUEST-" + Math.floor(Math.random() * 9999);
-            console.log("fallback ชื่อเป็น:", uiName.innerText);
+        if (data.name && data.name.trim() !== "") {
+            // 1. มีชื่อใน cloud save → ใช้ก่อนเลย
+            uiName.innerText = data.name.toUpperCase();
+            console.log("ใช้ชื่อจาก cloud save:", data.name);
+        } 
+        else if (window.lastLoginName) {
+            // 2. ถ้าไม่มีใน cloud แต่มีชื่อที่ดึงจาก World App ตอน login (เราจะเก็บไว้ในตัวแปร global)
+            uiName.innerText = window.lastLoginName.toUpperCase();
+            console.log("ใช้ชื่อจาก World App login:", window.lastLoginName);
+        } 
+        else {
+            // 3. ถ้ายังไม่ได้เลย → ใช้ nullifier_hash แบบสั้น (จาก login)
+            // แต่เนื่องจากตอนนี้ applyGameData เรียกหลัง login เราต้องการเก็บ nullifier ไว้ก่อน
+            // ถ้ายังไม่มีก็ปล่อยเป็นค่าปัจจุบัน (ไม่เปลี่ยนอะไรเพิ่ม)
+            console.log("ไม่มีชื่อจาก cloud หรือ login → ใช้ชื่อปัจจุบัน:", uiName.innerText);
         }
     } else {
-        // ไม่มีข้อมูลเซฟ (ผู้ใช้ใหม่หรือเซฟหาย)
+        // ผู้ใช้ใหม่จริง ๆ (ไม่มีเซฟเลย)
         playerCOIN = 0;
         playerWLD = 10.00;
         playerLevel = 1;
@@ -449,21 +458,19 @@
         playerMaxHP = 20;
         playerCurrentHP = 20;
 
-        // ตั้งชื่อเริ่มต้นสำหรับผู้ใช้ใหม่
-        const uiName = document.getElementById('uiPlayerName');
-        uiName.innerText = "NEW-HUNTER";
-        console.log("ผู้ใช้ใหม่ ชื่อตั้งเป็น NEW-HUNTER");
+        // ไม่ตั้งชื่อใหม่ที่นี่อีกต่อไป
+        // ให้ใช้ชื่อที่ตั้งไว้ตอน login แล้ว (จาก MiniKit หรือ nullifier)
+        console.log("ผู้ใช้ใหม่ - ไม่ตั้งชื่อ fallback, รอชื่อจาก login");
     }
 
-    // อัพเดท UI ทุกอย่างให้แสดงค่าล่าสุด
     updateBalance();
     updateLobbyStats();
     initMap();
-    nav('home');  // เข้าหน้า lobby
+    nav('home');
 
-    console.log("applyGameData เสร็จสิ้น ชื่อปัจจุบัน:", document.getElementById('uiPlayerName').innerText);
-}; 
-       document.getElementById('btnWallet').onclick = openExchangeModal;
+    console.log("applyGameData เสร็จสิ้น ชื่อสุดท้าย:", document.getElementById('uiPlayerName').innerText);
+};
+    document.getElementById('btnWallet').onclick = openExchangeModal;
     document.getElementById('btnStartGame').onclick = () => nav('map');
     document.getElementById('btnCloseMap').onclick = () => nav('home');
 
