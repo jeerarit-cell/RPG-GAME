@@ -324,66 +324,54 @@
 
        document.getElementById('btnWorldID').onclick = async function() {
     const status = document.getElementById('loginStatus');
-    status.innerText = "Processing...";
-    status.style.color = "#ff9d00"; // สีส้มตอนกำลังคิด
+    status.innerText = "กำลังเชื่อมต่อ World ID...";
+    status.style.color = "#ff9d00";
 
-    // 1. เช็คว่าโหลดเครื่องมือมาหรือยัง
-    if (!window.MiniKit) {
-        alert("Error: MiniKit not loaded. Check internet.");
+    if (!window.MiniKit || !MiniKit.isInstalled()) {
+        status.innerText = "ต้องเปิดใน World App";
+        alert("⚠️ เปิดใน World App เพื่อดึงชื่อจริง");
         return;
     }
 
-    // 2. เช็คว่าเปิดใน World App จริงไหม?
-    if (!window.MiniKit.isInstalled()) {
-        // ถ้าเปิดในคอม/Browser มือถือ -> เข้าโหมดทดสอบ
-        alert("⚠️ Testing Mode (Outside App)\nGenerating Fake ID...");
-        const fakeID = "TEST_" + Math.floor(Math.random() * 9999);
-        if(window.cloudLoad) window.cloudLoad(fakeID);
-        return;
-    }
-
-    // 3. สั่งยืนยันตัวตน (คำสั่งใหม่ของ V7)
     try {
-        const { finalPayload } = await window.MiniKit.commandsAsync.verify({
-            action: 'login',
-            signal: '', 
-            verification_level: 'orb' 
-        });
+        // ใช้ walletAuth เพื่อดึงข้อมูลผู้ใช้จริง (รวม username)
+        const response = await MiniKit.commandsAsync.walletAuth();  // หรือ auth() ถ้าเวอร์ชันต่าง
 
-        if (finalPayload.status === 'error') {
-            status.innerText = "Verification Failed";
-            status.style.color = "red";
-            console.error("Verify Error:", finalPayload);
-       } else {
-    status.innerText = "Success!";
-    status.style.color = "#00eaff";
+        if (response && response.user) {
+            const user = response.user;
 
-    let displayName = "PLAYER"; // ค่าเริ่มต้นถ้าไม่ได้อะไรเลย
+            let displayName = "PLAYER"; // fallback สุดท้าย
 
-    // ถ้า verify สำเร็จ
-    if (finalPayload && finalPayload.nullifier_hash) {
-        displayName = "HUNTER-" + finalPayload.nullifier_hash.substring(0, 6).toUpperCase();
-    }
+            if (user.username) {
+                // ได้ชื่อจริงแบบในภาพเลย! เช่น pasxXX2435.9712 หรือ hulinin99
+                displayName = user.username.toUpperCase(); // หรือไม่ต้อง uppercase ถ้าอยากให้เป็น lowercase
+            } else if (user.walletAddress) {
+                // ถ้าไม่มี username แต่มี wallet → fallback เป็นส่วนท้ายของ wallet
+                displayName = "ID-" + user.walletAddress.slice(-6).toUpperCase();
+            }
 
-    // ถ้าดึง username จาก MiniKit ได้ (ถ้าใช้ walletAuth หรือมี user object)
-    if (MiniKit.user && MiniKit.user.username) {
-        displayName = MiniKit.user.username.replace('@', '').toUpperCase();
-    }
+            document.getElementById('uiPlayerName').innerText = displayName;
+            window.lastLoginName = displayName; // เก็บไว้ใช้ใน applyGameData
 
-    // ตั้งชื่อใน UI
-    document.getElementById('uiPlayerName').innerText = displayName;
+            status.innerText = "ยินดีต้อนรับ " + displayName;
+            status.style.color = "#00eaff";
 
-    // เก็บชื่อไว้ใช้ใน applyGameData ด้วย
-    window.lastLoginName = displayName;
+            // ใช้ walletAddress เป็น ID สำหรับเซฟ (ปลอดภัยและ unique)
+            const userId = user.walletAddress || "USER-" + Date.now();
+            if (window.cloudLoad) window.cloudLoad(userId);
 
-    if (window.cloudLoad) window.cloudLoad(finalPayload?.nullifier_hash || "unknown");
-}
+            // บันทึกชื่อลง cloud ทันที
+            saveGame();
+        } else {
+            throw new Error("ไม่ได้รับข้อมูลผู้ใช้");
+        }
     } catch (error) {
-        console.error(error);
-        status.innerText = "Error occurred";
-        alert("Login Error: " + error.message);
+        console.error("Wallet Auth Error:", error);
+        status.innerText = "เชื่อมต่อล้มเหลว";
+        status.style.color = "red";
+        alert("ไม่สามารถดึงชื่อได้: " + (error.message || "ลองใหม่"));
     }
-};    
+};
                            
     // --- GAME LOGIC (ย่อ) ---
     let playerWLD = 10.00, playerCOIN = 0, playerMaxHP = 20, playerCurrentHP = 20, playerLevel = 1, playerEXP = 0, currentMonsterType = 'common'; 
