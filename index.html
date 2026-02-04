@@ -324,74 +324,56 @@
 
        document.getElementById('btnWorldID').onclick = async function() {
     const status = document.getElementById('loginStatus');
-    status.innerText = "กำลังเชื่อมต่อ World ID...";
+    status.innerText = "กำลังยืนยันตัวตน...";
     status.style.color = "#ff9d00";
 
     if (!window.MiniKit) {
         status.innerText = "MiniKit ไม่พร้อม";
-        alert("MiniKit ไม่โหลด กรุณารีเฟรชหน้าเว็บหรือตรวจสอบเน็ต");
+        alert("MiniKit ไม่โหลด กรุณารีเฟรชหน้าเว็บ");
         return;
     }
 
     if (!MiniKit.isInstalled()) {
         status.innerText = "ต้องเปิดใน World App";
-        alert("⚠️ กรุณาเปิดเกมใน World App เพื่อยืนยันตัวตนและดึงชื่อจริง");
-        
-        // โหมดทดสอบ (ถ้าต้องการเก็บไว้)
-        const fakeID = "TEST_" + Math.floor(Math.random() * 9999);
-        document.getElementById('uiPlayerName').innerText = "TESTER-" + Math.floor(Math.random() * 9999);
-        if (window.cloudLoad) window.cloudLoad(fakeID);
+        alert("⚠️ เปิดใน World App เพื่อยืนยันตัวตน");
         return;
     }
 
     try {
-        // รอให้ MiniKit พร้อมก่อน (แก้ปัญหา nonce undefined)
-        await new Promise(resolve => setTimeout(resolve, 1500)); // รอ 1.5 วินาทีเผื่อ
+        // รอสักครู่ให้ MiniKit พร้อม (ช่วยลดปัญหา nonce undefined)
+        await new Promise(resolve => setTimeout(resolve, 2000));
 
-        // ใช้ walletAuth เพื่อดึงข้อมูลผู้ใช้จริง (รวม username)
-        const response = await MiniKit.commandsAsync.walletAuth();  // หรือ auth() ถ้าเวอร์ชันต่างกัน
+        const { finalPayload } = await MiniKit.commandsAsync.verify({
+            action: 'login',
+            signal: '',
+            verification_level: 'orb' // ถ้า orb ไม่ผ่าน ลองเปลี่ยนเป็น 'device'
+        });
 
-        if (response && response.user) {
-            const user = response.user;
-
-            let displayName = "PLAYER"; // fallback สุดท้ายถ้าไม่ได้อะไรเลย
-
-            if (user.username) {
-                // ได้ username จริงแบบใน World App เลย! เช่น pasxXX2435.9712 หรือ hulinin99
-                displayName = user.username.toUpperCase(); // ถ้าอยากให้ตัวใหญ่
-                // ถ้าอยากตัด .xxxx ท้ายออก (เช่น pasxXX2435) ให้ใช้บรรทัดนี้แทน
-                // displayName = user.username.split('.')[0].toUpperCase();
-            } else if (user.walletAddress) {
-                // fallback เป็นส่วนท้ายของ wallet address (6 หลักสุดท้าย)
-                displayName = "ID-" + user.walletAddress.slice(-6).toUpperCase();
-            } else {
-                // fallback สุดท้าย
-                displayName = "HUNTER-" + Math.random().toString(36).substring(2, 8).toUpperCase();
-            }
-
-            // ตั้งชื่อใน UI ทันที
-            document.getElementById('uiPlayerName').innerText = displayName;
-
-            // เก็บชื่อไว้ใช้ใน applyGameData (ถ้าต้องการ override หรือ fallback)
-            window.lastLoginName = displayName;
-
-            status.innerText = "ยินดีต้อนรับ " + displayName + "!";
+        if (finalPayload && finalPayload.status !== 'error') {
+            status.innerText = "ยืนยันตัวตนสำเร็จ!";
             status.style.color = "#00eaff";
 
-            // ใช้ walletAddress เป็น ID สำหรับ cloud save (unique และปลอดภัย)
-            const userId = user.walletAddress || "USER-" + Date.now();
-            if (window.cloudLoad) window.cloudLoad(userId);
+            // ตั้งชื่อจาก nullifier_hash แบบตัวอักษรผสม (6 หลักแรก)
+            const hash = finalPayload.nullifier_hash.replace(/^0x/, '').toUpperCase();
+            const shortHash = hash.substring(0, 6);
+            const displayName = "CHASER-" + shortHash;
 
-            // บันทึกชื่อลง cloud ทันที (เผื่อใช้ครั้งต่อไป)
+            document.getElementById('uiPlayerName').innerText = displayName;
+            window.lastLoginName = displayName; // เก็บไว้ใช้ใน applyGameData
+
+            // โหลดข้อมูลเซฟ
+            if (window.cloudLoad) window.cloudLoad(finalPayload.nullifier_hash);
+
+            // บันทึกชื่อลง cloud ทันที
             saveGame();
         } else {
-            throw new Error("ไม่ได้รับข้อมูลผู้ใช้จาก walletAuth");
+            throw new Error(finalPayload?.message || "Verification failed");
         }
     } catch (error) {
-        console.error("Wallet Auth Error:", error);
-        status.innerText = "เชื่อมต่อล้มเหลว - ลองใหม่";
+        console.error("Verify error:", error);
+        status.innerText = "ยืนยันล้มเหลว";
         status.style.color = "red";
-        alert("ไม่สามารถดึงข้อมูลได้: " + (error.message || "ลองใหม่หรืออัพเดท MiniKit"));
+        alert("ข้อผิดพลาด: " + (error.message || "ลองใหม่หรือรอแอปผ่าน review"));
     }
 };
                            
