@@ -312,14 +312,6 @@
     // ✅ 2. เปลี่ยนมาใช้ MiniKit Logic
     const WORLD_APP_ID = "app_6203a46daf3053d01617ef5293135678"; 
     
-    // ติดตั้ง MiniKit เมื่อโหลด
-    window.onload = function() {
-        if (window.MiniKit) {
-            MiniKit.install(WORLD_APP_ID);
-            console.log("MiniKit installed");
-        }
-    };
-
    document.getElementById('btnWorldID').onclick = async function() {
     const status = document.getElementById('loginStatus');
     status.innerText = "Processing...";
@@ -381,24 +373,43 @@
         { id: 8, name: "GOLDEN DRAGON", hp: 50, type: "legendary", loc: "Sky Realm", url:"https://github.com/user-attachments/assets/b8379da1-b55e-4c8f-bcfb-e68eaae581ed" }
     ];
     
-    function saveGame() { const gameData = { coin: playerCOIN, wld: playerWLD, level: playerLevel, exp: playerEXP, hp: playerCurrentHP }; if(window.cloudSave) window.cloudSave(gameData); }
-    window.applyGameData = function(data) { if (data) { playerCOIN = parseInt(data.coin)||0; playerWLD = parseFloat(data.wld)||10.00; playerLevel = parseInt(data.level)||1; playerEXP = parseInt(data.exp)||0; playerMaxHP = 20 + ((playerLevel - 1) * 2); playerCurrentHP = parseInt(data.hp)||playerMaxHP; if(playerCurrentHP>playerMaxHP) playerCurrentHP=playerMaxHP; if(playerCurrentHP<=0) playerCurrentHP=playerMaxHP; } else { playerCOIN=0; playerWLD=10.00; playerLevel=1; playerEXP=0; playerMaxHP=20; playerCurrentHP=20; } updateBalance(); updateLobbyStats(); initMap(); nav('home'); const shortID = "HUMAN-" + (data ? "PRO" : Math.floor(Math.random()*999)); document.getElementById('uiPlayerName').innerText = shortID; }
-
-    document.getElementById('btnWallet').onclick = openExchangeModal;
-    document.getElementById('btnStartGame').onclick = function() {
-    const currentName = document.getElementById('uiPlayerName').innerText;
+    function saveGame() {
+    const gameData = {
+        coin: playerCOIN,
+        wld: playerWLD,
+        level: playerLevel,
+        exp: playerEXP,
+        hp: playerCurrentHP,
+        name: document.getElementById('uiPlayerName').innerText  // เพิ่มบรรทัดนี้
+    };
+    if (window.cloudSave) window.cloudSave(gameData);
+}
     
-    // เช็คว่าชื่อเป็น Default หรือไม่
-    if (currentName.includes("HUMAN-") || currentName === "PLAYER") {
-        // เรียกหน้าต่างเปลี่ยนชื่อทันที (โหมดบังคับ = true)
-        changeName(true);
-    } else {
-        // ถ้ามีชื่อแล้ว เข้าแมพได้เลย
-        nav('map');
-    }
-};
+      window.applyGameData = function(data) {
+    if (data) {
+        playerCOIN = parseInt(data.coin) || 0;
+        playerWLD = parseFloat(data.wld) || 10.00;
+        playerLevel = parseInt(data.level) || 1;
+        playerEXP = parseInt(data.exp) || 0;
+        playerMaxHP = 20 + ((playerLevel - 1) * 2);
+        playerCurrentHP = parseInt(data.hp) || playerMaxHP;
+        if (playerCurrentHP > playerMaxHP) playerCurrentHP = playerMaxHP;
+        if (playerCurrentHP <= 0) playerCurrentHP = playerMaxHP;
 
-    document.getElementById('btnCloseMap').onclick = () => nav('home');
+        // เพิ่มส่วนนี้
+        if (data.name) {
+            document.getElementById('uiPlayerName').innerText = data.name;
+        }
+    } else {
+        // ... ค่า default เดิม ...
+    }
+
+    updateBalance();
+    updateLobbyStats();
+    initMap();
+    nav('home');
+    // ถ้ายังไม่มีชื่อ ให้บังคับเปลี่ยนชื่อ (แต่ตอนนี้มีแล้วก็ไม่ต้อง)
+};
 
     function openExchangeModal() {
         const oldModal = document.getElementById('exchangeModal'); if (oldModal) oldModal.remove();
