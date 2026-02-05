@@ -403,7 +403,7 @@
         { id: 8, name: "GOLDEN DRAGON", hp: 50, type: "legendary", loc: "Sky Realm", url:"https://github.com/user-attachments/assets/b8379da1-b55e-4c8f-bcfb-e68eaae581ed" }
     ];
     
-    function saveGame() {
+   function saveGame() {
     const playerName = document.getElementById('uiPlayerName').innerText.trim();
     const gameData = {
         coin: playerCOIN,
@@ -411,7 +411,11 @@
         level: playerLevel,
         exp: playerEXP,
         hp: playerCurrentHP,
-        name: playerName,  // สำคัญ! บันทึกชื่อที่แสดงอยู่
+        name: playerName,
+        earnedFromGameToday: earnedFromGameToday || 0,
+        lastRewardDate: lastRewardDate || new Date().toDateString(),
+        dailyStamp: dailyStamp || [],
+        stampStreak: stampStreak || 0,
         updatedAt: new Date().toISOString()
     };
     if (window.cloudSave) window.cloudSave(gameData);
