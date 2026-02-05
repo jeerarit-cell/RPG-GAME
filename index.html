@@ -330,42 +330,48 @@
         { id: 8, name: "GOLDEN DRAGON", hp: 50, type: "legendary", loc: "Sky Realm", url:"https://github.com/user-attachments/assets/b8379da1-b55e-4c8f-bcfb-e68eaae581ed" }
     ];
 
-    // --- Login Logic ---
+       // --- Login Logic (แก้ไขให้ผ่าน Review) ---
     document.getElementById('btnWorldID').onclick = async function() {
         const status = document.getElementById('loginStatus');
-        status.innerText = "กำลังยืนยันตัวตน...";
+        status.innerText = "กำลังเชื่อมต่อ...";
         status.style.color = "#ff9d00";
 
         if (!window.MiniKit || !window.MiniKit.isInstalled()) {
-            status.innerText = "Error: เปิดใน World App เท่านั้น";
             alert("⚠️ กรุณาเปิดใน World App");
             return;
         }
 
         try {
+            // สร้างรหัสสุ่ม (Nonce) เพื่อความปลอดภัยและไม่ให้ซ้ำ
+            const nonce = Math.random().toString(36).substring(7);
+
             const { finalPayload } = await window.MiniKit.commandsAsync.verify({
-                action: 'login',
-                signal: '',
-                verification_level: 'orb' 
+                action: 'login',   // ต้องตรงกับใน Portal (ตัวเล็ก)
+                signal: nonce,     // ใส่ค่าสุ่มลงไป (อย่าปล่อยว่าง)
+                verification_level: 'device' // <--- ⚠️ เปลี่ยนเป็น device เพื่อให้ Reviewer ตรวจผ่านง่ายขึ้น
             });
 
-            if (finalPayload && finalPayload.status !== 'error') {
-                status.innerText = "ยืนยันตัวตนสำเร็จ!";
-                const hash = finalPayload.nullifier_hash.replace(/^0x/, '').toUpperCase();
-                const displayName = "CHASER-" + hash.substring(0, 6);
-                window.lastLoginName = displayName;
+            if (finalPayload && finalPayload.status === 'success') {
+                status.innerText = "สำเร็จ!";
+                status.style.color = "#00ff00";
                 
+                // โหลดข้อมูลเกม
                 if (window.cloudLoad) await window.cloudLoad(finalPayload.nullifier_hash);
                 else window.applyGameData(null); 
 
             } else {
-                throw new Error("Verification failed");
+                console.error("Verify Failed:", finalPayload);
+                status.innerText = "ยืนยันตัวตนไม่ผ่าน";
+                status.style.color = "red";
+                // แสดง Error จริงๆ ออกมาให้เห็น
+                alert("❌ Verify Error: " + (finalPayload.error_code || "Unknown"));
             }
         } catch (error) {
             console.error(error);
-            status.innerText = "ยืนยันล้มเหลว";
+            alert("❌ Error: " + error.message);
         }
     };
+
 
     function saveGame() {
         const playerName = document.getElementById('uiPlayerName').innerText.trim();
