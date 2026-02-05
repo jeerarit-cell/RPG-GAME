@@ -420,8 +420,7 @@
     };
     if (window.cloudSave) window.cloudSave(gameData);
 }
-     
-      window.applyGameData = function(data) {
+     window.applyGameData = function(data) {
     console.log("applyGameData called with data:", data);
 
     if (data) {
@@ -441,21 +440,50 @@
         const uiName = document.getElementById('uiPlayerName');
 
         if (data.name && data.name.trim() !== "") {
-            // 1. มีชื่อใน cloud save → ใช้ก่อนเลย
             uiName.innerText = data.name.toUpperCase();
             console.log("ใช้ชื่อจาก cloud save:", data.name);
         } 
         else if (window.lastLoginName) {
-            // 2. ถ้าไม่มีใน cloud แต่มีชื่อที่ดึงจาก World App ตอน login (เราจะเก็บไว้ในตัวแปร global)
             uiName.innerText = window.lastLoginName.toUpperCase();
             console.log("ใช้ชื่อจาก World App login:", window.lastLoginName);
         } 
         else {
-            // 3. ถ้ายังไม่ได้เลย → ใช้ nullifier_hash แบบสั้น (จาก login)
-            // แต่เนื่องจากตอนนี้ applyGameData เรียกหลัง login เราต้องการเก็บ nullifier ไว้ก่อน
-            // ถ้ายังไม่มีก็ปล่อยเป็นค่าปัจจุบัน (ไม่เปลี่ยนอะไรเพิ่ม)
             console.log("ไม่มีชื่อจาก cloud หรือ login → ใช้ชื่อปัจจุบัน:", uiName.innerText);
         }
+
+        // โหลดข้อมูลแสตมป์และลิมิต (ถ้ามีใน cloud)
+        earnedFromGameToday = data.earnedFromGameToday || 0;
+        lastRewardDate = data.lastRewardDate || new Date().toDateString();
+        dailyStamp = data.dailyStamp || [];
+        stampStreak = data.stampStreak || 0;
+
+        // === เช็คแสตมป์รายวัน + reset ลิมิตถ้าวันใหม่ (ส่วนสำคัญที่ทำให้แสตมป์ขึ้น) ===
+        const today = new Date().toDateString();
+
+        if (today !== lastRewardDate) {
+            console.log("เป็นวันใหม่ → reset ลิมิตและเช็คแสตมป์");
+            earnedFromGameToday = 0;
+            lastRewardDate = today;
+
+            if (!dailyStamp.includes(today)) {
+                console.log("ยังไม่ได้รับแสตมป์วันนี้ → เพิ่มแสตมป์ streak:", stampStreak + 1);
+                dailyStamp.push(today);
+                stampStreak = Math.min(stampStreak + 1, 7);
+                giveStampReward(stampStreak);
+            } else {
+                console.log("ได้รับแสตมป์วันนี้แล้ว ไม่เพิ่มซ้ำ");
+            }
+        } else {
+            console.log("ยังเป็นวันเดียวกัน ไม่ reset แสตมป์");
+        }
+        // === จบส่วนแสตมป์ ===
+
+        updateBalance();
+        updateLobbyStats();
+        initMap();
+        nav('home');
+
+        console.log("applyGameData เสร็จสิ้น ชื่อสุดท้าย:", uiName.innerText);
     } else {
         // ผู้ใช้ใหม่จริง ๆ (ไม่มีเซฟเลย)
         playerCOIN = 0;
@@ -465,31 +493,22 @@
         playerMaxHP = 20;
         playerCurrentHP = 20;
 
-        // ไม่ตั้งชื่อใหม่ที่นี่อีกต่อไป
-        // ให้ใช้ชื่อที่ตั้งไว้ตอน login แล้ว (จาก MiniKit หรือ nullifier)
-        console.log("ผู้ใช้ใหม่ - ไม่ตั้งชื่อ fallback, รอชื่อจาก login");
+        // รีเซ็ตแสตมป์และลิมิตสำหรับผู้ใช้ใหม่
+        earnedFromGameToday = 0;
+        lastRewardDate = new Date().toDateString();
+        dailyStamp = [];
+        stampStreak = 0;
+
+        // เรียกให้แสตมป์วันแรกทันที (ถ้าต้องการ)
+        dailyStamp.push(new Date().toDateString());
+        stampStreak = 1;
+        giveStampReward(1);
+
+        console.log("ผู้ใช้ใหม่ - เริ่มแสตมป์วันแรก");
     }
+};
 
-    updateBalance();
-    updateLobbyStats();
-    const today = new Date().toDateString();
-
-// Reset ถ้าวันใหม่
-if (today !== lastRewardDate) {
-    earnedFromGameToday = 0;
-    lastRewardDate = today;
-
-    // เช็คและให้รางวัลแสตมป์
-    if (!dailyStamp.includes(today)) {
-        dailyStamp.push(today);
-        stampStreak = Math.min(stampStreak + 1, 7);
-        giveStampReward(stampStreak);
-    }
-}
-    initMap();
-    nav('home');
-
-    console.log("applyGameData เสร็จสิ้น ชื่อสุดท้าย:", document.getElementById('uiPlayerName').innerText);
+    document.getElementById('uiPlayerName').innerText);
 };
     document.getElementById('btnWallet').onclick = openExchangeModal;
     document.getElementById('btnStartGame').onclick = () => nav('map');
