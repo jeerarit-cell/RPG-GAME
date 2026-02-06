@@ -428,7 +428,12 @@
     }; 
 
     // --- Helpers ---
-    document.getElementById('btnWallet').onclick = openExchangeModal;
+    document.getElementById('btnWallet').onclick = function() {
+    // แจ้งเตือนให้ผู้เล่นรู้ก่อน
+    if (confirm("การซื้อ/ขาย COINS จะใช้ WLD จริงผ่าน World App\nจะมีหน้าต่างยืนยันปรากฏขึ้น\nดำเนินการต่อ?")) {
+        openExchangeModal();  // เปิด modal ถ้ากดตกลง
+    }
+};
     document.getElementById('btnStartGame').onclick = () => nav('map');
     document.getElementById('btnCloseMap').onclick = () => nav('home');
 
