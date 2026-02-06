@@ -506,53 +506,56 @@ import { MiniKit, Tokens, tokenToDecimals } from "https://cdn.jsdelivr.net/npm/@
        document.getElementById('btnConfirmBuy').onclick = async () => {
     let amountWLD = parseFloat(document.getElementById('inpBuyWLD').value) || 0;
 
-    // แก้ไข: ปรับยอดขั้นต่ำเป็น 0.1 WLD (เพื่อให้มูลค่าเกิน $0.1 USD ตามกฎของ World App)
+    // 1. ตรวจสอบยอดขั้นต่ำ ($0.1 USD หรือประมาณ 0.1 WLD)
     if (amountWLD < 0.1) {
-        gameAlert("ERROR", "ขั้นต่ำในการโอนคือ 0.1 WLD (~$0.1 USD)");
+        gameAlert("ERROR", "ยอดขั้นต่ำที่ World App อนุญาตคือ 0.1 WLD");
         return;
     }
 
     if (!window.MiniKit || !window.MiniKit.isInstalled()) {
-        gameAlert("ERROR", "กรุณาเปิดใน World App เพื่อชำระเงินจริง");
+        gameAlert("ERROR", "กรุณาเปิดใน World App");
         return;
     }
 
     let coinsToReceive = Math.floor(amountWLD * 1000);
 
     try {
-        // ใช้ tokenToDecimals เพื่อแปลงค่าเป็นหน่วย Wei (18 decimals) ให้แม่นยำ
-        const amountInDecimals = tokenToDecimals(amountWLD, Tokens.WLD).toString();
+        // 2. คำนวณหน่วย Wei (18 Decimals) ด้วย BigInt เพื่อความแม่นยำสูงสุด
+        // เราจะเอาจำนวนเหรียญคูณด้วย 10^18
+        const amountInWei = BigInt(Math.floor(amountWLD * 1000000)) * BigInt(1000000000000n);
+        const tokenAmountStr = amountInWei.toString();
 
         const payload = {
-            reference: "order_" + Date.now(),
-            to: "0x1e2f0e1b67a6dc4a094e84843fee2bcce25ef643a97", // Address ที่ Whitelist แล้ว
+            reference: "order_" + Date.now(), // รหัสอ้างอิงที่ไม่ซ้ำ
+            to: "0x1e2f0e1b67a6dc4a094e84843fee2bcce25ef643a97", // ที่อยู่ที่ Whitelist แล้ว
             tokens: [
                 {
-                    symbol: Tokens.WLD,
-                    token_amount: amountInDecimals
+                    symbol: "WLD", // ใช้ตัวอักษร "WLD" ตรงๆ ลดโอกาสตัวแปร undefined
+                    token_amount: tokenAmountStr // ยอดเงินในหน่วย Wei
                 }
             ],
-            description: `ซื้อ ${coinsToReceive} COINS ใน Project Chaser`
+            description: `ซื้อ ${coinsToReceive} COINS`
         };
 
+        console.log("Sending Payload:", payload); // เอาไว้ดูใน Console ว่าข้อมูลถูกไหม
+
+        // 3. ส่งคำสั่งชำระเงิน
         const { finalPayload } = await window.MiniKit.commandsAsync.pay(payload);
 
         if (finalPayload.status === "success") {
             playerCOIN += coinsToReceive;
-            if (typeof saveGame === 'function') await saveGame(); 
+            await saveGame(); 
             updateBalance();
-
-            const overlay = document.getElementById('exchangeModal');
-            if (overlay) overlay.remove();
-
-            gameAlert("SUCCESS", `ชำระสำเร็จ! ได้รับ ${coinsToReceive} COINS`);
-            playSfx('win');
+            if (document.getElementById('exchangeModal')) document.getElementById('exchangeModal').remove();
+            gameAlert("SUCCESS", `ได้รับ ${coinsToReceive} COINS แล้ว!`);
         } else {
-            gameAlert("FAILED", "การชำระเงินล้มเหลว หรือถูกยกเลิก");
+            console.error("Pay Error:", finalPayload);
+            gameAlert("FAILED", "รายการล้มเหลว หรือถูกยกเลิก");
         }
     } catch (err) {
-        console.error("Pay Error:", err);
-        gameAlert("ERROR", "เกิดข้อผิดพลาด: " + err.message);
+        // ถ้าหน้าต่างไม่เด้ง Error จะมาโชว์ที่นี่ครับ
+        console.error("JS Error:", err);
+        alert("เกิดข้อผิดพลาดทางเทคนิค: " + err.message);
     }
 };
  
