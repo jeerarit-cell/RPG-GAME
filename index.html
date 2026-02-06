@@ -247,9 +247,7 @@ import { MiniKit, Tokens, tokenToDecimals } from "https://cdn.jsdelivr.net/npm/@
 
                 <div id="btnWallet" style="display:flex; flex-direction:column; align-items:center; justify-content:center; cursor:pointer; background:rgba(255,255,255,0.05); padding:5px 8px; border-radius:8px; border:1px solid #444; min-width: 65px; margin-left:5px;">
                     <div style="font-size:1.2rem; filter: drop-shadow(0 0 5px #00eaff); line-height: 1;">💵</div>
-                    <div style="font-size:0.65rem; color:#00eaff; font-family:'Orbitron'; margin-top:3px;">
-                        <span id="uiWLD">0.00</span> WLD
-                    </div>
+                    
                 </div>
             </div>
 
@@ -377,7 +375,7 @@ import { MiniKit, Tokens, tokenToDecimals } from "https://cdn.jsdelivr.net/npm/@
     function saveGame() {
         const playerName = document.getElementById('uiPlayerName').innerText.trim();
         const gameData = {
-            coin: playerCOIN, wld: playerWLD, level: playerLevel, exp: playerEXP,
+            coin: playerCOIN,level: playerLevel, exp: playerEXP,
             hp: playerCurrentHP, name: playerName, earnedFromGameToday: earnedFromGameToday || 0,
             lastRewardDate: lastRewardDate, dailyStamp: dailyStamp, stampStreak: stampStreak,
             updatedAt: new Date().toISOString()
@@ -443,7 +441,7 @@ import { MiniKit, Tokens, tokenToDecimals } from "https://cdn.jsdelivr.net/npm/@
 
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     function playSfx(type) { if(audioCtx.state === 'suspended') audioCtx.resume(); const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain(); const now = audioCtx.currentTime; osc.connect(gain); gain.connect(audioCtx.destination); if (type === 'click') { osc.type = 'triangle'; osc.frequency.setValueAtTime(800, now); gain.gain.setValueAtTime(0.3, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1); osc.start(now); osc.stop(now + 0.1); } else if (type === 'place') { osc.type = 'sine'; osc.frequency.setValueAtTime(200, now); gain.gain.setValueAtTime(0.5, now); gain.gain.linearRampToValueAtTime(0, now + 0.1); osc.start(now); osc.stop(now + 0.1); } else if (type === 'hit') { osc.type = 'sawtooth'; osc.frequency.setValueAtTime(150, now); osc.frequency.exponentialRampToValueAtTime(10, now + 0.4); gain.gain.setValueAtTime(0.3, now); gain.gain.linearRampToValueAtTime(0, now + 0.4); osc.start(now); osc.stop(now + 0.4); } else if (type === 'win') { osc.type = 'triangle'; osc.frequency.setValueAtTime(440, now); osc.frequency.setValueAtTime(554, now + 0.1); osc.frequency.setValueAtTime(659, now + 0.2); gain.gain.setValueAtTime(0.9, now); gain.gain.linearRampToValueAtTime(0, now + 0.5); osc.start(now); osc.stop(now + 0.5); } }
-    function updateBalance() { const elCoin = document.getElementById('uiCoin'); const elWLD = document.getElementById('uiWLD'); if(elCoin) elCoin.innerText = playerCOIN; if(elWLD) elWLD.innerText = "--.--"; }
+    function updateBalance() { const elCoin = document.getElementById('uiCoin'); if(elCoin) elCoin.innerText = playerCOIN;}
     function updateLobbyStats() { const elLevel = document.getElementById('uiLevel'); const elExp = document.getElementById('uiExp'); const elHP = document.getElementById('uiLobbyHP'); if (!levelConfig[playerLevel]) { if(elLevel) { elLevel.innerText = "LV.MAX"; elLevel.style.color = "#ffd700"; elLevel.style.border = "1px solid #ffd700"; } if(elExp) elExp.innerText = "----/---- XP"; } else { if(elLevel) { elLevel.innerText = "LV." + playerLevel; elLevel.style.color = "#00eaff"; elLevel.style.border = "none"; } if(elExp) { const nextNeed = levelConfig[playerLevel].need; elExp.innerText = `${playerEXP}/${nextNeed} XP`; } } if(elHP) elHP.innerText = `${playerCurrentHP}/${playerMaxHP}`; }
     function nav(target) { document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); let screenId = 'screen-' + target; if(target === 'home') screenId = 'screen-lobby'; const targetScreen = document.getElementById(screenId); if(targetScreen) targetScreen.classList.add('active'); updateBalance(); updateLobbyStats(); }
     function initMap() { const container = document.getElementById('monster-list-container'); if(!container) return; container.innerHTML = ''; monsterDB.forEach(m => { let cardClass = 'rank-common'; let badgeStyle = ''; let infoExtra = ''; if(m.type === 'miniboss') { cardClass = 'rank-miniboss'; badgeStyle = 'color:#00eaff; border-color:#00eaff;'; infoExtra = '<p style="color:#00eaff; font-size:0.7rem; font-weight:bold;">★ MINI BOSS</p>'; } else if (m.type === 'boss') { cardClass = 'rank-boss'; badgeStyle = 'background:#ffd700; color:black; font-weight:bold; border:none;'; infoExtra = '<p style="color:#ffd700; font-weight:bold; font-size:0.7rem;">☠️ WORLD BOSS</p>'; } else if (m.type === 'legendary') { cardClass = 'rank-legendary'; badgeStyle = 'background:white; color:#FF8C00; font-weight:900; border:none; box-shadow: 0 0 10px white;'; infoExtra = '<p style="color:white; font-weight:900; font-size:0.8rem; text-shadow: 0 1px 2px black;">👑 LEGENDARY BOSS</p>'; } container.innerHTML += `<div class="monster-card ${cardClass}" onclick="prepareBattle(${m.id})"><div style="display:flex; align-items:center;"><img src="${m.url}" class="m-avatar"><div class="m-info"><h3>${m.name}</h3>${infoExtra}<p>${m.loc} • HP: ${m.hp}</p></div></div><div class="hp-badge" style="${badgeStyle}">HP: ${m.hp}</div></div>`; }); }
