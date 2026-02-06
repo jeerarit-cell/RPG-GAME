@@ -503,66 +503,61 @@
         document.getElementById('tabSell').onclick = () => { document.getElementById('panelBuy').style.display = 'none'; document.getElementById('panelSell').style.display = 'block'; document.getElementById('tabSell').style.color = '#00eaff'; document.getElementById('tabSell').style.borderBottom = '2px solid #00eaff'; document.getElementById('tabBuy').style.color = '#666'; document.getElementById('tabBuy').style.borderBottom = 'none'; };
         inpBuy.oninput = () => { let val = parseFloat(inpBuy.value) || 0; txtGetCoin.innerText = Math.floor(val * 1000); };
         inpSell.oninput = () => { let val = parseInt(inpSell.value) || 0; txtGetWLD.innerText = (val / 1100).toFixed(2); };
-        document.getElementById('btnConfirmBuy').onclick = async () => {
+       document.getElementById('btnConfirmBuy').onclick = async () => {
     let amountWLD = parseFloat(document.getElementById('inpBuyWLD').value) || 0;
 
     if (amountWLD < 0.03) {
-        gameAlert("ERROR", "ขั้นต่ำ 0.03 WLD");
+        gameAlert("ERROR", "ขั้นต่ำ 0.03 WLD (ประมาณ $0.1)");
         return;
     }
 
-    if (!MiniKit.isInstalled()) {
-        gameAlert("ERROR", "กรุณาเปิดใน World App เพื่อชำระเงินจริง");
+    if (!window.MiniKit || !window.MiniKit.isInstalled()) {
+        gameAlert("ERROR", "กรุณาเปิดใน World App");
         return;
     }
 
-    // คำนวณ coins ที่จะได้รับ (ตาม rate ของคุณ)
     let coinsToReceive = Math.floor(amountWLD * 1000);
 
-    // แจ้งเตือนก่อนเรียก pay (optional แต่ช่วย UX)
-    if (!confirm(`จะหัก ${amountWLD} WLD เพื่อรับ ${coinsToReceive} COINS\nยืนยันใน World App?`)) {
-        return;
-    }
-
     try {
-      const payResult = await MiniKit.commandsAsync.pay({
-    reference: "buy-coins-" + Date.now(),
-    to: "0x1e2f0e1b67a6dc4a094e84843fee2bcce25ef643a97",  // ยังคงใช้ to เหมือนเดิม
-    tokens: [
-        {
-            symbol: Tokens.WLD,  // ← เปลี่ยนจาก address เป็น symbol: Tokens.WLD
-            token_amount: tokenToDecimals(amountWLD, Tokens.WLD).toString()  // ← ใช้ฟังก์ชันแปลง amount ให้ถูก decimals (18 สำหรับ WLD)
-        }
-    ],
-    description: "ซื้อ " + coinsToReceive + " COINS ใน Project Chaser"
-});
+        // คำนวณจำนวน Token ในหน่วย Wei (18 decimals) ให้แม่นยำ
+        // แนะนำให้ใช้ BigInt เพื่อป้องกันปัญหา Scientific Notation (เช่น 3e+16)
+        const tokenAmountInWei = BigInt(Math.floor(amountWLD * 1e18)).toString();
 
-        if (payResult.finalPayload && payResult.finalPayload.status === "success") {
-            // ชำระสำเร็จ!
+        const payload = {
+            reference: "buy_" + Date.now(), // ID อ้างอิงห้ามซ้ำ
+            to: "0x1e2f0e1b67a6dc4a094e84843fee2bcce25ef643a97", // Address ที่ Whitelist แล้ว
+            tokens: [
+                {
+                    symbol: "WLD", // ใช้ 'symbol' ตามที่ Docs กำหนด
+                    token_amount: tokenAmountInWei // ใช้ 'token_amount'
+                }
+            ],
+            description: `Purchase ${coinsToReceive} COINS`
+        };
+
+        const { finalPayload } = await window.MiniKit.commandsAsync.pay(payload);
+
+        if (finalPayload.status === "success") {
+            // สำเร็จในฝั่ง User: อัปเดต UI และบันทึกข้อมูล
             playerCOIN += coinsToReceive;
-            saveGame();  // บันทึกข้อมูลลง Firebase
-            updateBalance();  // อัพเดท UI coins
+            await saveGame(); 
+            updateBalance();
 
-            // ปิด modal exchange
             const overlay = document.getElementById('exchangeModal');
             if (overlay) overlay.remove();
 
-            gameAlert("SUCCESS", `ชำระ ${amountWLD} WLD สำเร็จ!\nได้รับ ${coinsToReceive} COINS`);
+            gameAlert("SUCCESS", `ชำระเงินสำเร็จ! ได้รับ ${coinsToReceive} COINS`);
             playSfx('win');
         } else {
-            gameAlert("ERROR", "ชำระเงินไม่สำเร็จ: " + (payResult.finalPayload?.error || "Unknown error"));
+            console.error("Payload Error:", finalPayload);
+            gameAlert("FAILED", "การชำระเงินถูกยกเลิกหรือล้มเหลว");
         }
     } catch (err) {
-        console.error("Pay Error:", err);
-        let msg = "เกิดข้อผิดพลาดในการชำระเงิน";
-        if (err.message?.includes("insufficient")) {
-            msg = "WLD ใน wallet ไม่พอ กรุณาเติมก่อน";
-        } else if (err.message?.includes("rejected") || err.message?.includes("user rejected")) {
-            msg = "คุณยกเลิกการชำระเงิน";
-        }
-        gameAlert("ERROR", msg);
+        console.error("Pay Exception:", err);
+        gameAlert("ERROR", "เกิดข้อผิดพลาด: " + err.message);
     }
 };
+ 
         document.getElementById('btnConfirmSell').onclick = () => { let amountCoin = parseInt(inpSell.value) || 0; if (amountCoin < 110) { gameAlert("ERROR", "ขั้นต่ำ 110 COINS"); return; } if (playerCOIN < amountCoin) { gameAlert("ERROR", "COINS ไม่พอ"); return; } playerCOIN -= amountCoin; let getWLD = parseFloat((amountCoin / 1100).toFixed(2)); playerWLD += getWLD; saveGame(); updateBalance(); overlay.remove(); gameAlert("SUCCESS", `ได้รับ ${getWLD} WLD`); playSfx('place'); };
     }
     </script>
