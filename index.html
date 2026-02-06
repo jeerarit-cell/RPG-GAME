@@ -502,7 +502,64 @@
         document.getElementById('tabSell').onclick = () => { document.getElementById('panelBuy').style.display = 'none'; document.getElementById('panelSell').style.display = 'block'; document.getElementById('tabSell').style.color = '#00eaff'; document.getElementById('tabSell').style.borderBottom = '2px solid #00eaff'; document.getElementById('tabBuy').style.color = '#666'; document.getElementById('tabBuy').style.borderBottom = 'none'; };
         inpBuy.oninput = () => { let val = parseFloat(inpBuy.value) || 0; txtGetCoin.innerText = Math.floor(val * 1000); };
         inpSell.oninput = () => { let val = parseInt(inpSell.value) || 0; txtGetWLD.innerText = (val / 1100).toFixed(2); };
-        document.getElementById('btnConfirmBuy').onclick = () => { let amountWLD = parseFloat(inpBuy.value) || 0; if (amountWLD < 0.03) { gameAlert("ERROR", "ขั้นต่ำ 0.03 WLD"); return; } if (playerWLD < amountWLD) { gameAlert("ERROR", "WLD ไม่พอ"); return; } playerWLD -= amountWLD; playerCOIN += Math.floor(amountWLD * 1000); saveGame(); updateBalance(); overlay.remove(); gameAlert("SUCCESS", `ได้รับ ${Math.floor(amountWLD * 1000)} COINS`); playSfx('win'); };
+        document.getElementById('btnConfirmBuy').onclick = async () => {
+    let amountWLD = parseFloat(document.getElementById('inpBuyWLD').value) || 0;
+
+    if (amountWLD < 0.03) {
+        gameAlert("ERROR", "ขั้นต่ำ 0.03 WLD");
+        return;
+    }
+
+    if (!MiniKit.isInstalled()) {
+        gameAlert("ERROR", "กรุณาเปิดใน World App เพื่อชำระเงินจริง");
+        return;
+    }
+
+    // คำนวณ coins ที่จะได้รับ (ตาม rate ของคุณ)
+    let coinsToReceive = Math.floor(amountWLD * 1000);
+
+    // แจ้งเตือนก่อนเรียก pay (optional แต่ช่วย UX)
+    if (!confirm(`จะหัก ${amountWLD} WLD เพื่อรับ ${coinsToReceive} COINS\nยืนยันใน World App?`)) {
+        return;
+    }
+
+    try {
+        const payResult = await MiniKit.commandsAsync.pay({
+            reference: "buy-coins-" + Date.now(),  // ต้อง unique เพื่อ track
+            tokens: [
+                {
+                    address: "0x2cFc85d8E48F8EAB294be644d9E25C3030863003",  // WLD บน World Chain
+                    amount: (amountWLD * 1e18).toString()  // แปลงเป็นหน่วย wei (18 decimals)
+                }
+            ]
+        });
+
+        if (payResult.finalPayload && payResult.finalPayload.status === "success") {
+            // ชำระสำเร็จ!
+            playerCOIN += coinsToReceive;
+            saveGame();  // บันทึกข้อมูลลง Firebase
+            updateBalance();  // อัพเดท UI coins
+
+            // ปิด modal exchange
+            const overlay = document.getElementById('exchangeModal');
+            if (overlay) overlay.remove();
+
+            gameAlert("SUCCESS", `ชำระ ${amountWLD} WLD สำเร็จ!\nได้รับ ${coinsToReceive} COINS`);
+            playSfx('win');
+        } else {
+            gameAlert("ERROR", "ชำระเงินไม่สำเร็จ: " + (payResult.finalPayload?.error || "Unknown error"));
+        }
+    } catch (err) {
+        console.error("Pay Error:", err);
+        let msg = "เกิดข้อผิดพลาดในการชำระเงิน";
+        if (err.message?.includes("insufficient")) {
+            msg = "WLD ใน wallet ไม่พอ กรุณาเติมก่อน";
+        } else if (err.message?.includes("rejected") || err.message?.includes("user rejected")) {
+            msg = "คุณยกเลิกการชำระเงิน";
+        }
+        gameAlert("ERROR", msg);
+    }
+};
         document.getElementById('btnConfirmSell').onclick = () => { let amountCoin = parseInt(inpSell.value) || 0; if (amountCoin < 110) { gameAlert("ERROR", "ขั้นต่ำ 110 COINS"); return; } if (playerCOIN < amountCoin) { gameAlert("ERROR", "COINS ไม่พอ"); return; } playerCOIN -= amountCoin; let getWLD = parseFloat((amountCoin / 1100).toFixed(2)); playerWLD += getWLD; saveGame(); updateBalance(); overlay.remove(); gameAlert("SUCCESS", `ได้รับ ${getWLD} WLD`); playSfx('place'); };
     }
     </script>
