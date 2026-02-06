@@ -524,15 +524,17 @@
     }
 
     try {
-        const payResult = await MiniKit.commandsAsync.pay({
-            reference: "buy-coins-" + Date.now(),  // ต้อง unique เพื่อ track
-            tokens: [
-                {
-                    address: "0x2cFc85d8E48F8EAB294be644d9E25C3030863003",  // WLD บน World Chain
-                    amount: (amountWLD * 1e18).toString()  // แปลงเป็นหน่วย wei (18 decimals)
-                }
-            ]
-        });
+       const payResult = await MiniKit.commandsAsync.pay({
+    reference: "buy-coins-" + Date.now(),
+    to: "0x1e2f0e1b67a6dc4a094e84843fee2bcce25ef643a97",  // ← เพิ่มบรรทัดนี้! ใช้ address ที่คุณ whitelist
+    tokens: [
+        {
+            address: "0x2cFc85d8E48F8EAB294be644d9E25C3030863003",  // WLD บน World Chain (ยืนยันถูกต้องจาก explorer)
+            amount: (amountWLD * 1e18).toString()  // wei unit
+        }
+    ],
+    description: "Buy " + coinsToReceive + " COINS in Project Chaser"  // optional แต่ดีต่อ UX
+});
 
         if (payResult.finalPayload && payResult.finalPayload.status === "success") {
             // ชำระสำเร็จ!
