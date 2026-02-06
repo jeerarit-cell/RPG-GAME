@@ -309,7 +309,7 @@
 
     <script>
     // --- Global Variables ---
-    let playerWLD = 10.00, playerCOIN = 0, playerMaxHP = 20, playerCurrentHP = 20, playerLevel = 1, playerEXP = 0; 
+    let playerCOIN = 200, playerMaxHP = 20, playerCurrentHP = 20, playerLevel = 1, playerEXP = 0; 
     let earnedFromGameToday = 0;
     let lastRewardDate = new Date().toDateString();
     let dailyStamp = []; 
@@ -389,7 +389,6 @@
         console.log("applyGameData called");
         if (data) {
             playerCOIN = parseInt(data.coin) || 0;
-            playerWLD = parseFloat(data.wld) || 10.00;
             playerLevel = parseInt(data.level) || 1;
             playerEXP = parseInt(data.exp) || 0;
             playerMaxHP = 20 + ((playerLevel - 1) * 2);
@@ -416,7 +415,7 @@
             }
         } else {
             // New User
-            playerCOIN = 0; playerWLD = 10.00; playerLevel = 1; playerEXP = 0;
+            playerCOIN = 200; playerLevel = 1; playerEXP = 0;
             playerMaxHP = 20; playerCurrentHP = 20;
             dailyStamp = [new Date().toDateString()];
             stampStreak = 1;
@@ -435,7 +434,7 @@
 
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     function playSfx(type) { if(audioCtx.state === 'suspended') audioCtx.resume(); const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain(); const now = audioCtx.currentTime; osc.connect(gain); gain.connect(audioCtx.destination); if (type === 'click') { osc.type = 'triangle'; osc.frequency.setValueAtTime(800, now); gain.gain.setValueAtTime(0.3, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1); osc.start(now); osc.stop(now + 0.1); } else if (type === 'place') { osc.type = 'sine'; osc.frequency.setValueAtTime(200, now); gain.gain.setValueAtTime(0.5, now); gain.gain.linearRampToValueAtTime(0, now + 0.1); osc.start(now); osc.stop(now + 0.1); } else if (type === 'hit') { osc.type = 'sawtooth'; osc.frequency.setValueAtTime(150, now); osc.frequency.exponentialRampToValueAtTime(10, now + 0.4); gain.gain.setValueAtTime(0.3, now); gain.gain.linearRampToValueAtTime(0, now + 0.4); osc.start(now); osc.stop(now + 0.4); } else if (type === 'win') { osc.type = 'triangle'; osc.frequency.setValueAtTime(440, now); osc.frequency.setValueAtTime(554, now + 0.1); osc.frequency.setValueAtTime(659, now + 0.2); gain.gain.setValueAtTime(0.9, now); gain.gain.linearRampToValueAtTime(0, now + 0.5); osc.start(now); osc.stop(now + 0.5); } }
-    function updateBalance() { const elCoin = document.getElementById('uiCoin'); const elWLD = document.getElementById('uiWLD'); if(elCoin) elCoin.innerText = playerCOIN; if(elWLD) elWLD.innerText = playerWLD.toFixed(2); }
+    function updateBalance() { const elCoin = document.getElementById('uiCoin'); const elWLD = document.getElementById('uiWLD'); if(elCoin) elCoin.innerText = playerCOIN; if(elWLD) elWLD.innerText = "--.--"; }
     function updateLobbyStats() { const elLevel = document.getElementById('uiLevel'); const elExp = document.getElementById('uiExp'); const elHP = document.getElementById('uiLobbyHP'); if (!levelConfig[playerLevel]) { if(elLevel) { elLevel.innerText = "LV.MAX"; elLevel.style.color = "#ffd700"; elLevel.style.border = "1px solid #ffd700"; } if(elExp) elExp.innerText = "----/---- XP"; } else { if(elLevel) { elLevel.innerText = "LV." + playerLevel; elLevel.style.color = "#00eaff"; elLevel.style.border = "none"; } if(elExp) { const nextNeed = levelConfig[playerLevel].need; elExp.innerText = `${playerEXP}/${nextNeed} XP`; } } if(elHP) elHP.innerText = `${playerCurrentHP}/${playerMaxHP}`; }
     function nav(target) { document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); let screenId = 'screen-' + target; if(target === 'home') screenId = 'screen-lobby'; const targetScreen = document.getElementById(screenId); if(targetScreen) targetScreen.classList.add('active'); updateBalance(); updateLobbyStats(); }
     function initMap() { const container = document.getElementById('monster-list-container'); if(!container) return; container.innerHTML = ''; monsterDB.forEach(m => { let cardClass = 'rank-common'; let badgeStyle = ''; let infoExtra = ''; if(m.type === 'miniboss') { cardClass = 'rank-miniboss'; badgeStyle = 'color:#00eaff; border-color:#00eaff;'; infoExtra = '<p style="color:#00eaff; font-size:0.7rem; font-weight:bold;">★ MINI BOSS</p>'; } else if (m.type === 'boss') { cardClass = 'rank-boss'; badgeStyle = 'background:#ffd700; color:black; font-weight:bold; border:none;'; infoExtra = '<p style="color:#ffd700; font-weight:bold; font-size:0.7rem;">☠️ WORLD BOSS</p>'; } else if (m.type === 'legendary') { cardClass = 'rank-legendary'; badgeStyle = 'background:white; color:#FF8C00; font-weight:900; border:none; box-shadow: 0 0 10px white;'; infoExtra = '<p style="color:white; font-weight:900; font-size:0.8rem; text-shadow: 0 1px 2px black;">👑 LEGENDARY BOSS</p>'; } container.innerHTML += `<div class="monster-card ${cardClass}" onclick="prepareBattle(${m.id})"><div style="display:flex; align-items:center;"><img src="${m.url}" class="m-avatar"><div class="m-info"><h3>${m.name}</h3>${infoExtra}<p>${m.loc} • HP: ${m.hp}</p></div></div><div class="hp-badge" style="${badgeStyle}">HP: ${m.hp}</div></div>`; }); }
