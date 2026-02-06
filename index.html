@@ -429,10 +429,12 @@
 
     // --- Helpers ---
     document.getElementById('btnWallet').onclick = function() {
-    // แจ้งเตือนให้ผู้เล่นรู้ก่อน
-    if (confirm("การซื้อ/ขาย COINS จะใช้ WLD จริงผ่าน World App\nจะมีหน้าต่างยืนยันปรากฏขึ้น\nดำเนินการต่อ?")) {
-        openExchangeModal();  // เปิด modal ถ้ากดตกลง
-    }
+    gameAlert(
+        "เตรียมชำระเงิน",
+        "การซื้อ/ขาย COINS จะใช้ WLD จริงผ่าน World App\nจะมีหน้าต่างยืนยันจาก World App ปรากฏขึ้น\nกด ACKNOWLEDGE เพื่อดำเนินการต่อ"
+    );
+    // แต่เนื่องจาก gameAlert เป็น modal เราต้องเพิ่ม callback ให้มันเรียก openExchangeModal หลังกด ACKNOWLEDGE
+    // ถ้าอยากง่าย ๆ ใช้ confirm ก่อนก็พอครับ
 };
     document.getElementById('btnStartGame').onclick = () => nav('map');
     document.getElementById('btnCloseMap').onclick = () => nav('home');
