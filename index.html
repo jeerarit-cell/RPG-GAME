@@ -431,10 +431,11 @@
     document.getElementById('btnWallet').onclick = function() {
     gameAlert(
         "เตรียมชำระเงิน",
-        "การซื้อ/ขาย COINS จะใช้ WLD จริงผ่าน World App\nจะมีหน้าต่างยืนยันจาก World App ปรากฏขึ้น\nกด ACKNOWLEDGE เพื่อดำเนินการต่อ"
+        "การซื้อ/ขาย COINS จะใช้ WLD จริงผ่าน World App\nจะมีหน้าต่างยืนยันจาก World App ปรากฏขึ้น\nกด ACKNOWLEDGE เพื่อดำเนินการต่อ",
+        function() {
+            openExchangeModal();  // เรียกเปิด exchange modal หลังกด ACKNOWLEDGE
+        }
     );
-    // แต่เนื่องจาก gameAlert เป็น modal เราต้องเพิ่ม callback ให้มันเรียก openExchangeModal หลังกด ACKNOWLEDGE
-    // ถ้าอยากง่าย ๆ ใช้ confirm ก่อนก็พอครับ
 };
     document.getElementById('btnStartGame').onclick = () => nav('map');
     document.getElementById('btnCloseMap').onclick = () => nav('home');
@@ -458,7 +459,36 @@
     
     // --- Exchange & Others ---
     function giveStampReward(streak) { let reward = 0; let message = ""; switch (streak) { case 1: reward = 1; message = "ล็อกอินวันแรก ได้รับ 1 coin"; break; case 2: reward = 1; message = "วันที่ 2 ติดต่อกัน ได้รับ 1 coin"; break; case 3: reward = 2; message = "วันที่ 3 ได้รับ 2 coin"; break; case 4: reward = 2; message = "วันที่ 4 ได้รับ 2 coin"; break; case 5: reward = 3; message = "วันที่ 5 ได้รับ 3 coin"; break; case 6: reward = 3; message = "วันที่ 6 ได้รับ 3 coin"; break; case 7: reward = 8; message = "ครบ 7 วันติดต่อกัน! โบนัส 8 coin"; dailyStamp = []; stampStreak = 0; break; default: return; } if (reward > 0) { playerCOIN += reward; gameAlert("แสตมป์วันนี้!", message); saveGame(); } }
-    function gameAlert(title, message) { const oldModal = document.getElementById('customAlert'); if (oldModal) oldModal.remove(); const overlay = document.createElement('div'); overlay.id = 'customAlert'; overlay.style.cssText = `position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 9999; display: flex; justify-content: center; align-items: center; backdrop-filter: blur(5px);`; const box = document.createElement('div'); box.style.cssText = `background: #111; border: 2px solid #ff0000; padding: 20px; width: 80%; max-width: 350px; text-align: center; border-radius: 10px; box-shadow: 0 0 20px rgba(255, 0, 0, 0.4); font-family: 'Kanit', sans-serif; animation: popIn 0.3s ease-out;`; box.innerHTML = `<h2 style="color:#ff0000; margin:0 0 10px 0; font-family:'Orbitron'; text-transform:uppercase;">⛔ ${title}</h2><p style="color:#ddd; margin-bottom:20px; font-size:0.9rem; line-height:1.5;">${message}</p><button id="alertBtn" style="background: #ff0000; color: white; border: none; padding: 10px 30px; font-family: 'Orbitron'; font-weight: bold; cursor: pointer; clip-path: polygon(10% 0, 100% 0, 100% 70%, 90% 100%, 0 100%, 0 30%);">ACKNOWLEDGE</button>`; overlay.appendChild(box); document.body.appendChild(overlay); const btn = box.querySelector('#alertBtn'); btn.onclick = () => { playSfx('click'); overlay.remove(); }; }
+    function gameAlert(title, message, callback = null) {
+    const oldModal = document.getElementById('customAlert');
+    if (oldModal) oldModal.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'customAlert';
+    overlay.style.cssText = `position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 9999; display: flex; justify-content: center; align-items: center; backdrop-filter: blur(5px);`;
+
+    const box = document.createElement('div');
+    box.style.cssText = `background: #111; border: 2px solid #ff0000; padding: 20px; width: 80%; max-width: 350px; text-align: center; border-radius: 10px; box-shadow: 0 0 20px rgba(255, 0, 0, 0.4); font-family: 'Kanit', sans-serif; animation: popIn 0.3s ease-out;`;
+
+    box.innerHTML = `
+        <h2 style="color:#ff0000; margin:0 0 10px 0; font-family:'Orbitron'; text-transform:uppercase;">⛔ ${title}</h2>
+        <p style="color:#ddd; margin-bottom:20px; font-size:0.9rem; line-height:1.5;">${message}</p>
+        <button id="alertBtn" style="background: #ff0000; color: white; border: none; padding: 10px 30px; font-family: 'Orbitron'; font-weight: bold; cursor: pointer; clip-path: polygon(10% 0, 100% 0, 100% 70%, 90% 100%, 0 100%, 0 30%);">ACKNOWLEDGE</button>
+    `;
+
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
+
+    const btn = box.querySelector('#alertBtn');
+    btn.onclick = () => {
+        playSfx('click');
+        overlay.remove();
+        // ถ้ามี callback ให้เรียกต่อเลย
+        if (typeof callback === 'function') {
+            callback();
+        }
+    };
+}
     window.changeName = function() { const oldModal = document.getElementById('nameModal'); if (oldModal) oldModal.remove(); const overlay = document.createElement('div'); overlay.id = 'nameModal'; overlay.style.cssText = `position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 10000; display: flex; justify-content: center; align-items: center; backdrop-filter: blur(5px); animation: fadeIn 0.2s;`; const box = document.createElement('div'); box.style.cssText = `background: #111; border: 2px solid #00eaff; box-shadow: 0 0 20px rgba(0, 234, 255, 0.3); padding: 25px; width: 85%; max-width: 320px; text-align: center; border-radius: 12px; font-family: 'Kanit', sans-serif; position: relative;`; const closeBtn = document.createElement('div'); closeBtn.innerHTML = "×"; closeBtn.style.cssText = "position: absolute; top: 5px; right: 15px; font-size: 2rem; color: #666; cursor: pointer;"; closeBtn.onclick = () => overlay.remove(); box.appendChild(closeBtn); box.innerHTML += `<div style="color:#00eaff; font-family:'Orbitron'; font-size:1.2rem; margin-bottom:10px; letter-spacing:1px;">IDENTIFICATION</div><p style="color:#aaa; font-size:0.9rem; margin-bottom:15px;">ตั้งชื่อ Hunter ของคุณ (Max 8 Chars)</p><input type="text" id="inpName" placeholder="NAME" maxlength="8" style="width: 100%; background: #000; color: #fff; border: 1px solid #444; padding: 12px; font-family: 'Orbitron'; font-size: 1.4rem; text-align: center; border-radius: 6px; margin-bottom: 20px; outline: none; text-transform: uppercase;"><button id="btnConfirmName" class="main-btn" style="height:45px; font-size:1rem; width:100%;">CONFIRM IDENTITY</button><p style="color:#555; font-size:0.7rem; margin-top:10px;">* ห้ามใช้อักขระพิเศษ / เว้นวรรค</p>`; overlay.appendChild(box); document.body.appendChild(overlay); const input = document.getElementById('inpName'); input.focus(); document.getElementById('btnConfirmName').onclick = () => { let newName = input.value.trim(); if (!newName) return; if (newName.length > 8) { alert("⛔ ชื่อยาวเกินไป! (สูงสุด 8 ตัวอักษร)"); return; } const regex = /^[ก-๙a-zA-Z0-9]+$/; if (!regex.test(newName)) { alert("⛔ ห้ามใช้อักขระพิเศษ หรือเว้นวรรค"); return; } document.getElementById('uiPlayerName').innerText = newName.toUpperCase(); if(typeof saveGame === 'function') saveGame(); overlay.remove(); if(typeof playSfx === 'function') playSfx('win'); }; };
     
     function openExchangeModal() {
