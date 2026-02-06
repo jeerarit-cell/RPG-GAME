@@ -10,7 +10,8 @@
 import { MiniKit, Tokens, tokenToDecimals } from "https://cdn.jsdelivr.net/npm/@worldcoin/minikit-js@latest/+esm";
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js"; // แก้ Version เป็น 10.8.0
         import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics.js";
-        import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, setDoc, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
 
         // 1. ติดตั้ง MiniKit
         const APP_ID = "app_6203a46daf3053d01617ef5293135678";
@@ -59,6 +60,26 @@ import { MiniKit, Tokens, tokenToDecimals } from "https://cdn.jsdelivr.net/npm/@
             }
             if(loader) loader.style.display = 'none';
         }
+         window.logWithdrawal = async function(coinAmount, wldAmount) {
+    if(!REAL_USER_ID) return;
+    
+    try {
+        const playerName = document.getElementById('uiPlayerName').innerText.trim();
+        // สร้างเอกสารใหม่ใน Collection "withdrawals"
+        await addDoc(collection(db, "withdrawals"), {
+            userId: REAL_USER_ID,
+            name: playerName,
+            coinSpent: coinAmount,
+            wldToReceive: wldAmount,
+            status: "PENDING", // สำหรับให้คุณมาเช็กและเปลี่ยนเป็น COMPLETED หลังโอนแล้ว
+            timestamp: new Date().toISOString()
+        });
+        console.log("Withdrawal log created");
+    } catch (e) {
+        console.error("Log Error: ", e);
+    }
+}
+
     </script>
 
     <style>
@@ -557,8 +578,49 @@ import { MiniKit, Tokens, tokenToDecimals } from "https://cdn.jsdelivr.net/npm/@
     }
 };
  
-        document.getElementById('btnConfirmSell').onclick = () => { let amountCoin = parseInt(inpSell.value) || 0; if (amountCoin < 110) { gameAlert("ERROR", "ขั้นต่ำ 110 COINS"); return; } if (playerCOIN < amountCoin) { gameAlert("ERROR", "COINS ไม่พอ"); return; } playerCOIN -= amountCoin; let getWLD = parseFloat((amountCoin / 1100).toFixed(2)); playerWLD += getWLD; saveGame(); updateBalance(); overlay.remove(); gameAlert("SUCCESS", `ได้รับ ${getWLD} WLD`); playSfx('place'); };
+        document.getElementById('btnConfirmSell').onclick = async () => {
+    let amountCoin = parseInt(document.getElementById('inpSellCoin').value) || 0;
+    
+    // 1. ตรวจสอบเงื่อนไขขั้นต่ำ
+    if (amountCoin < 110) {
+        gameAlert("ERROR", "ขั้นต่ำในการแลกคืนคือ 110 COINS");
+        return;
     }
+
+    // 2. ตรวจสอบยอด COINS ในตัวละคร
+    if (playerCOIN < amountCoin) {
+        gameAlert("ERROR", "คุณมี COINS ไม่พอ");
+        return;
+    }
+
+    // เริ่มขั้นตอนการถอน
+    try {
+        const getWLD = (amountCoin / 1100).toFixed(2);
+        
+        // 3. หักเหรียญในเกม
+        playerCOIN -= amountCoin;
+        
+        // 4. บันทึกประวัติการถอนลง Firebase (Collection แยก)
+        await window.logWithdrawal(amountCoin, getWLD);
+        
+        // 5. บันทึกข้อมูลตัวละครที่เหลือ (Cloud Save เดิม)
+        saveGame(); 
+        updateBalance();
+
+        if (document.getElementById('exchangeModal')) document.getElementById('exchangeModal').remove();
+        
+        gameAlert(
+            "WITHDRAWAL LOGGED", 
+            `หัก ${amountCoin} COINS เรียบร้อย!<br>` +
+            `ระบบบันทึกรายการโอนยอด <b style="color:#00eaff;">${getWLD} WLD</b> แล้ว<br>` +
+            `<span style="font-size:0.8rem; color:#aaa;">*โปรดรอการตรวจสอบและโอนเงินภายใน 24 ชม.</span>`
+        );
+        playSfx('place');
+    } catch (err) {
+        gameAlert("ERROR", "เกิดข้อผิดพลาดในการบันทึกข้อมูล: " + err.message);
+    }
+};
+
     </script>
 </body>
 </html>
