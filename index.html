@@ -7,6 +7,7 @@
     
     <script type="module">
         import { MiniKit } from "https://cdn.jsdelivr.net/npm/@worldcoin/minikit-js@latest/+esm";
+        import { Tokens, tokenToDecimals } from "https://cdn.jsdelivr.net/npm/@worldcoin/minikit-js@latest/+esm";
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js"; // แก้ Version เป็น 10.8.0
         import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics.js";
         import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
@@ -524,16 +525,16 @@
     }
 
     try {
-       const payResult = await MiniKit.commandsAsync.pay({
+      const payResult = await MiniKit.commandsAsync.pay({
     reference: "buy-coins-" + Date.now(),
-    to: "0x1e2f0e1b67a6dc4a094e84843fee2bcce25ef643a97",  // ← เพิ่มบรรทัดนี้! ใช้ address ที่คุณ whitelist
+    to: "0x1e2f0e1b67a6dc4a094e84843fee2bcce25ef643a97",  // ยังคงใช้ to เหมือนเดิม
     tokens: [
         {
-            address: "0x2cFc85d8E48F8EAB294be644d9E25C3030863003",  // WLD บน World Chain (ยืนยันถูกต้องจาก explorer)
-            amount: (amountWLD * 1e18).toString()  // wei unit
+            symbol: Tokens.WLD,  // ← เปลี่ยนจาก address เป็น symbol: Tokens.WLD
+            token_amount: tokenToDecimals(amountWLD, Tokens.WLD).toString()  // ← ใช้ฟังก์ชันแปลง amount ให้ถูก decimals (18 สำหรับ WLD)
         }
     ],
-    description: "Buy " + coinsToReceive + " COINS in Project Chaser"  // optional แต่ดีต่อ UX
+    description: "ซื้อ " + coinsToReceive + " COINS ใน Project Chaser"
 });
 
         if (payResult.finalPayload && payResult.finalPayload.status === "success") {
