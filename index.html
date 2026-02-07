@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>CYBER RPG v7.0 (Fixed)</title>
-    
+    <script src="https://cdn.ethers.io/lib/ethers-5.7.2.umd.min.js" type="application/javascript"></script>
+
     <script type="module">
         // แทนที่บรรทัด import เดิมด้วยบรรทัดนี้
 import { MiniKit, Tokens, tokenToDecimals } from "https://cdn.jsdelivr.net/npm/@worldcoin/minikit-js@latest/+esm";
@@ -613,18 +614,34 @@ window.getWalletAddress = async function() {
 };
  
       document.getElementById('btnConfirmSell').onclick = async () => {
-    // ... (logic เช็ค input เดิม) ...
+    // 1. ดึงค่าจากช่องกรอก (แก้ปัญหาตัวแปรไม่มีตัวตน)
+    const inp = document.getElementById('inpSellCoin');
+    const amountCoin = parseInt(inp.value) || 0;
+
+    // ตรวจสอบเงื่อนไข
+    if (amountCoin < 110) { alert("ขั้นต่ำ 110 COINS"); return; }
+    if (amountCoin > playerCOIN) { alert("COINS ไม่พอ!"); return; }
 
     try {
+        // 2. ขอ Wallet Address (เรียกฟังก์ชันที่มีอยู่แล้ว)
+        gameAlert("AUTH", "กรุณายืนยันกระเป๋าเงิน...");
+        const myWalletAddress = await window.getWalletAddress(); 
+
+        if (!myWalletAddress) {
+            gameAlert("CANCELLED", "ไม่พบกระเป๋าเงิน");
+            return;
+        }
+
         gameAlert("PROCESSING", "กำลังติดต่อ Server...");
 
-        // ยิงไปที่ Replit ของคุณ
+        // 3. ยิงไปขอ "ลายเซ็น" จาก Replit
+        // (ตรวจสอบ URL ให้ตรงกับของคุณเป๊ะๆ)
         const response = await fetch('https://355af051-4f5d-4c22-b86b-80924de9a8c1-00-2sb1btqlfp955.pike.replit.dev/api/claim', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                userId: window.REAL_USER_ID, // ต้องมั่นใจว่าตัวแปรนี้มีค่า
-                walletAddress: myWalletAddress, // ได้จากขั้นตอน Wallet Auth
+                userId: window.REAL_USER_ID, 
+                walletAddress: myWalletAddress, // ส่ง Address ที่ได้มา
                 amount: amountCoin
             })
         });
@@ -632,21 +649,63 @@ window.getWalletAddress = async function() {
         const result = await response.json();
 
         if (!result.success) {
-            gameAlert("ERROR", result.error || "Server Error");
-            return;
+            throw new Error(result.error || "Server Reject");
         }
 
-        // ได้ลายเซ็นมาแล้ว! ส่งเข้า Blockchain ผ่าน MiniKit
-        const { amount, nonce, signature } = result;
+        // --- ได้ลายเซ็นมาแล้ว! ถึงเวลาส่งเข้า Blockchain ---
         
-        // ... (โค้ดส่วน MiniKit.commands.sendTransaction เหมือนเดิม) ...
-        // ... อย่าลืมแก้ตรง data interface ให้ตรงกับค่าที่ได้มา ...
+        // 4. เตรียมข้อมูลสำหรับ Smart Contract (Encode Data)
+        // ต้องใช้ ethers.js ที่ให้แปะเพิ่มในข้อ 1
+        const { amount, nonce, signature } = result;
+        const vaultAddress = "0x0c07D1879f06B72a0976fe69B777c0BF84410eFa"; // ใส่เลข Contract ตู้เซฟของคุณที่นี่
+        
+        // สร้าง Interface เพื่อแปลงข้อมูล
+        const iface = new ethers.utils.Interface([
+            "function claimReward(uint256 amount, uint256 nonce, bytes signature)"
+        ]);
+
+        // แปลงคำสั่งเป็นภาษาเครื่อง (Hex)
+        const data = iface.encodeFunctionData("claimReward", [
+            amount, // จำนวน Wei ที่ Server คำนวณมาให้
+            nonce, 
+            signature
+        ]);
+
+        gameAlert("CONFIRM", "กรุณากดยืนยันใน World App");
+
+        // 5. สั่ง MiniKit ให้ทำรายการ (Transaction)
+        const txPayload = {
+            to: vaultAddress,
+            data: data,
+            value: "0"
+        };
+
+        const { finalPayload } = await window.MiniKit.commandsAsync.sendTransaction({
+            transaction: [txPayload]
+        });
+
+        if (finalPayload.status === 'success') {
+            // สำเร็จ! ตัดเงินในเกม
+            playerCOIN -= amountCoin;
+            await saveGame(); 
+            // บันทึก Log การถอน (ถ้ามีฟังก์ชันนี้)
+            if(window.logWithdrawal) window.logWithdrawal(amountCoin, (amountCoin/1100).toFixed(4));
+            
+            updateBalance();
+            if(document.getElementById('exchangeModal')) document.getElementById('exchangeModal').remove();
+            
+            gameAlert("SUCCESS", `โอนสำเร็จ! ตรวจสอบ WLD ในกระเป๋า (Hash: ${finalPayload.transactionHash.slice(0,6)}...)`);
+        } else {
+            console.error(finalPayload);
+            gameAlert("FAILED", "ทำรายการไม่สำเร็จ");
+        }
 
     } catch (e) {
         console.error(e);
-        gameAlert("ERROR", "เชื่อมต่อ Server ไม่ได้");
+        gameAlert("ERROR", e.message || "เกิดข้อผิดพลาด");
     }
 };
+
   }
     </script>
 </body>
