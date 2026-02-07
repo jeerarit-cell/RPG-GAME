@@ -613,71 +613,91 @@ window.getWalletAddress = async function() {
     }
 };
  
-          document.getElementById('btnConfirmSell').onclick = async () => {
-    const amountCoin = parseInt(document.getElementById('inpSellCoin').value) || 0;
-    if (amountCoin < 110) { gameAlert("ERROR", "ขั้นต่ำ 110 COINS"); return; }
-    if (amountCoin > playerCOIN) { gameAlert("ERROR", "COINS ไม่พอ"); return; }
+              document.getElementById('btnConfirmSell').onclick = async () => {
+        // 1. รับค่าจากช่องกรอก
+        const inp = document.getElementById('inpSellCoin');
+        const amountCoin = parseInt(inp.value) || 0;
 
-    try {
-        // 1. ได้ wallet ก่อน
-        const myWalletAddress = await window.getWalletAddress();
-        if (!myWalletAddress) throw new Error("ไม่ได้รับ wallet address");
+        // เช็คเงื่อนไขพื้นฐาน
+        if (amountCoin < 110) { gameAlert("ERROR", "ขั้นต่ำ 110 COINS"); return; }
+        if (amountCoin > playerCOIN) { gameAlert("ERROR", "COINS ไม่พอ!"); return; }
 
-        // 2. ขอ signature จาก server
-        const response = await fetch('https://355af051-4f5d-4c22-b86b-80924de9a8c1-00-2sb1btqlfp955.pike.replit.dev/api/claim', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                userId: REAL_USER_ID,
-                walletAddress: myWalletAddress,
-                amount: amountCoin
-            })
-        });
-        const result = await response.json();
-        if (!result.success) throw new Error(result.error || "Server ปฏิเสธ");
+        try {
+            // 2. ดึง Wallet Address (แก้จุดที่ error เดิม)
+            gameAlert("AUTH", "กำลังยืนยันกระเป๋า...");
+            const myWalletAddress = await window.getWalletAddress(); // เรียกฟังก์ชันดึงกระเป๋า
 
-        const { amount, nonce, signature } = result;
+            if (!myWalletAddress) {
+                gameAlert("CANCELLED", "ไม่พบกระเป๋าเงิน (ต้องเชื่อมต่อก่อน)");
+                return;
+            }
 
-        // 3. เตรียม transaction ตามคู่มือ
-        const vaultAddress = "0x0c07D1879f06B72a0976fe69B777c0BF84410eFa";
+            gameAlert("PROCESSING", "กำลังติดต่อ Server...");
 
-        const tx = {
-            address: vaultAddress,
-            // ถ้ามี ABI → ใส่ที่นี่ (ดีที่สุด)
-            // abi: [ { name: "claimReward", type: "function", inputs: [...], ... } ],
-            // functionName: "claimReward",
-            // args: [amount, nonce, signature],
+            // 3. ส่งข้อมูลไป Server Replit เพื่อขอ "ลายเซ็น"
+            // (เช็ค URL ให้ตรงกับ Replit ของคุณ)
+            const response = await fetch('https://355af051-4f5d-4c22-b86b-80924de9a8c1-00-2sb1btqlfp955.pike.replit.dev/api/claim', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    userId: window.REAL_USER_ID || "test-user", // กันเหนียวถ้าไม่มี ID
+                    walletAddress: myWalletAddress, 
+                    amount: amountCoin
+                })
+            });
 
-            // หรือใช้ raw data (ถ้ายังไม่มี ABI)
-            data: new ethers.utils.Interface([
+            const result = await response.json();
+
+            if (!result.success) {
+                throw new Error(result.error || "Server ปฏิเสธการทำรายการ");
+            }
+
+            // --- ได้ลายเซ็นแล้ว! เริ่มขั้นตอน Blockchain ---
+            const { amount, nonce, signature } = result;
+            const vaultAddress = "0x0c07D1879f06B72a0976fe69B777c0BF84410eFa"; // เลขตู้เซฟของคุณ
+
+            // 4. แปลงข้อมูลเป็นภาษา Blockchain (Encode)
+            // ต้องมี ethers.js ใน <head> แล้วนะครับ
+            const iface = new ethers.utils.Interface([
                 "function claimReward(uint256 amount, uint256 nonce, bytes signature)"
-            ]).encodeFunctionData("claimReward", [amount, nonce, signature]),
+            ]);
 
-            value: "0x0"
-        };
+            const data = iface.encodeFunctionData("claimReward", [
+                amount,    // จำนวน wei ที่ server คำนวณมา
+                nonce, 
+                signature
+            ]);
 
-        gameAlert("CONFIRM", "กรุณายืนยันใน World App...");
+            gameAlert("CONFIRM", "กรุณากดยืนยันใน World App");
 
-        // 4. ส่ง transaction
-        const { finalPayload } = await MiniKit.commandsAsync.sendTransaction({
-            transaction: [tx],
-            formatPayload: false   // ลองเปิด/ปิด ดูว่าอันไหนทำงาน
-        });
+            // 5. ส่งคำสั่งผ่าน MiniKit
+            const { finalPayload } = await window.MiniKit.commandsAsync.sendTransaction({
+                transaction: [{
+                    to: vaultAddress,
+                    data: data,
+                    value: "0"
+                }]
+            });
 
-        if (finalPayload.status === 'success') {
-            playerCOIN -= amountCoin;
-            saveGame();
-            logWithdrawal?.(amountCoin, (amountCoin/1100).toFixed(4));
-            gameAlert("SUCCESS", `โอนสำเร็จ! Hash: ${finalPayload.transactionHash?.slice(0,10)}...`);
-        } else {
-            gameAlert("FAILED", finalPayload.error || "ทำรายการไม่สำเร็จ");
+            if (finalPayload.status === 'success') {
+                // สำเร็จ!
+                playerCOIN -= amountCoin;
+                await saveGame(); 
+                updateBalance();
+                
+                if(document.getElementById('exchangeModal')) document.getElementById('exchangeModal').remove();
+                
+                gameAlert("SUCCESS", `โอนสำเร็จ! เงินกำลังเข้ากระเป๋า\n(Tx: ${finalPayload.transactionHash.slice(0,6)}...)`);
+            } else {
+                gameAlert("FAILED", "การทำรายการล้มเหลว");
+            }
+
+        } catch (e) {
+            console.error(e);
+            gameAlert("ERROR", e.message || "เกิดข้อผิดพลาด");
         }
+    };
 
-    } catch (e) {
-        console.error(e);
-        gameAlert("ERROR", e.message || "เกิดข้อผิดพลาด");
-    }
-};
 
   }
     </script>
