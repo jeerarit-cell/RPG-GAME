@@ -77,6 +77,42 @@ import { MiniKit, Tokens, tokenToDecimals } from "https://cdn.jsdelivr.net/npm/@
         console.error("Log Error: ", e);
     }
 }
+      // ฟังก์ชันสำหรับขออนุญาตเข้าถึง Wallet Address
+window.getWalletAddress = async function() {
+    console.log("Start getting wallet address...");
+    
+    if (!window.MiniKit || !window.MiniKit.isInstalled()) {
+        alert("⚠️ MiniKit not installed (ต้องเปิดใน World App)");
+        return null;
+    }
+
+    // สร้างรหัสสุ่ม (Nonce) เพื่อความปลอดภัย
+    const nonce = Math.random().toString(36).substring(7);
+
+    try {
+        // เรียกคำสั่ง walletAuth ของ MiniKit
+        const { finalPayload } = await window.MiniKit.commandsAsync.walletAuth({
+            nonce: nonce,
+            requestId: '0', // Optional
+            expirationTime: new Date(new Date().getTime() + 7 * 24 * 60 * 60 * 1000), // Optional
+            notBefore: new Date() // Optional
+        });
+
+        if (finalPayload.status === 'success') {
+            // สำเร็จ! ดึงเลขกระเป๋าได้แล้ว
+            const walletAddress = finalPayload.address; // หรือบางทีอาจจะอยู่ใน finalPayload.walletAddress เช็ค console ดูอีกที
+            console.log("✅ Wallet Address Found:", walletAddress);
+            return walletAddress;
+        } else {
+            console.error("❌ Wallet Auth Failed:", finalPayload);
+            return null;
+        }
+    } catch (error) {
+        console.error("❌ Wallet Auth Error:", error);
+        return null;
+    }
+};
+
 
     </script>
 
@@ -576,48 +612,27 @@ import { MiniKit, Tokens, tokenToDecimals } from "https://cdn.jsdelivr.net/npm/@
     }
 };
  
-        document.getElementById('btnConfirmSell').onclick = async () => {
-    let amountCoin = parseInt(document.getElementById('inpSellCoin').value) || 0;
+        // แก้ไขปุ่ม Sell ให้เป็นการ Test ดึงกระเป๋า
+document.getElementById('btnConfirmSell').onclick = async () => {
+    // 1. ลองเรียกฟังก์ชันดึงกระเป๋า
+    gameAlert("TESTING", "กำลังขออนุญาตเข้าถึงกระเป๋า...<br>กรุณากดยืนยันใน World App");
     
-    // 1. ตรวจสอบเงื่อนไขขั้นต่ำ
-    if (amountCoin < 110) {
-        gameAlert("ERROR", "ขั้นต่ำในการแลกคืนคือ 110 COINS");
-        return;
-    }
+    const address = await window.getWalletAddress();
 
-    // 2. ตรวจสอบยอด COINS ในตัวละคร
-    if (playerCOIN < amountCoin) {
-        gameAlert("ERROR", "คุณมี COINS ไม่พอ");
-        return;
-    }
+    if (address) {
+        // ถ้าได้ Address มา ให้โชว์ขึ้นหน้าจอ
+        gameAlert("SUCCESS", `ดึงเลขกระเป๋าสำเร็จ!<br><br>Wallet Address ของคุณคือ:<br><b style="color:#00eaff; font-size:0.8rem; word-break:break-all;">${address}</b>`);
+        
+        // (Optional) บันทึกลง Console เพื่อเช็คความถูกต้อง
+        console.log("User Address:", address);
 
-    // เริ่มขั้นตอนการถอน
-    try {
-        const getWLD = (amountCoin / 1100).toFixed(2);
-        
-        // 3. หักเหรียญในเกม
-        playerCOIN -= amountCoin;
-        
-        // 4. บันทึกประวัติการถอนลง Firebase (Collection แยก)
-        await window.logWithdrawal(amountCoin, getWLD);
-        
-        // 5. บันทึกข้อมูลตัวละครที่เหลือ (Cloud Save เดิม)
-        saveGame(); 
-        updateBalance();
-
-        if (document.getElementById('exchangeModal')) document.getElementById('exchangeModal').remove();
-        
-        gameAlert(
-            "WITHDRAWAL LOGGED", 
-            `หัก ${amountCoin} COINS เรียบร้อย!<br>` +
-            `ระบบบันทึกรายการโอนยอด <b style="color:#00eaff;">${getWLD} WLD</b> แล้ว<br>` +
-            `<span style="font-size:0.8rem; color:#aaa;">*โปรดรอการตรวจสอบและโอนเงินภายใน 24 ชม.</span>`
-        );
-        playSfx('place');
-    } catch (err) {
-        gameAlert("ERROR", "เกิดข้อผิดพลาดในการบันทึกข้อมูล: " + err.message);
+        // TODO: ในอนาคตเราจะเอา address นี้ส่งไปให้ Cloud Function โอนเงิน
+    } else {
+        // ถ้าไม่ได้
+        gameAlert("FAILED", "ไม่สามารถดึงเลขกระเป๋าได้<br>User อาจจะกดยกเลิก หรือระบบมีปัญหา");
     }
-   };
+};
+
 
   }
     </script>
