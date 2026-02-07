@@ -614,92 +614,35 @@ window.getWalletAddress = async function() {
 };
  
               document.getElementById('btnConfirmSell').onclick = async () => {
-    // 1. รับค่า
-    const inp = document.getElementById('inpSellCoin');
-    const amountCoin = parseInt(inp.value) || 0;
-
-    if (amountCoin < 110) { gameAlert("ERROR", "ขั้นต่ำ 110 COINS"); return; }
-    if (amountCoin > playerCOIN) { gameAlert("ERROR", "COINS ไม่พอ!"); return; }
+    alert("1. เริ่มทำงาน"); // <-- กับดักที่ 1
 
     try {
-        // เช็คว่าเปิดใน World App จริงไหม
-        if (!window.MiniKit || !window.MiniKit.isInstalled()) {
-            gameAlert("ERROR", "ต้องเปิดใน World App เท่านั้น!");
-            return;
-        }
+        const inp = document.getElementById('inpSellCoin');
+        const amountCoin = parseInt(inp.value) || 0;
+        
+        alert("2. ค่าที่ได้: " + amountCoin); // <-- กับดักที่ 2
 
-        gameAlert("AUTH", "กำลังดึงข้อมูลกระเป๋า...");
+        // ... (โค้ดเช็คเงื่อนไข) ...
+
         const myWalletAddress = await window.getWalletAddress();
-        if (!myWalletAddress) return;
+        alert("3. กระเป๋า: " + myWalletAddress); // <-- กับดักที่ 3
 
-        gameAlert("PROCESSING", "กำลังขออนุมัติจาก Server...");
-
-        // 2. ยิงไป Replit
-        const response = await fetch('https://355af051-4f5d-4c22-b86b-80924de9a8c1-00-2sb1btqlfp955.pike.replit.dev/api/claim', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                userId: window.REAL_USER_ID || "test-user",
-                walletAddress: myWalletAddress,
-                amount: amountCoin
-            })
-        });
-
+        // ... (โค้ดเรียก Server) ...
+        // ...
+        
         const result = await response.json();
-        if (!result.success) throw new Error(result.error || "Server Error");
+        alert("4. เซิร์ฟเวอร์ตอบกลับแล้ว"); // <-- กับดักที่ 4
 
-        // 3. เตรียมข้อมูล (จุดที่มักจะพัง)
-        const { amount, nonce, signature } = result;
-        const vaultAddress = "0x0c07D1879f06B72a0976fe69B777c0BF84410eFa"; // เลขตู้เซฟคุณ
+        // จุดเสี่ยงตาย! (เรียกใช้ Ethers)
+        const iface = new ethers.utils.Interface([...]); 
+        alert("5. สร้าง Interface ผ่านแล้ว!"); // <-- กับดักที่ 5 (ถ้าเงียบก่อนถึงนี่ แสดงว่าลืม Ethers.js)
 
-        // สร้าง ABI แบบ JSON Object (ตามคู่มือเป๊ะๆ)
-        const claimABI = [
-            {
-                "inputs": [
-                    { "name": "amount", "type": "uint256" },
-                    { "name": "nonce", "type": "uint256" },
-                    { "name": "signature", "type": "bytes" }
-                ],
-                "name": "claimReward",
-                "outputs": [],
-                "stateMutability": "nonpayable",
-                "type": "function"
-            }
-        ];
-
-        gameAlert("CONFIRM", "กรุณากดยืนยันใน World App...");
-
-        // 4. ส่งคำสั่ง (บังคับแปลงเป็น String กันเหนียว)
-        const { finalPayload } = await window.MiniKit.commandsAsync.sendTransaction({
-            transaction: [{
-                address: vaultAddress,
-                abi: claimABI,
-                functionName: "claimReward",
-                args: [
-                    amount.toString(),  // แปลงเป็น String
-                    nonce.toString(),   // แปลงเป็น String
-                    signature           // เป็น String อยู่แล้ว
-                ]
-            }]
-        });
-
-        if (finalPayload.status === 'success') {
-            playerCOIN -= amountCoin;
-            await saveGame();
-            updateBalance();
-            if(document.getElementById('exchangeModal')) document.getElementById('exchangeModal').remove();
-            gameAlert("SUCCESS", `สำเร็จ! เงินกำลังเข้ากระเป๋า\n(Tx: ${finalPayload.transactionHash.slice(0,6)}...)`);
-        } else {
-            // ถ้า User กดยกเลิก หรือ Error
-            console.error(finalPayload);
-            gameAlert("FAILED", "ทำรายการไม่สำเร็จ");
-        }
-
+        // ...
     } catch (e) {
-        console.error("Critical Error:", e);
-        gameAlert("ERROR", e.message || "เกิดข้อผิดพลาด");
+        alert("❌ พังตรงนี้: " + e.message); // <-- ฟ้อง error ออกมาเลย
     }
 };
+
 
 
   }
