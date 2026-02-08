@@ -603,40 +603,81 @@ window.getWalletAddress = async function() {
 
         // --- ส่วนปุ่ม SELL (แก้ไขแล้ว) ---
         document.getElementById('btnConfirmSell').onclick = async () => {
-            alert("1. เริ่มขั้นตอนการถอน..."); 
-            try {
-                const inp = document.getElementById('inpSellCoin');
-                const amountCoin = parseInt(inp.value) || 0;
-                
-                // 1. เช็คเงินในเกม
-                if(playerCOIN < amountCoin) {
-                     throw new Error("เงิน Coin ในเกมไม่พอ!");
-                }
+    const btn = document.getElementById('btnConfirmSell');
+    const inp = document.getElementById('inpSellCoin');
+    const amountCoin = parseInt(inp.value) || 0;
 
-                // 2. ขอ Wallet Address
-                const myWalletAddress = await window.getWalletAddress();
-                if(!myWalletAddress) {
-                    throw new Error("ไม่พบ Wallet Address");
-                }
-                alert("3. Wallet: " + myWalletAddress.substring(0, 6) + "..."); 
+    // 1. ตรวจสอบเบื้องต้น
+    if (playerCOIN < amountCoin) {
+        alert("⛔ Coin ไม่พอ!"); return;
+    }
 
-                // 3. (TODO) ส่วนนี้ต้องเขียนเชื่อมต่อกับ Server ของคุณเพื่อโอนเงินจริง
-                // ตัวอย่าง: const response = await fetch('https://your-api.com/withdraw', { ... });
-                // const result = await response.json();
-                
-                // จำลองการทำงานไปก่อน เพื่อไม่ให้ error
-                await new Promise(r => setTimeout(r, 1000)); 
-                
-                // แจ้งเตือนชั่วคราว
-                alert("⏳ ระบบถอนเงินต้องเชื่อมต่อ Server จริง (Backend) \nเพื่อความปลอดภัยในการโอน WLD");
+    // ล็อคปุ่ม
+    btn.disabled = true;
+    btn.innerText = "WAITING FOR SIGN...";
 
-                // ถ้าจะใช้ Ethers.js ต้องใส่ ABI จริงๆ ใน [...] ห้ามปล่อยว่าง
-                // const iface = new ethers.utils.Interface([ "function transfer(address to, uint amount)" ]);
+    try {
+        // --- STEP 1: สร้าง Pop-up ขออนุญาต (Signature) ---
+        // ตรงนี้แหละครับที่จะทำให้ World App เด้งขึ้นมาถาม User
+        const nonce = Math.random().toString(36).substring(7); // รหัสสุ่ม
+        
+        const { finalPayload } = await window.MiniKit.commandsAsync.walletAuth({
+            nonce: nonce,
+            requestId: 'withdraw-request', 
+            expirationTime: new Date(new Date().getTime() + 5 * 60 * 1000), // 5 นาที
+            notBefore: new Date()
+        });
 
-            } catch (e) {
-                alert("❌ Error: " + e.message);
-            }
-        };
+        // ตรวจสอบว่า User กดยืนยันใน Pop-up หรือยัง
+        if (finalPayload.status !== 'success') {
+            throw new Error("User ปฏิเสธการยืนยันตัวตน (Signature Denied)");
+        }
+
+        // --- STEP 2: เมื่อผ่าน Pop-up แล้ว ให้ยิงไป Replit ---
+        btn.innerText = "SENDING TO SERVER...";
+        
+        // ⚠️ แก้ไขตรงนี้: ใส่ URL ของ Replit คุณ
+        // ตัวอย่าง: https://project-chaser-backend.jeerarit.repl.co/api/withdraw
+        const REPLIT_URL = "https://ชื่อ-replit-ของคุณ.repl.co/api/withdraw"; 
+
+        const response = await fetch(REPLIT_URL, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                userWallet: finalPayload.address, // ที่อยู่กระเป๋าจาก Pop-up
+                amount: amountCoin,               // จำนวน Coin ที่ขาย
+                proof: finalPayload,              // หลักฐานการ Sign (ส่งไปให้ Server เช็ค)
+                username: document.getElementById('uiPlayerName').innerText
+            })
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+            // --- STEP 3: ถ้า Replit บอกว่า OK ---
+            // หักเงินในหน้าจอออก
+            playerCOIN -= amountCoin;
+            updateBalance();
+            saveGame();
+            
+            document.getElementById('exchangeModal').remove();
+            gameAlert("SUCCESS", "✅ คำขอขายสำเร็จ! \nServer ได้รับข้อมูลแล้ว กรุณารอรับ WLD");
+        } else {
+            // ถ้า Replit ตอบ error กลับมา
+            throw new Error(result.message || "Server Error");
+        }
+
+    } catch (e) {
+        console.error("Error:", e);
+        alert("❌ เกิดข้อผิดพลาด: " + e.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerText = "CONFIRM SELL";
+    }
+};
+
     }
 
     </script>
