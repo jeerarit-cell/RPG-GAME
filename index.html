@@ -601,91 +601,89 @@ window.getWalletAddress = async function() {
             }
         };
 
-        // --- ส่วนปุ่ม SELL (ฉบับแก้บั๊กค้าง: ใช้ signMessage แทน) ---
+        // --- ส่วนปุ่ม SELL (ฉบับแก้บั๊กค้าง)
+// 1. ABI ที่ตรงกับ GameVault ของคุณ
+const gameVaultABI = [
+  {
+    "inputs": [
+        { "name": "amount", "type": "uint256" },
+        { "name": "nonce", "type": "uint256" },
+        { "name": "signature", "type": "bytes" }
+    ],
+    "name": "claimReward", // ชื่อฟังก์ชันใน Smart Contract
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  }
+];
+
 document.getElementById('btnConfirmSell').onclick = async () => {
     const btn = document.getElementById('btnConfirmSell');
     const inp = document.getElementById('inpSellCoin');
     const amountCoin = parseInt(inp.value) || 0;
 
-    // --- 1. ตรวจสอบเงื่อนไขก่อนเริ่ม ---
-    if (amountCoin <= 0) { alert("⛔ จำนวนเงินไม่ถูกต้อง"); return; }
-    if (playerCOIN < amountCoin) { alert("⛔ Coin ของคุณไม่พอ!"); return; }
+    if (playerCOIN < amountCoin) { alert("⛔ Coin ไม่พอ!"); return; }
 
-    // --- 2. ล็อคปุ่ม เตรียมเรียก Pop-up ---
     btn.disabled = true;
-    btn.innerText = "WAITING SIGN..."; // บอก User ว่าให้รอเซ็น
+    btn.innerText = "1/2 PREPARING...";
 
     try {
-        // เช็คว่าเปิดใน World App ไหม
-        if (!window.MiniKit || !window.MiniKit.isInstalled()) {
-             throw new Error("กรุณาเปิดใน World App เท่านั้น");
-        }
-
-        // สร้างรหัสกันซ้ำ (Nonce)
-        const nonce = Math.random().toString(36).substring(7);
+        if (!window.MiniKit || !window.MiniKit.isInstalled()) throw new Error("เปิดใน World App เท่านั้น");
         
-        // ข้อความที่จะโชว์ใน Pop-up
-        const messageToSign = `Withdraw ${amountCoin} COINS (Nonce: ${nonce})`;
+        // ดึง Wallet Address ของผู้เล่นมาก่อน
+        const walletAddress = await window.getWalletAddress();
+        if(!walletAddress) throw new Error("ไม่พบ Wallet");
 
-        // --- 3. เรียก Pop-up ให้ User เซ็นชื่อ ---
-        const { finalPayload } = await window.MiniKit.commandsAsync.signMessage({
-            message: messageToSign
+        // --- STEP 1: ขอ Signature จาก Replit ---
+        // (Server จะเป็นคนกำหนด Nonce และยอด Wei ให้เรา)
+        const REPLIT_URL = "https://ชื่อ-replit-ของคุณ.repl.co/api/get-signature";
+        
+        const serverResponse = await fetch(REPLIT_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                userWallet: walletAddress,
+                amount: amountCoin
+            })
         });
 
-        // --- 4. ตรวจสอบผลลัพธ์หลังจาก User กดปุ่มใน Pop-up ---
+        const data = await serverResponse.json();
+        if (!data.success) throw new Error("Server Error: " + data.message);
+
+        // ได้ของครบแล้ว: Signature, Nonce, AmountWei
+        const { signature, nonce, amountWei } = data;
+
+        // --- STEP 2: เรียกหน้าต่าง Gold Miner (sendTransaction) ---
+        btn.innerText = "2/2 CONFIRM ON APP...";
+
+        const { finalPayload } = await window.MiniKit.commandsAsync.sendTransaction({
+            transaction: [{
+                address: '0x_ใส่_ADDRESS_OF_GAMEVAULT_ที่นี่', // ⚠️ แก้ให้ตรงกับที่ Deploy
+                abi: gameVaultABI,
+                functionName: 'claimReward',
+                args: [amountWei, nonce.toString(), signature] // ส่ง 3 ค่าตามที่ Contract ต้องการ
+            }]
+        });
+
         if (finalPayload.status === 'success') {
+            console.log("Tx Hash:", finalPayload.transactionHash);
             
-            // ✅ ผู้เล่นกด "ยืนยัน" (Confirm) มาแล้ว
-            console.log("Signature Received:", finalPayload); // ดูข้อมูลใน Console ได้
-            btn.innerText = "SENDING..."; // เปลี่ยนข้อความให้รู้ว่ากำลังส่ง
+            // ตัดเงินในเกม
+            playerCOIN -= amountCoin;
+            updateBalance();
+            saveGame();
 
-            // ข้อมูลพร้อมส่งไป Server แล้ว!
-            const withdrawalData = {
-                userWallet: finalPayload.address,  // กระเป๋าผู้เล่น
-                amount: amountCoin,                // จำนวนเงิน
-                signature: finalPayload.signature, // ลายเซ็นดิจิทัล (Proof)
-                message: messageToSign,            // ข้อความที่เซ็น
-                username: document.getElementById('uiPlayerName').innerText
-            };
-
-            // ⚠️ ใส่ URL Replit ของคุณตรงนี้
-            const REPLIT_URL = "https://355af051-4f5d-4c22-b86b-80924de9a8c1-00-2sb1btqlfp955.pike.replit.dev/api/withdraw"; 
-
-            // ส่งข้อมูลไป Replit
-            const response = await fetch(REPLIT_URL, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(withdrawalData)
-            });
-
-            if (response.ok) {
-                // ✅ Server ตอบกลับว่า OK -> หักเงินในเกมได้
-                playerCOIN -= amountCoin;
-                updateBalance();
-                saveGame();
-
-                document.getElementById('exchangeModal').remove();
-                gameAlert("SUCCESS", "✅ ทำรายการสำเร็จ!\nAdmin ได้รับเรื่องแล้ว กรุณารอรับ WLD");
-            } else {
-                // ❌ Server ตอบ Error กลับมา
-                const errData = await response.json();
-                throw new Error(errData.message || "Server Error");
-            }
-
+            document.getElementById('exchangeModal').remove();
+            
+            // แจ้งเตือนสวยๆ
+            gameAlert("SUCCESS", "✅ ทำรายการสำเร็จ!\nเหรียญ WLD กำลังเข้ากระเป๋าคุณ (รอ Blockchain ยืนยัน)");
         } else {
-            // ❌ ผู้เล่นกด "ยกเลิก" (Cancel) หรือปิด Pop-up
-            throw new Error("User ยกเลิกการทำรายการ");
+            throw new Error("Transaction Failed / Cancelled");
         }
 
     } catch (e) {
-        console.error("Transaction Error:", e);
-        
-        // แจ้งเตือน User (ถ้าไม่ใช่การยกเลิกเอง)
-        if (e.message !== "User ยกเลิกการทำรายการ") {
-            alert("❌ เกิดข้อผิดพลาด: " + e.message);
-        }
-        
-        // คืนสถานะปุ่มให้กดใหม่ได้
+        console.error(e);
+        alert("❌ Error: " + e.message);
         btn.disabled = false;
         btn.innerText = "CONFIRM SELL";
     }
