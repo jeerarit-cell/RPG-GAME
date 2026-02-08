@@ -602,80 +602,77 @@ window.getWalletAddress = async function() {
         };
 
         // --- ส่วนปุ่ม SELL (แก้ไขแล้ว) ---
-       document.getElementById('btnConfirmSell').onclick = async () => {
+       // --- CODIING DEBUG MODE: เช็คว่าทำไม Pop-up ไม่เด้ง ---
+document.getElementById('btnConfirmSell').onclick = async () => {
+    // 1. เช็คพื้นฐานก่อนเลย
+    alert("🟢 1. เริ่มทำงาน...");
+
     const btn = document.getElementById('btnConfirmSell');
     const inp = document.getElementById('inpSellCoin');
     const amountCoin = parseInt(inp.value) || 0;
 
-    // 1. เช็คว่ามีเงินในเกมพอไหม
+    // เช็คเงิน
     if (playerCOIN < amountCoin) {
-        alert("⛔ Coin ของคุณไม่พอ!"); return;
+        alert("⛔ เงินไม่พอ!"); return;
     }
 
-    // ล็อคปุ่มกันกดซ้ำ
+    // 2. เช็คตัว MiniKit ว่ามีตัวตนไหม?
+    if (typeof window.MiniKit === 'undefined') {
+        alert("🔴 Error: ไม่พบตัวแปร window.MiniKit \n(โค้ด Import อาจจะผิด หรือเน็ตช้าโหลด Library ไม่มา)");
+        return;
+    }
+
+    if (!window.MiniKit.isInstalled()) {
+        alert("🔴 Error: MiniKit.isInstalled() = false \n(App ID อาจจะผิด หรือไม่ได้เปิดใน World App)");
+        return;
+    }
+
+    alert("🟢 2. MiniKit พร้อม! กำลังจะเรียกคำสั่ง...");
+    
     btn.disabled = true;
-    btn.innerText = "WAITING FOR SIGN...";
+    btn.innerText = "TRYING TO OPEN...";
 
     try {
-        // เช็คว่าเปิดใน World App จริงไหม
-        if (!window.MiniKit || !window.MiniKit.isInstalled()) {
-             throw new Error("กรุณาเปิดใน World App เท่านั้น");
-        }
-
-        // --- จุดแก้บั๊ก: เรียกคำสั่งแบบสั้นที่สุด ---
-        // สร้างรหัสสุ่ม (Nonce) เพื่อทำเป็นเลขที่ใบคำร้อง
+        // สร้าง Nonce
         const nonce = Math.random().toString(36).substring(7);
-
-        // เรียก Pop-up ให้ User เซ็นชื่อ (ตัด expirationTime ทิ้งไปเลย กันค้าง)
-        const { finalPayload } = await window.MiniKit.commandsAsync.walletAuth({
+        
+        // 3. จุดวัดใจ: เรียกคำสั่ง walletAuth
+        // ผมจะลองใช้ท่ามาตรฐานที่สุดดูครับ
+        alert("🟡 3. กำลังเรียก commandsAsync.walletAuth...");
+        
+        const response = await window.MiniKit.commandsAsync.walletAuth({
             nonce: nonce,
-            requestId: 'withdraw', // ตั้งชื่ออะไรก็ได้
+            requestId: 'debug-sell-01', // ชื่อ Request
+            expirationTime: new Date(new Date().getTime() + 7 * 24 * 60 * 60 * 1000), // ลองใส่เวลามาตรฐานกลับเข้าไป (เผื่อบางเวอร์ชันต้องการ)
+            notBefore: new Date()
         });
 
-        // ถ้า User กดยกเลิก หรือ Pop-up ไม่ขึ้น
-        if (finalPayload.status !== 'success') {
-            throw new Error("การยืนยันตัวตนไม่สำเร็จ หรือถูกยกเลิก");
-        }
+        // 4. ถ้ามาถึงตรงนี้ได้ แปลว่า Pop-up เด้งแล้ว!
+        alert("🟢 4. ได้รับ Response จาก World App แล้ว!");
+        console.log("Response:", response);
 
-        // --- ถ้าโค้ดวิ่งมาถึงตรงนี้ แปลว่า Pop-up เด้งและ User กด OK แล้ว ---
-        btn.innerText = "SENDING TO SERVER...";
+        const { finalPayload } = response;
 
-        // ใส่ URL ของ Replit คุณตรงนี้ (ที่เตรียมไว้รับเรื่อง)
-        // ถ้ายังไม่มี ให้ใส่บรรทัด console.log แทนไปก่อนเพื่อเทส
-        const REPLIT_URL = "https://355af051-4f5d-4c22-b86b-80924de9a8c1-00-2sb1btqlfp955.pike.replit.dev/api/withdraw"; 
-
-        /* ถ้ายังไม่ได้ทำ Replit ให้คอมเมนต์โซน fetch นี้ไว้ก่อน 
-           แล้วใช้ alert ดูค่า finalPayload แทน
-        */
-        const response = await fetch(REPLIT_URL, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                userWallet: finalPayload.address, // กระเป๋าผู้เล่น
-                amount: amountCoin,
-                proof: finalPayload, // หลักฐานการเซ็น
-                username: document.getElementById('uiPlayerName').innerText
-            })
-        });
-
-        if (response.ok) {
-            // หักเงินเมื่อ Server ตอบว่า OK
-            playerCOIN -= amountCoin;
-            updateBalance();
-            saveGame();
-            document.getElementById('exchangeModal').remove();
-            gameAlert("SUCCESS", "✅ ส่งคำร้องสำเร็จ! รอรับ WLD");
+        if (finalPayload.status === 'success') {
+            alert("✅ สำเร็จ! ได้ Wallet: " + finalPayload.address.substring(0, 6) + "...");
+            
+            // (ตรงนี้ค่อยเอาโค้ด fetch Replit มาใส่ทีหลัง)
+            // ตอนนี้เอาให้ Pop-up ขึ้นก่อน
+            
         } else {
-            throw new Error("Server ขัดข้อง");
+            alert("⚠️ User กดยกเลิก หรือ Status ไม่ใช่ Success");
         }
 
     } catch (e) {
-        console.error("Error:", e);
-        alert("❌ เกิดข้อผิดพลาด: " + e.message);
+        // ถ้าพัง มันจะฟ้องตรงนี้
+        alert("🔴 CRITICAL ERROR: " + e.message + "\n" + JSON.stringify(e));
+        console.error(e);
+    } finally {
         btn.disabled = false;
         btn.innerText = "CONFIRM SELL";
     }
 };
+
 
     }
 
