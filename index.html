@@ -601,18 +601,15 @@ window.getWalletAddress = async function() {
             }
         };
 
-        // --- แก้ไขรอบสุดท้าย: ตัด Time Out ออกเพื่อให้ Pop-up เด้ง ---
+        // --- ส่วนปุ่ม SELL (ฉบับแก้บั๊กค้าง: ใช้ signMessage แทน) ---
 document.getElementById('btnConfirmSell').onclick = async () => {
-    // Alert เช็คจุดเริ่มต้น
-    // alert("🚀 1. เริ่มคำสั่งใหม่..."); 
-
     const btn = document.getElementById('btnConfirmSell');
     const inp = document.getElementById('inpSellCoin');
     const amountCoin = parseInt(inp.value) || 0;
 
     // 1. เช็คเงิน
     if (playerCOIN < amountCoin) {
-        alert("⛔ เงินไม่พอ!"); return;
+        alert("⛔ Coin ของคุณไม่พอ!"); return;
     }
 
     // ล็อคปุ่ม
@@ -621,30 +618,28 @@ document.getElementById('btnConfirmSell').onclick = async () => {
 
     try {
         if (!window.MiniKit || !window.MiniKit.isInstalled()) {
-             alert("กรุณาเปิดใน World App");
+             alert("⚠️ กรุณาเปิดใน World App");
              btn.disabled = false;
              return;
         }
 
-        // สร้างรหัสสุ่ม
+        // สร้างรหัสสุ่ม (Nonce)
         const nonce = Math.random().toString(36).substring(7);
+        
+        // ข้อความที่จะให้ผู้เล่นเซ็น (Admin จะเห็นข้อความนี้ตอนตรวจสอบได้)
+        const messageToSign = `Withdraw ${amountCoin} COINS (Nonce: ${nonce})`;
 
-        // -----------------------------------------------------
-        // 🔥 จุดที่แก้: ตัดทุกอย่างที่ไม่จำเป็นออก เหลือแค่นี้พอ
-        // -----------------------------------------------------
-        const { finalPayload } = await window.MiniKit.commandsAsync.walletAuth({
-            nonce: nonce,
-            requestId: '0', // ใส่เลข 0 หรือ string สั้นๆ พอ
-            // ❌ ลบ expirationTime ทิ้ง
-            // ❌ ลบ notBefore ทิ้ง
+        // 🔥 เปลี่ยนมาใช้ signMessage (เสถียรกว่าใน Android)
+        const { finalPayload } = await window.MiniKit.commandsAsync.signMessage({
+            message: messageToSign
         });
 
-        // ถ้าโค้ดหลุดมาบรรทัดนี้ได้ แปลว่า Pop-up เด้งและกด OK แล้ว!
+        // ถ้าสำเร็จ (User กด Sign)
         if (finalPayload.status === 'success') {
             
             btn.innerText = "SENDING...";
             
-            // ใส่ URL Replit ของคุณที่นี่
+            // URL Replit ของคุณ (ตรวจสอบให้แน่ใจว่าถูกต้อง)
             const REPLIT_URL = "https://355af051-4f5d-4c22-b86b-80924de9a8c1-00-2sb1btqlfp955.pike.replit.dev/api/withdraw"; 
 
             // ส่งข้อมูลไป Replit
@@ -652,9 +647,9 @@ document.getElementById('btnConfirmSell').onclick = async () => {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    userWallet: finalPayload.address,
+                    userWallet: finalPayload.address, // คำสั่งนี้คืนค่า address มาให้เหมือนกัน
                     amount: amountCoin,
-                    proof: finalPayload,
+                    proof: finalPayload, // ส่งหลักฐานลายเซ็นไป
                     username: document.getElementById('uiPlayerName').innerText
                 })
             });
@@ -666,9 +661,9 @@ document.getElementById('btnConfirmSell').onclick = async () => {
                 saveGame();
 
                 document.getElementById('exchangeModal').remove();
-                gameAlert("SUCCESS", "✅ ทำรายการสำเร็จ! \nAdmin ได้รับเรื่องแล้ว รอรับ WLD ได้เลย");
+                gameAlert("SUCCESS", "✅ ส่งคำร้องสำเร็จ! \nรอรับ WLD จากแอดมิน");
             } else {
-                throw new Error("Server Error");
+                throw new Error("Server Error: ส่งข้อมูลไม่สำเร็จ");
             }
 
         } else {
@@ -679,13 +674,12 @@ document.getElementById('btnConfirmSell').onclick = async () => {
 
     } catch (e) {
         console.error("Error:", e);
+        // แสดง Error ชัดๆ
         alert("❌ เกิดข้อผิดพลาด: " + e.message);
         btn.disabled = false;
         btn.innerText = "CONFIRM SELL";
     }
 };
-
-
 
     }
 
