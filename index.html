@@ -602,81 +602,82 @@ window.getWalletAddress = async function() {
         };
 
         // --- ส่วนปุ่ม SELL (แก้ไขแล้ว) ---
-        document.getElementById('btnConfirmSell').onclick = async () => {
+        // --- แก้ไขปุ่ม SELL (ฉบับแก้ Pop-up ไม่เด้ง) ---
+document.getElementById('btnConfirmSell').onclick = async () => {
     const btn = document.getElementById('btnConfirmSell');
     const inp = document.getElementById('inpSellCoin');
     const amountCoin = parseInt(inp.value) || 0;
 
-    // 1. ตรวจสอบเบื้องต้น
+    // 1. เช็คเงินก่อน
     if (playerCOIN < amountCoin) {
-        alert("⛔ Coin ไม่พอ!"); return;
+        alert("⛔ Coin ของคุณไม่พอ!"); return;
     }
 
-    // ล็อคปุ่ม
+    // ล็อคปุ่ม + เปลี่ยนข้อความ
     btn.disabled = true;
     btn.innerText = "WAITING FOR SIGN...";
 
     try {
-        // --- STEP 1: สร้าง Pop-up ขออนุญาต (Signature) ---
-        // ตรงนี้แหละครับที่จะทำให้ World App เด้งขึ้นมาถาม User
-        const nonce = Math.random().toString(36).substring(7); // รหัสสุ่ม
-        
-        const { finalPayload } = await window.MiniKit.commandsAsync.walletAuth({
-            nonce: nonce,
-            requestId: 'withdraw-request', 
-            expirationTime: new Date(new Date().getTime() + 5 * 60 * 1000), // 5 นาที
-            notBefore: new Date()
-        });
-
-        // ตรวจสอบว่า User กดยืนยันใน Pop-up หรือยัง
-        if (finalPayload.status !== 'success') {
-            throw new Error("User ปฏิเสธการยืนยันตัวตน (Signature Denied)");
+        // เช็คว่า MiniKit ติดตั้งสมบูรณ์ไหม
+        if (!window.MiniKit || !window.MiniKit.isInstalled()) {
+             throw new Error("MiniKit ไม่ทำงาน กรุณารีสตาร์ท World App");
         }
 
-        // --- STEP 2: เมื่อผ่าน Pop-up แล้ว ให้ยิงไป Replit ---
-        btn.innerText = "SENDING TO SERVER...";
-        
-        // ⚠️ แก้ไขตรงนี้: ใส่ URL ของ Replit คุณ
-        // ตัวอย่าง: https://project-chaser-backend.jeerarit.repl.co/api/withdraw
+        // --- STEP 1: เรียก Pop-up (แบบ Simple) ---
+        // สร้างรหัสสุ่ม
+        const nonce = Math.random().toString(36).substring(7);
+
+        // ⚠️ เรียกคำสั่งแบบสั้น (ตัด Date ออกเพื่อแก้บั๊กค้าง)
+        const { finalPayload } = await window.MiniKit.commandsAsync.walletAuth({
+            nonce: nonce,
+            requestId: '0', // ใช้ 0 หรือ string สั้นๆ
+        });
+
+        // ถ้า User กดยกเลิก หรือ ปิด Pop-up
+        if (finalPayload.status !== 'success') {
+            throw new Error("User ยกเลิกการยืนยัน (Signature Denied)");
+        }
+
+        // --- STEP 2: ได้ลายเซ็นแล้ว -> ส่งไป Replit ---
+        btn.innerText = "SENDING...";
+
+        // ใส่ URL Replit ของคุณตรงนี้
         const REPLIT_URL = "https://ชื่อ-replit-ของคุณ.repl.co/api/withdraw"; 
 
         const response = await fetch(REPLIT_URL, {
             method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-                userWallet: finalPayload.address, // ที่อยู่กระเป๋าจาก Pop-up
-                amount: amountCoin,               // จำนวน Coin ที่ขาย
-                proof: finalPayload,              // หลักฐานการ Sign (ส่งไปให้ Server เช็ค)
+                userWallet: finalPayload.address, // ที่อยู่กระเป๋า
+                amount: amountCoin,
+                proof: finalPayload, // ส่งหลักฐานการเซ็นไปด้วย
                 username: document.getElementById('uiPlayerName').innerText
             })
         });
 
+        // ... (ส่วนจัดการผลลัพธ์เหมือนเดิม) ...
         const result = await response.json();
-
         if (response.ok) {
-            // --- STEP 3: ถ้า Replit บอกว่า OK ---
-            // หักเงินในหน้าจอออก
             playerCOIN -= amountCoin;
             updateBalance();
             saveGame();
-            
             document.getElementById('exchangeModal').remove();
-            gameAlert("SUCCESS", "✅ คำขอขายสำเร็จ! \nServer ได้รับข้อมูลแล้ว กรุณารอรับ WLD");
+            gameAlert("SUCCESS", "✅ ส่งคำขอสำเร็จ! รอรับ WLD");
         } else {
-            // ถ้า Replit ตอบ error กลับมา
             throw new Error(result.message || "Server Error");
         }
 
     } catch (e) {
         console.error("Error:", e);
-        alert("❌ เกิดข้อผิดพลาด: " + e.message);
-    } finally {
+        // แสดง Error ชัดๆ ว่าพังตรงไหน
+        alert("❌ ผิดพลาด: " + e.message); 
+        
+        // คืนปุ่มสู่สภาพเดิม
         btn.disabled = false;
         btn.innerText = "CONFIRM SELL";
     }
 };
+
 
     }
 
