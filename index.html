@@ -361,7 +361,41 @@ window.getWalletAddress = async function() {
             </div>
         </div>
     </div>
+    
+    <script>
+const SERVER_URL = "https://game-server-vs0h.onrender.com";
 
+// โหลดเกมจาก server
+async function serverLoadGame(userId) {
+  const res = await fetch(SERVER_URL + "/load", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ userId })
+  });
+
+  const json = await res.json();
+  if (json.exists) {
+    applyGameData(json.data);
+  } else {
+    applyGameData(null);
+  }
+}
+
+// เซฟเกมผ่าน server
+async function serverSaveGame(data) {
+  if (!REAL_USER_ID) return;
+
+  await fetch(SERVER_URL + "/save", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      userId: REAL_USER_ID,
+      data
+    })
+  });
+}
+</script>
+    
     <script>
     // --- Global Variables ---
     let playerCOIN = 200, playerMaxHP = 20, playerCurrentHP = 20, playerLevel = 1, playerEXP = 0; 
@@ -411,9 +445,8 @@ window.getWalletAddress = async function() {
                 status.style.color = "#00ff00";
                 
                 // โหลดข้อมูลเกม
-                if (window.cloudLoad) await window.cloudLoad(finalPayload.nullifier_hash);
-                else window.applyGameData(null); 
-
+                REAL_USER_ID = finalPayload.nullifier_hash;
+await serverLoadGame(REAL_USER_ID); 
             } else {
                 console.error("Verify Failed:", finalPayload);
                 status.innerText = "ยืนยันตัวตนไม่ผ่าน";
@@ -436,7 +469,7 @@ window.getWalletAddress = async function() {
             lastRewardDate: lastRewardDate, dailyStamp: dailyStamp, stampStreak: stampStreak,
             updatedAt: new Date().toISOString()
         };
-        if (window.cloudSave) window.cloudSave(gameData);
+        serverSaveGame(gameData);
     }
 
     // --- Fixed applyGameData Function ---
