@@ -440,11 +440,14 @@ window.getWalletAddress = async function() {
 
             // 5️⃣ เข้าเกมทันที (ไม่แตะ server)
             // ใช้ local / default data
-            if (typeof window.applyGameData === "function") {
-                window.applyGameData(null);
-            }
-
-            nav("home");
+            // A) LOAD FROM FIREBASE (READ ONLY)
+if (typeof window.cloudLoad === "function") {
+    console.log("[LOGIN] loading cloud data...");
+    await window.cloudLoad(userId);
+} else {
+    window.applyGameData(null);
+}
+nav("home");
 
         } catch (err) {
             console.error("[LOGIN ERROR]", err);
