@@ -329,9 +329,11 @@
             }
             const nonce = Math.random().toString(36).substring(7);
             try {
-                const { finalPayload } = await window.MiniKit.commandsAsync.walletAuth({
-                    nonce: nonce, requestId: '0', expirationTime: new Date(new Date().getTime() + 7 * 24 * 60 * 60 * 1000), notBefore: new Date()
-                });
+                const { finalPayload } = await window.MiniKit.commandsAsync.verify({
+    action_id: "login",
+    signal: nonce
+});
+              console.log("VERIFY RESULT", finalPayload);
                 if (finalPayload.status === 'success') {
                     console.log("✅ Wallet Address Found:", finalPayload.address);
                     return finalPayload.address;
