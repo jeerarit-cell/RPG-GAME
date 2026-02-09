@@ -43,28 +43,73 @@ import { MiniKit, Tokens, tokenToDecimals } from "https://cdn.jsdelivr.net/npm/@
             if(loader) loader.style.display = 'none';
         }
 
-        // ฟังก์ชัน Load จาก Cloud
-        window.cloudLoad = async function(worldID) {
-            REAL_USER_ID = worldID;
-            const loader = document.getElementById('cloud-loader');
-            if(loader) loader.style.display = 'block';
-            // B) LOAD FROM SERVER (READ ONLY)
-try {
-    console.log("[LOGIN] loading from server...");
-    const res = await fetch(SERVER_URL + "/load", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId })
-    });
+        // ================================
+// CLOUD LOAD (SAFE / READ ONLY)
+// ================================
+window.cloudLoad = async function (worldID) {
+    try {
+        // 1️⃣ map ID ให้ชัด
+        const userId = worldID;
+        window.REAL_USER_ID = userId;
 
-    const raw = await res.text();
-    console.log("[LOGIN] server raw:", raw);
+        console.log("[CLOUD] start load, userId =", userId);
 
-    const serverData = JSON.parse(raw);
-    // ❌ ยังไม่ apply
-} catch (e) {
-    console.warn("[LOGIN] server skipped", e);
-}
+        // 2️⃣ loader UI (ถ้ามี)
+        const loader = document.getElementById("cloud-loader");
+        if (loader) loader.style.display = "block";
+
+        // 3️⃣ sanity check server url
+        if (typeof SERVER_URL !== "string") {
+            throw new Error("SERVER_URL not defined");
+        }
+
+        // 4️⃣ CALL SERVER (READ ONLY)
+        console.log("[CLOUD] calling server /load");
+
+        const res = await fetch(SERVER_URL + "/load", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ userId })
+        });
+
+        console.log("[CLOUD] server status =", res.status);
+
+        const raw = await res.text();
+        console.log("[CLOUD] server raw =", raw);
+
+        // 5️⃣ parse json แบบปลอดภัย
+        let serverData = null;
+        try {
+            serverData = JSON.parse(raw);
+        } catch (e) {
+            console.warn("[CLOUD] invalid JSON, skip apply");
+        }
+
+        // 6️⃣ apply data ถ้ามี
+        if (serverData && typeof window.applyGameData === "function") {
+            console.log("[CLOUD] applying game data");
+            window.applyGameData(serverData);
+        } else {
+            console.log("[CLOUD] no data, using default");
+            if (typeof window.applyGameData === "function") {
+                window.applyGameData(null);
+            }
+        }
+
+    } catch (err) {
+        console.warn("[CLOUD] load failed, fallback local", err);
+
+        // fallback local
+        if (typeof window.applyGameData === "function") {
+            window.applyGameData(null);
+        }
+
+    } finally {
+        // 7️⃣ hide loader
+        const loader = document.getElementById("cloud-loader");
+        if (loader) loader.style.display = "none";
+    }
+};
          window.logWithdrawal = async function(coinAmount, wldAmount) {
     if(!REAL_USER_ID) return;
     
