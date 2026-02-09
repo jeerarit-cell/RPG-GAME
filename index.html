@@ -449,6 +449,11 @@
                 playerEXP = parseInt(data.exp) || 0;
                 playerMaxHP = 20 + ((playerLevel - 1) * 2);
                 playerCurrentHP = parseInt(data.hp) || playerMaxHP;
+             if (playerMaxHP < 10) {
+    playerMaxHP = 20 + ((playerLevel - 1) * 2);
+    playerCurrentHP = Math.min(playerCurrentHP, playerMaxHP);
+    isSuddenDeath = false;
+}
                 
                 const uiName = document.getElementById('uiPlayerName');
                 if (data.name) uiName.innerText = data.name.toUpperCase();
@@ -575,7 +580,24 @@ playSfx('place');
         if (battle_eHP <= 0 && playerCurrentHP <= 0) {
             title.textContent = "DOUBLE KO"; title.style.color = "yellow"; sub.innerHTML = "NO REWARD YET<br>ENTER SUDDEN DEATH MODE!";
             btn.textContent = "FIGHT FOR LIFE (10 HP)"; btn.className = "main-btn sudden";
-            btn.onclick = () => { battle_eHP = 10; battle_eMaxHP = 10; playerCurrentHP = 10; playerMaxHP = 10; updateBattleUI(); initBattleState(); };
+            btn.onclick = () => {
+    // เก็บค่าเดิมครั้งเดียว
+    if (!isSuddenDeath) {
+        restoreMaxHP = playerMaxHP;
+        afterBattleHP = playerCurrentHP;
+        isSuddenDeath = true;
+    }
+
+    battle_eHP = 10;
+    battle_eMaxHP = 10;
+
+    playerMaxHP = 10;
+    playerCurrentHP = 10;
+
+    updateBattleUI();
+    initBattleState();
+};
+
             modal.style.display = 'flex'; playSfx('win');
         } else if (battle_eHP <= 0) {
             const damageTaken = playerMaxHP - playerCurrentHP; let reward = battle_eMaxHP - damageTaken; if (reward < 0) reward = 0; playerCOIN += reward; let gainedEXP = expReward[currentMonsterType] || 1; playerEXP += gainedEXP;
@@ -597,9 +619,14 @@ playSfx('place');
     // 🔒 ล้างสถานะ battle
     inBattle = false;
     battleCommitted = false;
-    if (isSuddenDeath) {
-        playerMaxHP = originalMaxHP;
-        originalMaxHP = null;
+    if (isSuddenDeath && restoreMaxHP !== null) {
+        playerMaxHP = restoreMaxHP;
+
+        // เลือกได้ว่าจะให้ฟื้นเท่าไร
+        playerCurrentHP = Math.max(1, afterBattleHP || playerMaxHP);
+
+        restoreMaxHP = null;
+        afterBattleHP = null;
         isSuddenDeath = false;
     }
 
