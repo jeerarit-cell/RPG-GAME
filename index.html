@@ -421,8 +421,16 @@
             try {
                 const nonce = Math.random().toString(36).substring(7);
                 const { finalPayload } = await window.MiniKit.commandsAsync.verify({
-                    action: 'login', signal: nonce, verification_level: 'device' 
-                });
+    action_id: "login",
+    signal: nonce
+});
+
+if (finalPayload?.status === "success") {
+    window.REAL_USER_ID = finalPayload.nullifier_hash;
+    await serverLoadGame(window.REAL_USER_ID);
+} else {
+    console.error(finalPayload);
+}
 
                 if (finalPayload && finalPayload.status === 'success') {
                     status.innerText = "สำเร็จ!";
