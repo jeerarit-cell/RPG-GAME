@@ -303,7 +303,7 @@
         }
 
         window.logWithdrawal = async function(coinAmount, wldAmount) {
-            if(!REAL_USER_ID) return;
+            if(!window.REAL_USER_ID) return;
             try {
                 const playerName = document.getElementById('uiPlayerName').innerText.trim();
                 await addDoc(collection(db, "withdrawals"), {
