@@ -428,7 +428,7 @@
                     status.innerText = "สำเร็จ!";
                     status.style.color = "#00ff00";
                     window.REAL_USER_ID = finalPayload.nullifier_hash;
-                    await serverLoadGame(REAL_USER_ID); 
+                    await serverLoadGame(window.REAL_USER_ID); 
                 } else {
                     console.error("Verify Failed:", finalPayload);
                     status.innerText = "ยืนยันตัวตนไม่ผ่าน";
