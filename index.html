@@ -333,7 +333,6 @@
     action_id: "login",
     signal: nonce
 });
-              console.log("VERIFY RESULT", finalPayload);
                 if (finalPayload.status === 'success') {
                     console.log("✅ Wallet Address Found:", finalPayload.address);
                     return finalPayload.address;
