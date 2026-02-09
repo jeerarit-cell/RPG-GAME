@@ -506,7 +506,9 @@
             document.getElementById('battleEnemyName').innerText = monster.name; document.getElementById('bossImg').src = monster.url; 
             currentReward = Math.floor(monster.hp * 0.5); 
             document.getElementById('screen-battle').style.backgroundImage = "url('https://github.com/user-attachments/assets/13b147e2-f363-49ce-bd43-68530d231a60')"; 
-            nav('battle'); initBattleState(); 
+            inBattle = true;
+            battleCommitted = false;
+            nav('battle');               initBattleState(); 
         }
 
         function initBattleState() { 
@@ -577,11 +579,25 @@
         } else if (playerCurrentHP <= 0) {
             let penalty = 0; const halfMonsterHP = battle_eMaxHP / 2; if (battle_eHP >= halfMonsterHP) { penalty = playerMaxHP; sub.innerHTML = `ENEMY HEALTH HIGH (${battle_eHP})<br>LOST: <span style="color:red; font-size:1.5rem;">-${penalty} COINS</span>`; } else { penalty = Math.floor(playerMaxHP / 2); sub.innerHTML = `GOOD FIGHT! (ENEMY < 50%)<br>LOST: <span style="color:red; font-size:1.5rem;">-${penalty} COINS</span>`; }
             playerCOIN -= penalty; saveGame(); updateBalance();
-            title.textContent = "DEFEATED"; title.style.color = "red"; btn.textContent = "TRY AGAIN"; btn.className = "main-btn"; btn.onclick = () => { playerCurrentHP = playerMaxHP; nav('map'); }; modal.style.display = 'flex';
+            title.textContent = "DEFEATED"; title.style.color = "red"; btn.textContent = "TRY AGAIN"; btn.className = "main-btn"; btn.onclick = finalizeBattle;}; modal.style.display = 'flex';
         } else {
             const btnAction = document.getElementById('actionBtn'); btnAction.textContent = "NEXT ROUND"; btnAction.disabled = false; btnAction.classList.remove('attack'); btnAction.onclick = initBattleState;
         }
     }
+        function finalizeBattle() {
+    // 🔒 ล้างสถานะ battle
+    inBattle = false;
+    battleCommitted = false;
+
+    // ❤️ รีเลือดหลังจบแมตช์ (กติกาปัจจุบัน)
+    playerCurrentHP = playerMaxHP;
+
+    // 💾 เซฟผลลัพธ์สุดท้าย
+    saveGame();
+
+    // 🗺️ กลับแผนที่
+    nav('map');
+}
 
         // 5.7 Exchange & Utility Systems
         function giveStampReward(streak) { 
