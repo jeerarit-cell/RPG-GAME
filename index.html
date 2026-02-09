@@ -274,24 +274,24 @@
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
-        let REAL_USER_ID = null;
+        
 
         // 4.3 Cloud Save/Load Functions (Global)
         window.cloudSave = async function(data) {
-            if(!REAL_USER_ID) return;
+            if(!window.REAL_USER_ID) return;
             const loader = document.getElementById('cloud-loader');
             if(loader) loader.style.display = 'block';
-            try { await setDoc(doc(db, "users", REAL_USER_ID), data); } 
+            try { await setDoc(doc(db, "users", window.REAL_USER_ID), data); } 
             catch (e) { console.error("Save Error: ", e); }
             if(loader) loader.style.display = 'none';
         }
 
         window.cloudLoad = async function(worldID) {
-            REAL_USER_ID = worldID;
+            window.REAL_USER_ID = worldID;
             const loader = document.getElementById('cloud-loader');
             if(loader) loader.style.display = 'block';
             try {
-                const docRef = doc(db, "users", REAL_USER_ID);
+                const docRef = doc(db, "users", window.REAL_USER_ID);
                 const docSnap = await getDoc(docRef);
                 if (docSnap.exists()) window.applyGameData(docSnap.data());
                 else window.applyGameData(null);
@@ -307,7 +307,7 @@
             try {
                 const playerName = document.getElementById('uiPlayerName').innerText.trim();
                 await addDoc(collection(db, "withdrawals"), {
-                    userId: REAL_USER_ID,
+                    userId: window.REAL_USER_ID,
                     name: playerName,
                     coinSpent: coinAmount,
                     wldToReceive: wldAmount,
