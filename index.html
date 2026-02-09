@@ -624,14 +624,13 @@ playSfx('place');
         : Math.floor(playerMaxHP / 2);
 
     playerCOIN -= penalty;
-    saveGame();
 }
 
         // 5.7 Exchange & Utility Systems
         function giveStampReward(streak) { 
             let reward = 0; let message = ""; 
             switch (streak) { case 1: reward = 1; message = "ล็อกอินวันแรก ได้รับ 1 coin"; break; case 2: reward = 1; message = "วันที่ 2 ติดต่อกัน ได้รับ 1 coin"; break; case 3: reward = 2; message = "วันที่ 3 ได้รับ 2 coin"; break; case 4: reward = 2; message = "วันที่ 4 ได้รับ 2 coin"; break; case 5: reward = 3; message = "วันที่ 5 ได้รับ 3 coin"; break; case 6: reward = 3; message = "วันที่ 6 ได้รับ 3 coin"; break; case 7: reward = 8; message = "ครบ 7 วันติดต่อกัน! โบนัส 8 coin"; dailyStamp = []; stampStreak = 0; break; default: return; } 
-            if (reward > 0) { playerCOIN += reward; gameAlert("แสตมป์วันนี้!", message); saveGame(); } 
+            if (reward > 0) { playerCOIN += reward; gameAlert("แสตมป์วันนี้!", message);} 
         }
 
         function gameAlert(title, message, callback = null) {
