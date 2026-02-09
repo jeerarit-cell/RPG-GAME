@@ -357,6 +357,8 @@
         let dailyStamp = []; 
         let stampStreak = 0;
         let currentMonsterType = 'common'; 
+        let isSuddenDeath = false;
+        let originalMaxHP = null;
         window.REAL_USER_ID = null;
 
         // Game Configuration
@@ -595,6 +597,11 @@ playSfx('place');
     // 🔒 ล้างสถานะ battle
     inBattle = false;
     battleCommitted = false;
+    if (isSuddenDeath) {
+        playerMaxHP = originalMaxHP;
+        originalMaxHP = null;
+        isSuddenDeath = false;
+    }
 
     // ❤️ รีเลือดหลังจบแมตช์ (กติกาปัจจุบัน)
     playerCurrentHP = playerMaxHP;
