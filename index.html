@@ -48,17 +48,23 @@ import { MiniKit, Tokens, tokenToDecimals } from "https://cdn.jsdelivr.net/npm/@
             REAL_USER_ID = worldID;
             const loader = document.getElementById('cloud-loader');
             if(loader) loader.style.display = 'block';
-            try {
-                const docRef = doc(db, "users", REAL_USER_ID);
-                const docSnap = await getDoc(docRef);
-                if (docSnap.exists()) window.applyGameData(docSnap.data());
-                else window.applyGameData(null);
-            } catch (e) {
-                console.error("Load Error: ", e);
-                window.applyGameData(null);
-            }
-            if(loader) loader.style.display = 'none';
-        }
+            // B) LOAD FROM SERVER (READ ONLY)
+try {
+    console.log("[LOGIN] loading from server...");
+    const res = await fetch(SERVER_URL + "/load", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId })
+    });
+
+    const raw = await res.text();
+    console.log("[LOGIN] server raw:", raw);
+
+    const serverData = JSON.parse(raw);
+    // ❌ ยังไม่ apply
+} catch (e) {
+    console.warn("[LOGIN] server skipped", e);
+}
          window.logWithdrawal = async function(coinAmount, wldAmount) {
     if(!REAL_USER_ID) return;
     
