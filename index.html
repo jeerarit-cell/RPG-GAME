@@ -508,7 +508,8 @@
             document.getElementById('screen-battle').style.backgroundImage = "url('https://github.com/user-attachments/assets/13b147e2-f363-49ce-bd43-68530d231a60')"; 
             inBattle = true;
             battleCommitted = false;
-            nav('battle');               initBattleState(); 
+            nav('battle'); 
+            initBattleState();   
         }
 
         function initBattleState() { 
@@ -521,7 +522,11 @@
             battle_pDeck = [1, 2, 3, 4, 5].sort(() => Math.random() - 0.5); battle_eDeck = [1, 2, 3, 4, 5].sort(() => Math.random() - 0.5); 
             const pRow = document.getElementById('playerCardRow'); pRow.innerHTML = ''; 
             battle_pDeck.forEach((val) => { const card = document.createElement('div'); card.className = 'my-card'; card.textContent = val; card.onclick = () => selectCardAction(val, card); pRow.appendChild(card); }); 
-            const btn = document.getElementById('actionBtn'); btn.textContent = "SELECT CARDS"; btn.disabled = true; btn.className = 'main-btn'; btn.onclick = null; playSfx('place'); 
+            const btn = document.getElementById('actionBtn'); btn.textContent = "SELECT CARDS"; btn.disabled = true; 
+btn.className = 'main-btn'; 
+btn.onclick = null;
+battleCommitted = true; 
+playSfx('place'); 
         }
 
         function selectCardAction(val, el) { 
@@ -597,6 +602,20 @@
 
     // 🗺️ กลับแผนที่
     nav('map');
+}
+             window.addEventListener("beforeunload", () => {
+    if (inBattle && battleCommitted) {
+        applyForfeitLoss();
+    }
+});
+         function applyForfeitLoss() {
+    const halfMonsterHP = battle_eMaxHP / 2;
+    const penalty = battle_eHP >= halfMonsterHP
+        ? playerMaxHP
+        : Math.floor(playerMaxHP / 2);
+
+    playerCOIN -= penalty;
+    saveGame();
 }
 
         // 5.7 Exchange & Utility Systems
