@@ -330,9 +330,10 @@
             const nonce = Math.random().toString(36).substring(7);
             try {
                 const { finalPayload } = await window.MiniKit.commandsAsync.verify({
-    action_id: "login",
-    signal: nonce
-});
+        action: "login",
+        signal: nonce,
+        verification_level: "device"
+    });
                 if (finalPayload.status === 'success') {
                     console.log("✅ Wallet Address Found:", finalPayload.address);
                     return finalPayload.address;
