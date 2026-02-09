@@ -578,12 +578,14 @@ playSfx('place');
         } else if (battle_eHP <= 0) {
             const damageTaken = playerMaxHP - playerCurrentHP; let reward = battle_eMaxHP - damageTaken; if (reward < 0) reward = 0; playerCOIN += reward; let gainedEXP = expReward[currentMonsterType] || 1; playerEXP += gainedEXP;
             let levelUpText = ""; if (levelConfig[playerLevel]) { const needed = levelConfig[playerLevel].need; if (playerEXP >= needed) { playerEXP -= needed; playerLevel++; const prevConfig = levelConfig[playerLevel-1]; const hpBonus = prevConfig ? prevConfig.bonus : 2; playerMaxHP += hpBonus; levelUpText = `<br><span style="color:#00ff00; font-weight:bold; font-size:1.2rem;">✨ LEVEL UP! (HP +${hpBonus})</span>`; if(!levelConfig[playerLevel]) { levelUpText = `<br><span style="color:#ffd700; font-weight:bold; font-size:1.2rem;">👑 MAX LEVEL REACHED!</span>`; } playSfx('win'); } }
-            saveGame(); updateLobbyStats(); updateBalance();      
+             updateLobbyStats(); 
+             updateBalance();      
             title.textContent = "VICTORY"; title.style.color = "#ff9d00"; sub.innerHTML = `REWARD: <span style="color:#00eaff;">+${reward} COINS</span><br>EXP: <span style="color:#ffff00;">+${gainedEXP}</span> ${levelUpText}`;
-            btn.textContent = "COLLECT & HUNT"; btn.className = "main-btn"; btn.onclick = () => { playerCurrentHP = playerMaxHP; nav('map'); }; modal.style.display = 'flex'; playSfx('win');
+            btn.textContent = "COLLECT & HUNT"; btn.className = "main-btn"; btn.onclick = finalizeBattle; }; modal.style.display = 'flex'; playSfx('win');
         } else if (playerCurrentHP <= 0) {
             let penalty = 0; const halfMonsterHP = battle_eMaxHP / 2; if (battle_eHP >= halfMonsterHP) { penalty = playerMaxHP; sub.innerHTML = `ENEMY HEALTH HIGH (${battle_eHP})<br>LOST: <span style="color:red; font-size:1.5rem;">-${penalty} COINS</span>`; } else { penalty = Math.floor(playerMaxHP / 2); sub.innerHTML = `GOOD FIGHT! (ENEMY < 50%)<br>LOST: <span style="color:red; font-size:1.5rem;">-${penalty} COINS</span>`; }
-            playerCOIN -= penalty; saveGame(); updateBalance();
+            playerCOIN -= penalty;      
+            updateBalance();
             title.textContent = "DEFEATED"; title.style.color = "red"; btn.textContent = "TRY AGAIN"; btn.className = "main-btn"; btn.onclick = finalizeBattle;}; modal.style.display = 'flex';
         } else {
             const btnAction = document.getElementById('actionBtn'); btnAction.textContent = "NEXT ROUND"; btnAction.disabled = false; btnAction.classList.remove('attack'); btnAction.onclick = initBattleState;
