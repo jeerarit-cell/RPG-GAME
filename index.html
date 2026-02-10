@@ -1129,14 +1129,17 @@ window.grantOnce = function (key, rewardFn) {
     saveGame();
 };
        // ========================================================
-// BLOCK 9 : COIN ↔ WLD EXCHANGE (REAL MONEY ONLY)
+// BLOCK 9 : COIN ↔ WLD EXCHANGE (BUY READY / SELL DISABLED)
 // ========================================================
 
 // ---------- CONFIG ----------
 const EXCHANGE_RATE_BUY  = 1000; // 1 WLD = 1000 COINS
-const EXCHANGE_RATE_SELL = 1100; // 1100 COINS = 1 WLD
+const EXCHANGE_RATE_SELL = 1100; // 1100 COINS = 1 WLD (future)
 const MIN_BUY_WLD  = 0.1;
 const MIN_SELL_COIN = 110;
+
+// ---------- INTERNAL LOCK (ANTI DOUBLE PAY) ----------
+let exchangeLock = false;
 
 // ========================================================
 // OPEN EXCHANGE MODAL
@@ -1174,31 +1177,35 @@ window.openExchangeModal = function () {
         <!-- BUY -->
         <div id="panelBuy">
             <p style="color:#aaa; text-align:center;">1 WLD = ${EXCHANGE_RATE_BUY} COINS</p>
-            <input id="buyWLD" type="number" step="0.1" value="0.1"
+            <input id="buyWLD" type="number" step="0.1" value="${MIN_BUY_WLD}"
                    style="width:100%; padding:10px; text-align:center;">
             <p style="text-align:center; margin:10px 0;">
                 ได้รับ <b id="buyCoin">${Math.floor(MIN_BUY_WLD * EXCHANGE_RATE_BUY)}</b> COINS
             </p>
-            <button class="main-btn" onclick="confirmBuy()">CONFIRM BUY</button>
+            <button id="btnBuy" class="main-btn">CONFIRM BUY</button>
         </div>
 
-        <!-- SELL -->
+        <!-- SELL (DISABLED) -->
         <div id="panelSell" style="display:none;">
-            <p style="color:#aaa; text-align:center;">${EXCHANGE_RATE_SELL} COINS = 1 WLD</p>
-            <input id="sellCoin" type="number" step="10" value="${MIN_SELL_COIN}"
-                   style="width:100%; padding:10px; text-align:center;">
-            <p style="text-align:center; margin:10px 0;">
-                ได้รับ <b id="sellWLD">${(MIN_SELL_COIN / EXCHANGE_RATE_SELL).toFixed(2)}</b> WLD
-            </p>
-            <button class="main-btn" onclick="confirmSell()">CONFIRM SELL</button>
+            <p style="color:#aaa; text-align:center;">SELL ยังไม่เปิดใช้งาน</p>
+            <button class="main-btn" disabled style="opacity:.4;">COMING SOON</button>
         </div>
     `;
 
     overlay.appendChild(box);
     document.body.appendChild(overlay);
 
+    // ----- DOM REFS -----
+    const tabBuy   = document.getElementById('tabBuy');
+    const tabSell  = document.getElementById('tabSell');
+    const panelBuy = document.getElementById('panelBuy');
+    const panelSell= document.getElementById('panelSell');
+    const buyWLD   = document.getElementById('buyWLD');
+    const buyCoin  = document.getElementById('buyCoin');
+    const btnBuy   = document.getElementById('btnBuy');
+
     // ----- TAB -----
-    document.getElementById('tabBuy').onclick = () => {
+    tabBuy.onclick = () => {
         panelBuy.style.display = 'block';
         panelSell.style.display = 'none';
         tabBuy.style.color = '#00eaff';
@@ -1207,7 +1214,7 @@ window.openExchangeModal = function () {
         tabSell.style.borderBottom = 'none';
     };
 
-    document.getElementById('tabSell').onclick = () => {
+    tabSell.onclick = () => {
         panelBuy.style.display = 'none';
         panelSell.style.display = 'block';
         tabSell.style.color = '#00eaff';
@@ -1222,16 +1229,20 @@ window.openExchangeModal = function () {
         buyCoin.innerText = Math.floor(v * EXCHANGE_RATE_BUY);
     };
 
-    sellCoin.oninput = () => {
-        const v = parseInt(sellCoin.value) || 0;
-        sellWLD.innerText = (v / EXCHANGE_RATE_SELL).toFixed(2);
-    };
+    // ----- BUY ACTION -----
+    btnBuy.onclick = confirmBuy;
 };
 
 // ========================================================
-// BUY : WLD → COINS
+// BUY : WLD → COINS (READY + SAFE)
 // ========================================================
 async function confirmBuy() {
+    if (exchangeLock) return;
+    if (!window.gameState) {
+        gameAlert("ERROR", "Game not ready");
+        return;
+    }
+
     const wld = parseFloat(document.getElementById('buyWLD').value) || 0;
     if (wld < MIN_BUY_WLD) {
         gameAlert("ERROR", `ขั้นต่ำ ${MIN_BUY_WLD} WLD`);
@@ -1243,54 +1254,52 @@ async function confirmBuy() {
         return;
     }
 
+    exchangeLock = true;
+
     const coinGain = Math.floor(wld * EXCHANGE_RATE_BUY);
+    const btn = document.getElementById('btnBuy');
+    if (btn) btn.disabled = true;
 
     try {
-        const wei = BigInt(Math.floor(wld * 1e6)) * 1000000000000n;
+        // ใช้ 18 decimals ชัดเจน
+        const wei = BigInt(Math.round(wld * 1e18));
 
         const { finalPayload } = await MiniKit.commandsAsync.pay({
-            reference: "buy_" + Date.now(),
+            reference: `buy_${gameState.userId || "guest"}_${Date.now()}`,
             to: "0x205e9c33961d56f35f7308efc771bb10fda9ec7f",
             tokens: [{ symbol: "WLD", token_amount: wei.toString() }],
             description: `Buy ${coinGain} COINS`
         });
 
         if (finalPayload.status === "success") {
-            playerCOIN += coinGain;
-            gameState.coin = playerCOIN;
+            // ให้ COIN + SAVE (atomic)
+            gameState.coin += coinGain;
+            if (typeof playerCOIN !== "undefined") {
+                playerCOIN = gameState.coin;
+            }
+
             saveGame();
 
-            document.getElementById('exchangeModal').remove();
+            document.getElementById('exchangeModal')?.remove();
             gameAlert("SUCCESS", `ได้รับ ${coinGain} COINS`);
         } else {
             gameAlert("FAILED", "การชำระเงินไม่สำเร็จ");
         }
     } catch (e) {
         console.error(e);
-        gameAlert("ERROR", e.message);
+        gameAlert("ERROR", e.message || "PAY ERROR");
+    } finally {
+        exchangeLock = false;
+        if (btn) btn.disabled = false;
     }
 }
 
 // ========================================================
-// SELL : COINS → WLD
+// SELL : COINS → WLD (DISABLED / SERVER ONLY)
 // ========================================================
-async function confirmSell() {
-    const coin = parseInt(document.getElementById('sellCoin').value) || 0;
-    if (coin < MIN_SELL_COIN) {
-        gameAlert("ERROR", `ขั้นต่ำ ${MIN_SELL_COIN} COINS`);
-        return;
-    }
-    if (coin > playerCOIN) {
-        gameAlert("ERROR", "COINS ไม่พอ");
-        return;
-    }
-
-    // *** ตรงนี้ใช้ flow SELL เดิมของคุณ (server sign + sendTransaction) ***
-    // เมื่อสำเร็จ:
-    // playerCOIN -= coin;
-    // gameState.coin = playerCOIN;
-    // saveGame();
-}
+// ❗ ยังไม่เปิดใช้งาน
+// ❗ ต้องใช้ server sign + verify เท่านั้น
+// ❗ ห้าม client โอนเองเด็ดขาด
    </script>
 </body>
 </html>
