@@ -480,38 +480,32 @@ async function loginWithWorldID() {
         setLoginStatus("ยืนยันตัวตนสำเร็จ", "#00ff00");
 
         // ---------- LOAD GAME DATA ----------
-        // BLOCK 3 รับผิดชอบทั้งหมด
-        if (typeof cloudLoad === "function") {
-            await cloudLoad(window.currentUserId);
+        // ===== BLOCK 3 : LOAD GAME DATA =====
+try {
     if (typeof cloudLoad === "function") {
         await cloudLoad(window.currentUserId);
-
-        if (typeof nav === "function") {
-            nav('home');
-        }
-
-        updateLobbyStats();
-        updateBalance();
-    } else {
-        console.warn("cloudLoad not found");
-
-        if (typeof applyGameData === "function") {
-            applyGameData(null);
-
-            if (typeof nav === "function") {
-                nav('home');
-            }
-
-            updateLobbyStats();
-            updateBalance();
-        }
+    } else if (typeof applyGameData === "function") {
+        console.warn("cloudLoad not found, fallback new user");
+        applyGameData(null);
     }
+
+    if (typeof nav === "function") {
+        nav('home');
+    }
+
+    if (typeof updateLobbyStats === "function") {
+        updateLobbyStats();
+    }
+
+    if (typeof updateBalance === "function") {
+        updateBalance();
+    }
+
 } catch (err) {
     console.error("Login error:", err);
     LOGIN_STATE = "error";
     setLoginStatus("เกิดข้อผิดพลาด", "red");
-        alert(err.message || "Login error");
-   }
+    alert(err.message || "Login error");
 }
 
 // ---------- BUTTON BIND ----------
