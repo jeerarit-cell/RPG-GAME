@@ -613,45 +613,22 @@ window.getWalletAddress = async function() {
     }
 };
  
-        document.getElementById('btnConfirmSell').onclick = async () => {
+       document.getElementById('btnConnectWallet').onclick = async () => {
 
     if (!window.MiniKit || !window.MiniKit.isInstalled()) {
         alert("กรุณาเปิดใน World App");
         return;
     }
 
-    const inp = document.getElementById('inpSellCoin');
-    const amountCoin = parseInt(inp.value) || 0;
-
-    if (amountCoin < 110) {
-        alert("ขั้นต่ำ 110 COINS");
-        return;
-    }
-
-    // ❌ ห้ามมี gameAlert / modal / fetch ก่อนหน้านี้เด็ดขาด
-
     try {
-        const { finalPayload } = await window.MiniKit.commandsAsync.sendTransaction({
-            transaction: [{
-                to: "0x0000000000000000000000000000000000000001",
-                value: "0"
-            }]
-        });
-
-        console.log("TX RESULT:", finalPayload);
-
-        if (finalPayload.status === "success") {
-            alert("✅ เด้งแล้ว (ยืนยันสำเร็จ)");
-        } else {
-            alert("❌ ยกเลิก");
-        }
-
+        const result = await window.MiniKit.commandsAsync.connect();
+        console.log("CONNECT RESULT:", result);
+        alert("✅ เชื่อมต่อสำเร็จ");
     } catch (e) {
-        console.error(e);
-        alert("❌ sendTransaction error");
-    };
-
-
+        console.error("CONNECT ERROR:", e);
+        alert("❌ ผู้ใช้ยกเลิกการเชื่อมต่อ");
+    }
+};
     </script>
 </body>
 </html>
