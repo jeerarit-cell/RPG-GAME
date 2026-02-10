@@ -930,30 +930,13 @@ function updateBattleUI() {
         `${playerCurrentHP}/${playerMaxHP}`;
 }
 
-// ---------- DISCONNECT / FORFEIT SAFETY ----------
-window.addEventListener("beforeunload", () => {
-    if (gameState.inBattle) {
-        gameState.hp = 0;
-        gameState.inBattle = false;
-
-        if (navigator.sendBeacon && typeof cloudSave === "function") {
-            navigator.sendBeacon(
-                "/saveGame",
-                JSON.stringify({
-                    userId: window.currentUserId,
-                    gameState: getGameData()
-                })
-            );
-        }
-    }
-});
 
 document.addEventListener("visibilitychange", () => {
     if (
         document.visibilityState === "hidden" &&
         gameState.inBattle
     ) {
-        saveGame();
+      
     }
 });
        // ========================================================
