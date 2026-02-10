@@ -51,7 +51,33 @@ window.cloudLoad = async function (worldID) {
         // 1️⃣ map ID ให้ชัด
         const userId = worldID;
         window.REAL_USER_ID = userId;
+        // ================================
+// LOAD GAME FROM SERVER
+// ================================
+async function loadGameFromServer() {
+    try {
+        const res = await fetch(SERVER_URL + "/load", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                userId: window.REAL_USER_ID
+            })
+        });
 
+        const json = await res.json();
+        console.log("[GAME LOAD]", json);
+
+        if (json.ok && json.data) {
+            applyGameData(json.data);
+        } else {
+            applyGameData(null);
+        }
+
+    } catch (e) {
+        console.warn("[GAME LOAD] failed, fallback", e);
+        applyGameData(null);
+    }
+}
         console.log("[CLOUD] start load, userId =", userId);
 
         // 2️⃣ loader UI (ถ้ามี)
