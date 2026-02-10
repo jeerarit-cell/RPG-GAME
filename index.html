@@ -497,6 +497,12 @@ async function loginWithWorldID() {
         alert(err.message || "Login error");
     }
 }
+        await cloudLoad(currentUserId);
+
+// ✅ บรรทัดที่หายไป
+nav('home');
+updateLobbyStats();
+updateBalance();
 
 // ---------- BUTTON BIND ----------
 (function bindLoginButton() {
