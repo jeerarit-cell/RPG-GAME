@@ -513,111 +513,97 @@ async function loginWithWorldID() {
     };
 })();
        // ========================================================
-// BLOCK 3 : CORE SAVE / LOAD SYSTEM
+// BLOCK 3 : CORE SAVE / LOAD / APPLY (SERVER BRIDGE)
 // ========================================================
 
-// ---------- CONFIG ----------
-const SAVE_VERSION = 1;
-
-// ---------- UTIL ----------
-function deepClone(obj) {
-    return JSON.parse(JSON.stringify(obj));
-}
-
-// ---------- SCHEMA ----------
+// ---------- 3.1 DEFAULT STATE ----------
 function getDefaultGameState() {
-    return {
-        version: SAVE_VERSION,
+  return {
+    coin: 200,
+    level: 1,
+    exp: 0,
+    hp: 20,
+    maxHP: 20,
 
-        coin: 200,
-        level: 1,
-        exp: 0,
+    inBattle: false,
+    isSuddenDeath: false,
 
-        hp: 20,
-        maxHP: 20,
+    earnedToday: 0,
+    lastRewardDate: new Date().toDateString(),
+    dailyStamp: [],
+    stampStreak: 0,
 
-        inBattle: false,
-        isSuddenDeath: false,
-
-        earnedToday: 0,
-        lastRewardDate: new Date().toDateString(),
-        dailyStamp: [],
-        stampStreak: 0,
-
-        currentMonsterType: 'common'
-    };
+    currentMonsterType: 'common'
+  };
 }
 
-// ---------- EXPORT DATA ----------
+// ---------- 3.2 SNAPSHOT ----------
 function getGameData() {
-    return deepClone(window.gameState);
+  // clone ป้องกัน reference พัง
+  return JSON.parse(JSON.stringify(window.gameState));
 }
 
-// ---------- APPLY DATA (ONE WAY IN) ----------
+// ---------- 3.3 APPLY GAME DATA ----------
 window.applyGameData = function (data) {
-    const base = getDefaultGameState();
-    const incoming = data || {};
+  // NEW USER / FALLBACK
+  if (!data) {
+    window.gameState = getDefaultGameState();
+    console.log("[BLOCK3] New user initialized");
+    nav('home');
+    updateLobbyStats();
+    updateBalance();
+    return;
+  }
 
-    // merge schema (กัน field หาย / เก่า)
-    window.gameState = Object.assign(base, incoming);
+  // MERGE SCHEMA (กัน field หาย)
+  window.gameState = Object.assign(
+    getDefaultGameState(),
+    data
+  );
 
-    // safety clamp
-    if (gameState.hp > gameState.maxHP) {
-        gameState.hp = gameState.maxHP;
-    }
-    if (gameState.hp < 0) {
-        gameState.hp = 0;
-    }
+  console.log("[BLOCK3] Game data applied", window.gameState);
 
-    // UI update (กลาง)
-    if (typeof updateLobbyStats === 'function') updateLobbyStats();
-    if (typeof updateBalance === 'function') updateBalance();
+  nav('home');
+  updateLobbyStats();
+  updateBalance();
 };
 
-// ---------- CLOUD LOAD ----------
+// ---------- 3.4 CLOUD LOAD ----------
 window.cloudLoad = async function (userId) {
-    if (!userId) {
-        console.warn("cloudLoad: missing userId");
-        applyGameData(null);
-        return;
-    }
+  try {
+    console.log("[BLOCK3] cloudLoad:", userId);
 
-    try {
-        // 👉 ตรงนี้ผูก Firebase / backend จริง
-        const savedData = await firebaseLoad(userId); // ต้องคืน object หรือ null
+    // ❗ ตัวอย่าง Firebase / Server fetch
+    // const snapshot = await getDoc(doc(db, "users", userId));
+    // const data = snapshot.exists() ? snapshot.data() : null;
 
-        if (savedData) {
-            applyGameData(savedData);
-        } else {
-            applyGameData(null);
-            await cloudSave(getGameData(), userId);
-        }
-    } catch (err) {
-        console.error("cloudLoad error:", err);
-        applyGameData(null);
-    }
+    const data = null; // ← mock / ถ้าไม่มีข้อมูล = new user
+
+    applyGameData(data);
+  } catch (err) {
+    console.error("[BLOCK3] cloudLoad error", err);
+    applyGameData(null); // fallback ปลอดภัย
+  }
 };
 
-// ---------- CLOUD SAVE ----------
-window.cloudSave = async function (data, userId = window.currentUserId) {
-    if (!userId || !data) {
-        console.warn("cloudSave skipped");
-        return;
-    }
+// ---------- 3.5 CLOUD SAVE ----------
+window.cloudSave = async function (data) {
+  try {
+    console.log("[BLOCK3] cloudSave", data);
 
-    try {
-        await firebaseSave(userId, deepClone(data));
-    } catch (err) {
-        console.error("cloudSave error:", err);
-    }
+    // ❗ ตัวอย่าง Firebase / Server save
+    // await setDoc(doc(db, "users", userId), data, { merge: true });
+
+  } catch (err) {
+    console.error("[BLOCK3] cloudSave error", err);
+  }
 };
 
-// ---------- SAFE SAVE ----------
-window.saveGame = function () {
-    if (window.cloudSave) {
-        cloudSave(getGameData());
-    }
-};
+// ---------- 3.6 SAVE WRAPPER ----------
+function saveGame() {
+  if (!window.cloudSave) return;
+  cloudSave(getGameData());
+}
        // =====================================================
 // BLOCK 4: UI / NAVIGATION / AUDIO
 // วางต่อจาก BLOCK 3
