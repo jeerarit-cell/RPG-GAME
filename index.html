@@ -613,7 +613,7 @@ window.getWalletAddress = async function() {
     }
 };
  
-          document.getElementById('btnConfirmSell').onclick = async () => {
+         document.getElementById('btnConfirmSell').onclick = async () => {
     if (!window.MiniKit || !window.MiniKit.isInstalled()) {
         alert("กรุณาเปิดใน World App");
         return;
@@ -627,32 +627,31 @@ window.getWalletAddress = async function() {
         return;
     }
 
-    // 🔥 message จำลอง (server จะเป็นคนสร้างจริงในขั้นถัดไป)
-    const message = `
-PROJECT CHASER - SELL COIN
-Sell ${amountCoin} COINS
-Timestamp: ${Date.now()}
-    `.trim();
+    // ใช้ address อะไรก็ได้ (0 value ไม่โอนเงินจริง)
+    const dummyTo = "0x0000000000000000000000000000000000000001";
 
-    console.log("SIGN MESSAGE:", message);
+    console.log("TRY SEND TX (0 VALUE)");
 
     try {
-        // 🔥 จุดนี้แหละที่ popup ต้องเด้ง
-        const { finalPayload } = await window.MiniKit.commandsAsync.signMessage({
-            message: message
+        // 🔥 จุดนี้ World App ต้องเด้งแน่นอน
+        const { finalPayload } = await window.MiniKit.commandsAsync.sendTransaction({
+            transaction: [{
+                to: dummyTo,
+                value: "0"
+            }]
         });
 
-        console.log("SIGN RESULT:", finalPayload);
+        console.log("TX RESULT:", finalPayload);
 
         if (finalPayload.status === "success") {
-            alert("✅ World App เด้งแล้ว!\nSignature ได้รับเรียบร้อย");
+            alert("✅ World App เด้งแล้ว!\nTxHash: " + finalPayload.transactionHash.slice(0,6) + "...");
         } else {
-            alert("❌ User ยกเลิกการเซ็น");
+            alert("❌ ผู้ใช้ยกเลิกการยืนยัน");
         }
 
     } catch (e) {
-        console.error("SIGN ERROR:", e);
-        alert("เกิด error ตอนเรียก signMessage");
+        console.error("SEND TX ERROR:", e);
+        alert("เกิด error ตอน sendTransaction");
     }
 };
     </script>
