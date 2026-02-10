@@ -946,6 +946,9 @@ document.addEventListener("visibilitychange", () => {
 // ---------- MAIN ENTRY FROM BLOCK 6 ----------
 window.handleBattleResult = function ({ enemyHP, enemyMaxHP, playerHP }) {
 
+    // sync HP กลับ state กลาง
+    gameState.hp = playerHP;
+
     // ---------- ENEMY DEFEATED ----------
     if (enemyHP <= 0 && playerHP > 0) {
         applyVictory();
@@ -967,17 +970,14 @@ function applyVictory() {
     gameState.inBattle = false;
 
     const rewardCoin = calculateBattleReward();
-
     playerCOIN += rewardCoin;
     gameState.coin = playerCOIN;
 
     // Sudden Death ไม่ heal
     if (!gameState.isSuddenDeath) {
         playerCurrentHP = playerMaxHP;
-        gameState.hp = playerCurrentHP;
-    } else {
-        gameState.hp = playerCurrentHP;
     }
+    gameState.hp = playerCurrentHP;
 
     showBattleResultModal({
         title: "VICTORY!",
@@ -991,11 +991,9 @@ function applyVictory() {
 function applyDefeat() {
     gameState.inBattle = false;
 
-    // แพ้ = HP 0 เสมอ
     playerCurrentHP = 0;
     gameState.hp = 0;
 
-    // Sudden Death = ลงโทษหนัก
     if (gameState.isSuddenDeath) {
         const penalty = Math.min(playerCOIN, playerMaxHP);
         playerCOIN -= penalty;
@@ -1021,9 +1019,6 @@ function continueBattle() {
         title: "NEXT ROUND",
         message: "เตรียมต่อสู้รอบถัดไป"
     });
-
-    // ไม่ save ตรงนี้
-    // battle จะ reset ผ่าน BLOCK 6
 }
 
 // ---------- REWARD CALC ----------
@@ -1055,7 +1050,13 @@ function showBattleResultModal({ title, message }) {
     const btn = document.getElementById('resultBtn');
     btn.onclick = () => {
         modal.style.display = 'none';
-        nav('home');
+
+        // ถ้ายังสู้ต่อ ให้กลับไป BLOCK 6
+        if (gameState.inBattle) {
+            initBattleState();
+        } else {
+            nav('home');
+        }
     };
 }
        // ========================================================
@@ -1066,15 +1067,18 @@ function showBattleResultModal({ title, message }) {
 window.checkDailyReward = function () {
     if (!gameState) return;
 
-    const today = new Date().toISOString().slice(0, 10);
+    if (gameState._dailyChecked) return;
+    gameState._dailyChecked = true;
 
-    if (gameState.lastDailyReward === today) return;
+    const today = new Date().toDateString();
+
+    if (gameState.lastRewardDate === today) return;
 
     const rewardCoin = 30;
 
     playerCOIN += rewardCoin;
     gameState.coin = playerCOIN;
-    gameState.lastDailyReward = today;
+    gameState.lastRewardDate = today;
 
     showDailyRewardModal(rewardCoin);
 
@@ -1101,12 +1105,16 @@ window.setPlayerName = function (name) {
         return;
     }
 
-    gameState.playerName = name.trim();
+    const finalName = name.trim();
+    gameState.playerName = finalName;
 
-    saveGame(); // เปลี่ยนชื่อ = save
+    const ui = document.getElementById("uiPlayerName");
+    if (ui) ui.innerText = finalName;
+
+    saveGame();
 };
 
-// ---------- ONE-TIME GRANT (FUTURE SAFE) ----------
+// ---------- ONE-TIME GRANT ----------
 window.grantOnce = function (key, rewardFn) {
     if (!gameState.oneTimeFlags) {
         gameState.oneTimeFlags = {};
