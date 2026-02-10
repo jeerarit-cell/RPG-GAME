@@ -384,15 +384,41 @@
     // --------------------------------------------------------
     // 3.1 VARIABLES & CONFIG
     // --------------------------------------------------------
-    let playerCOIN = 200, playerMaxHP = 20, playerCurrentHP = 20, playerLevel = 1, playerEXP = 0; 
-    let earnedFromGameToday = 0;
-    let lastRewardDate = new Date().toDateString();
-    let dailyStamp = []; 
-    let stampStreak = 0;
-    let currentMonsterType = 'common'; 
-    
-    const levelConfig = { 1: { need: 150, bonus: 2 }, 2: { need: 300, bonus: 2 }, 3: { need: 450, bonus: 2 }, 4: { need: 700, bonus: 2 }, 5: { need: 1000, bonus: 2 } };
-    const expReward = { 'common': 1, 'miniboss': 2, 'boss': 3, 'legendary': 5 };
+    const BASE_HP = 20;
+
+window.gameState = {
+    coin: 200,
+    level: 1,
+    exp: 0,
+
+    hp: 20,
+    maxHP: 20,
+
+    inBattle: false,
+    isSuddenDeath: false,
+
+    earnedToday: 0,
+    lastRewardDate: new Date().toDateString(),
+
+    dailyStamp: [],
+    stampStreak: 0,
+
+    currentMonsterType: 'common'
+};
+     Object.defineProperties(window, {
+    playerCOIN: { get:()=>gameState.coin, set:v=>gameState.coin=v },
+    playerLevel: { get:()=>gameState.level, set:v=>gameState.level=v },
+    playerEXP: { get:()=>gameState.exp, set:v=>gameState.exp=v },
+    playerCurrentHP: { get:()=>gameState.hp, set:v=>gameState.hp=v },
+    playerMaxHP: { get:()=>gameState.maxHP, set:v=>gameState.maxHP=v }
+}); 
+    const levelConfig = {
+    1:{need:150, bonus:2}, 2:{need:300, bonus:2},
+    3:{need:450, bonus:2}, 4:{need:700, bonus:2},
+    5:{need:1000, bonus:2}
+};
+const expReward = { common:1, miniboss:2, boss:3, legendary:5 };
+
     const monsterDB = [
         { id: 1, name: "Duck Fighter", hp: 20, type: "common", loc: "Sewers", url:"https://images.unsplash.com/photo-1459682687441-7761439a709d?q=80&w=500" },
         { id: 2, name: "Dog Fighter", hp: 20, type: "common", loc: "Sewers", url:"https://github.com/user-attachments/assets/4740cb53-19dd-4186-9c7f-d8af3e3aaddb" },
@@ -443,58 +469,35 @@
         }
     };
 
-    function saveGame() {
-        const playerName = document.getElementById('uiPlayerName').innerText.trim();
-        const gameData = {
-            coin: playerCOIN, level: playerLevel, exp: playerEXP,
-            hp: playerCurrentHP, name: playerName, earnedFromGameToday: earnedFromGameToday || 0,
-            lastRewardDate: lastRewardDate, dailyStamp: dailyStamp, stampStreak: stampStreak,
-            updatedAt: new Date().toISOString()
-        };
-        if (window.cloudSave) window.cloudSave(gameData);
+    function getGameData() {
+    return JSON.parse(JSON.stringify(gameState));
+}
+
+function saveGame() {
+    if (window.cloudSave) {
+        cloudSave(getGameData());
     }
+}
 
-    window.applyGameData = function(data) {
-        console.log("applyGameData called");
-        if (data) {
-            playerCOIN = parseInt(data.coin) || 0;
-            playerLevel = parseInt(data.level) || 1;
-            playerEXP = parseInt(data.exp) || 0;
-            playerMaxHP = 20 + ((playerLevel - 1) * 2);
-            playerCurrentHP = parseInt(data.hp) || playerMaxHP;
-            
-            const uiName = document.getElementById('uiPlayerName');
-            if (data.name) uiName.innerText = data.name.toUpperCase();
-            else if (window.lastLoginName) uiName.innerText = window.lastLoginName.toUpperCase();
+window.applyGameData = function(data) {
+    if (!data) return;
 
-            earnedFromGameToday = data.earnedFromGameToday || 0;
-            lastRewardDate = data.lastRewardDate || new Date().toDateString();
-            dailyStamp = data.dailyStamp || [];
-            stampStreak = data.stampStreak || 0;
+    Object.assign(gameState, {
+        coin: data.coin ?? 200,
+        level: data.level ?? 1,
+        exp: data.exp ?? 0,
+        hp: data.hp ?? 20,
+        maxHP: data.maxHP ?? 20,
+        earnedToday: data.earnedToday ?? 0,
+        lastRewardDate: data.lastRewardDate ?? new Date().toDateString(),
+        dailyStamp: data.dailyStamp ?? [],
+        stampStreak: data.stampStreak ?? 0
+    });
 
-            const today = new Date().toDateString();
-            if (today !== lastRewardDate) {
-                earnedFromGameToday = 0;
-                lastRewardDate = today;
-                if (!dailyStamp.includes(today)) {
-                    dailyStamp.push(today);
-                    stampStreak = Math.min(stampStreak + 1, 7);
-                    giveStampReward(stampStreak);
-                }
-            }
-        } else {
-            // New User
-            playerCOIN = 200; playerLevel = 1; playerEXP = 0;
-            playerMaxHP = 20; playerCurrentHP = 20;
-            dailyStamp = [new Date().toDateString()];
-            stampStreak = 1;
-            giveStampReward(1);
-        }
-        updateBalance();
-        updateLobbyStats();
-        initMap();
-        nav('home');
-    }; 
+    updateLobbyStats();
+    updateBalance();
+    nav('home');
+};
 
     // --------------------------------------------------------
     // 3.3 UI HELPERS & NAVIGATION
