@@ -607,7 +607,15 @@ window.applyGameData = function(data) {
         nav('battle'); 
         initBattleState(); 
     }
+    function startBattle(monster) {
+    gameState.inBattle = true;
+    gameState.currentMonsterType = monster.type;
 
+    if (!gameState.isSuddenDeath) {
+        gameState.maxHP = BASE_HP + (gameState.level-1)*2;
+        gameState.hp = gameState.maxHP;
+    }
+}
     function initBattleState() { 
         battle_turn = 0; 
         battle_placedCards = [null, null, null, null, null]; 
@@ -749,6 +757,17 @@ window.applyGameData = function(data) {
             sub.innerHTML = "NO REWARD YET<br>ENTER SUDDEN DEATH MODE!"; 
             btn.textContent = "FIGHT FOR LIFE (10 HP)"; 
             btn.className = "main-btn sudden"; 
+            function enterSuddenDeath() {
+    gameState.isSuddenDeath = true;
+    gameState.maxHP = 10;
+    gameState.hp = 10;
+}
+
+function exitSuddenDeath() {
+    gameState.isSuddenDeath = false;
+    gameState.maxHP = BASE_HP + (gameState.level-1)*2;
+    gameState.hp = gameState.maxHP;
+}
             btn.onclick = () => { battle_eHP = 10; battle_eMaxHP = 10; playerCurrentHP = 10; playerMaxHP = 10; updateBattleUI(); initBattleState(); }; 
             modal.style.display = 'flex'; playSfx('win'); 
         } else if (battle_eHP <= 0) { 
@@ -780,6 +799,17 @@ window.applyGameData = function(data) {
                     levelUpText = `<br><span style="color:#00ff00; font-weight:bold; font-size:1.2rem;">✨ LEVEL UP! (HP +${hpBonus})</span>`; 
                     if(!levelConfig[playerLevel]) { levelUpText = `<br><span style="color:#ffd700; font-weight:bold; font-size:1.2rem;">👑 MAX LEVEL REACHED!</span>`; } 
                     playSfx('win'); 
+            function checkLevelUp() {
+    const cfg = levelConfig[gameState.level];
+    if (!cfg) return;
+
+    if (gameState.exp >= cfg.need) {
+        gameState.exp -= cfg.need;
+        gameState.level++;
+        gameState.maxHP += cfg.bonus;
+        gameState.hp = gameState.maxHP;
+    }
+}
                 } 
             } 
             saveGame(); updateLobbyStats(); updateBalance(); 
@@ -1026,6 +1056,36 @@ window.applyGameData = function(data) {
                 gameAlert("ERROR", e.message || "เกิดข้อผิดพลาด");
             }
         };
+        window.addEventListener("beforeunload", ()=>{
+    if (gameState.inBattle) saveGame();
+});
+document.addEventListener("visibilitychange", ()=>{
+    if (document.visibilityState==="hidden" && gameState.inBattle) saveGame();
+});
+        function finalizeBattle(result) {
+    gameState.inBattle = false;
+
+    if (result === "WIN") {
+        gameState.exp += expReward[gameState.currentMonsterType] || 1;
+        gameState.coin += 5;
+        checkLevelUp();
+        exitSuddenDeath();
+    }
+
+    if (result === "LOSE") {
+        if (!gameState.isSuddenDeath) {
+            enterSuddenDeath();
+        } else {
+            gameState.coin = Math.max(0, gameState.coin - gameState.maxHP);
+            exitSuddenDeath();
+        }
+    }
+
+    saveGame();
+    updateBalance();
+    updateLobbyStats();
+    nav('home');
+}
     }
     </script>
 </body>
