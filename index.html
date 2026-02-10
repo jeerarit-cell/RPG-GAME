@@ -445,72 +445,59 @@ function setLoginStatus(text, color) {
 
 // ---------- MAIN LOGIN ----------
 async function loginWithWorldID() {
-    // กันกดซ้ำ / กัน login ซ้อน
     if (LOGIN_STATE === "loading" || LOGIN_STATE === "success") return;
 
     LOGIN_STATE = "loading";
     setLoginStatus("กำลังเชื่อมต่อ...", "#ff9d00");
 
-    // ต้องเปิดใน World App เท่านั้น
-    if (!window.MiniKit || !window.MiniKit.isInstalled()) {
+    if (!window.MiniKit || !MiniKit.isInstalled()) {
         LOGIN_STATE = "error";
         setLoginStatus("กรุณาเปิดใน World App", "red");
         alert("⚠️ กรุณาเปิดเกมผ่าน World App");
         return;
     }
 
-    try {
-        // nonce สำหรับ verify
-        const nonce = Math.random().toString(36).substring(2, 10);
+    const abortController = new AbortController();
 
+    try {
         const { finalPayload } = await MiniKit.commandsAsync.verify({
-            action: 'login',
-            signal: nonce,
-            verification_level: 'device'
+            action: "login",
+            signal: abortController.signal,
+            verification_level: "device"
         });
 
-        if (!finalPayload || finalPayload.status !== 'success') {
+        if (!finalPayload || finalPayload.status !== "success") {
             throw new Error("Verify failed");
         }
 
         // ---------- LOGIN SUCCESS ----------
         window.currentUserId = finalPayload.nullifier_hash;
         LOGIN_STATE = "success";
-
         setLoginStatus("ยืนยันตัวตนสำเร็จ", "#00ff00");
 
-        // ---------- LOAD GAME DATA ----------
-        // ===== BLOCK 3 : LOAD GAME DATA =====
-try {
-    if (typeof cloudLoad === "function") {
-        await cloudLoad(window.currentUserId);
-    } else if (typeof applyGameData === "function") {
-        console.warn("cloudLoad not found, fallback new user");
-        applyGameData(null);
-    }
+        // ---------- LOAD GAME DATA (BLOCK 3) ----------
+        if (typeof cloudLoad === "function") {
+            await cloudLoad(window.currentUserId);
+        } else if (typeof applyGameData === "function") {
+            console.warn("cloudLoad not found, fallback new user");
+            applyGameData(null);
+        }
 
-    if (typeof nav === "function") {
-        nav('home');
-    }
+        if (typeof nav === "function") nav("home");
+        if (typeof updateLobbyStats === "function") updateLobbyStats();
+        if (typeof updateBalance === "function") updateBalance();
 
-    if (typeof updateLobbyStats === "function") {
-        updateLobbyStats();
+    } catch (err) {
+        console.error("Login error:", err);
+        LOGIN_STATE = "error";
+        setLoginStatus("เกิดข้อผิดพลาด", "red");
+        alert(err.message || "Login error");
     }
-
-    if (typeof updateBalance === "function") {
-        updateBalance();
-    }
-
-} catch (err) {
-    console.error("Login error:", err);
-    LOGIN_STATE = "error";
-    setLoginStatus("เกิดข้อผิดพลาด", "red");
-    alert(err.message || "Login error");
 }
 
-// ---------- BUTTON BIND ----------
+// ---------- BUTTON BIND (อยู่นอก function เท่านั้น) ----------
 (function bindLoginButton() {
-    const btn = document.getElementById('btnWorldID');
+    const btn = document.getElementById("btnWorldID");
     if (!btn) {
         console.warn("btnWorldID not found");
         return;
