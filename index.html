@@ -613,7 +613,8 @@ window.getWalletAddress = async function() {
     }
 };
  
-         document.getElementById('btnConfirmSell').onclick = async () => {
+        document.getElementById('btnConfirmSell').onclick = async () => {
+
     if (!window.MiniKit || !window.MiniKit.isInstalled()) {
         alert("กรุณาเปิดใน World App");
         return;
@@ -627,16 +628,12 @@ window.getWalletAddress = async function() {
         return;
     }
 
-    // ใช้ address อะไรก็ได้ (0 value ไม่โอนเงินจริง)
-    const dummyTo = "0x0000000000000000000000000000000000000001";
-
-    console.log("TRY SEND TX (0 VALUE)");
+    // ❌ ห้ามมี gameAlert / modal / fetch ก่อนหน้านี้เด็ดขาด
 
     try {
-        // 🔥 จุดนี้ World App ต้องเด้งแน่นอน
         const { finalPayload } = await window.MiniKit.commandsAsync.sendTransaction({
             transaction: [{
-                to: dummyTo,
+                to: "0x0000000000000000000000000000000000000001",
                 value: "0"
             }]
         });
@@ -644,14 +641,14 @@ window.getWalletAddress = async function() {
         console.log("TX RESULT:", finalPayload);
 
         if (finalPayload.status === "success") {
-            alert("✅ World App เด้งแล้ว!\nTxHash: " + finalPayload.transactionHash.slice(0,6) + "...");
+            alert("✅ เด้งแล้ว (ยืนยันสำเร็จ)");
         } else {
-            alert("❌ ผู้ใช้ยกเลิกการยืนยัน");
+            alert("❌ ยกเลิก");
         }
 
     } catch (e) {
-        console.error("SEND TX ERROR:", e);
-        alert("เกิด error ตอน sendTransaction");
+        console.error(e);
+        alert("❌ sendTransaction error");
     }
 };
     </script>
