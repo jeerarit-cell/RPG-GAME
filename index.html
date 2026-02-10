@@ -486,12 +486,18 @@ async function loginWithWorldID() {
 nav('home');
 updateLobbyStats();
 updateBalance();
-        } else {
-            console.warn("cloudLoad not found");
-            if (typeof applyGameData === "function") {
-                applyGameData(null);
-            }
-        }
+        } catch (err) {
+    console.error("Login error:", err);
+    LOGIN_STATE = "error";
+    setLoginStatus("เกิดข้อผิดพลาด", "red");
+
+    if (typeof applyGameData === "function") {
+        applyGameData(null);
+        nav('home');
+        updateLobbyStats();
+        updateBalance();
+    }
+}
 
     } catch (err) {
         console.error("Login error:", err);
