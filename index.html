@@ -495,11 +495,9 @@ async function loginWithWorldID() {
         LOGIN_STATE = "error";
         setLoginStatus("เกิดข้อผิดพลาด", "red");
         alert(err.message || "Login error");
-    }
+   }
 }
-        await cloudLoad(currentUserId);
 
-// ✅ บรรทัดที่หายไป
 nav('home');
 updateLobbyStats();
 updateBalance();
