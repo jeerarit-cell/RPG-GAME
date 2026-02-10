@@ -136,6 +136,37 @@ async function loadGameFromServer() {
         if (loader) loader.style.display = "none";
     }
 };
+        // ================================
+// CLOUD SAVE (MASTER / FULL SAVE)
+// ================================
+window.cloudSave = async function () {
+    if (!window.REAL_USER_ID) {
+        console.warn("[GAME SAVE] no user id");
+        return;
+    }
+
+    try {
+        const payload = {
+            userId: window.REAL_USER_ID,
+            data: collectGameData() // << รวม state เกมทั้งหมด
+        };
+
+        const res = await fetch(SERVER_URL + "/save", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+        });
+
+        const json = await res.json();
+        console.log("[GAME SAVE]", json);
+
+        if (!json.ok) {
+            console.warn("[GAME SAVE] server rejected");
+        }
+    } catch (e) {
+        console.error("[GAME SAVE] failed", e);
+    }
+};
          window.logWithdrawal = async function(coinAmount, wldAmount) {
     if(!REAL_USER_ID) return;
     
