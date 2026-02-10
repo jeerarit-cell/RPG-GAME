@@ -614,91 +614,47 @@ window.getWalletAddress = async function() {
 };
  
           document.getElementById('btnConfirmSell').onclick = async () => {
-        // 1. รับค่าจากช่องกรอก
-        const inp = document.getElementById('inpSellCoin');
-        const amountCoin = parseInt(inp.value) || 0;
+    if (!window.MiniKit || !window.MiniKit.isInstalled()) {
+        alert("กรุณาเปิดใน World App");
+        return;
+    }
 
-        // เช็คเงื่อนไขพื้นฐาน
-        if (amountCoin < 110) { gameAlert("ERROR", "ขั้นต่ำ 110 COINS"); return; }
-        if (amountCoin > playerCOIN) { gameAlert("ERROR", "COINS ไม่พอ!"); return; }
+    const inp = document.getElementById('inpSellCoin');
+    const amountCoin = parseInt(inp.value) || 0;
 
-        try {
-            // 2. ดึง Wallet Address (แก้จุดที่ error เดิม)
-            gameAlert("AUTH", "กำลังยืนยันกระเป๋า...");
-            const myWalletAddress = await window.getWalletAddress(); // เรียกฟังก์ชันดึงกระเป๋า
+    if (amountCoin < 110) {
+        alert("ขั้นต่ำ 110 COINS");
+        return;
+    }
 
-            if (!myWalletAddress) {
-                gameAlert("CANCELLED", "ไม่พบกระเป๋าเงิน (ต้องเชื่อมต่อก่อน)");
-                return;
-            }
+    // 🔥 message จำลอง (server จะเป็นคนสร้างจริงในขั้นถัดไป)
+    const message = `
+PROJECT CHASER - SELL COIN
+Sell ${amountCoin} COINS
+Timestamp: ${Date.now()}
+    `.trim();
 
-            gameAlert("PROCESSING", "กำลังติดต่อ Server...");
+    console.log("SIGN MESSAGE:", message);
 
-            // 3. ส่งข้อมูลไป Server Replit เพื่อขอ "ลายเซ็น"
-            // (เช็ค URL ให้ตรงกับ Replit ของคุณ)
-            const response = await fetch('https://355af051-4f5d-4c22-b86b-80924de9a8c1-00-2sb1btqlfp955.pike.replit.dev/api/claim', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    userId: window.REAL_USER_ID || "test-user", // กันเหนียวถ้าไม่มี ID
-                    walletAddress: myWalletAddress, 
-                    amount: amountCoin
-                })
-            });
+    try {
+        // 🔥 จุดนี้แหละที่ popup ต้องเด้ง
+        const { finalPayload } = await window.MiniKit.commandsAsync.signMessage({
+            message: message
+        });
 
-            const result = await response.json();
+        console.log("SIGN RESULT:", finalPayload);
 
-            if (!result.success) {
-                throw new Error(result.error || "Server ปฏิเสธการทำรายการ");
-            }
-
-            // --- ได้ลายเซ็นแล้ว! เริ่มขั้นตอน Blockchain ---
-            const { amount, nonce, signature } = result;
-            const vaultAddress = "0x0c07D1879f06B72a0976fe69B777c0BF84410eFa"; // เลขตู้เซฟของคุณ
-
-            // 4. แปลงข้อมูลเป็นภาษา Blockchain (Encode)
-            // ต้องมี ethers.js ใน <head> แล้วนะครับ
-            const iface = new ethers.utils.Interface([
-                "function claimReward(uint256 amount, uint256 nonce, bytes signature)"
-            ]);
-
-            const data = iface.encodeFunctionData("claimReward", [
-                amount,    // จำนวน wei ที่ server คำนวณมา
-                nonce, 
-                signature
-            ]);
-
-            gameAlert("CONFIRM", "กรุณากดยืนยันใน World App");
-
-            // 5. ส่งคำสั่งผ่าน MiniKit
-            const { finalPayload } = await window.MiniKit.commandsAsync.sendTransaction({
-                transaction: [{
-                    to: vaultAddress,
-                    data: data,
-                    value: "0"
-                }]
-            });
-
-            if (finalPayload.status === 'success') {
-                // สำเร็จ!
-                playerCOIN -= amountCoin;
-                await saveGame(); 
-                updateBalance();
-                
-                if(document.getElementById('exchangeModal')) document.getElementById('exchangeModal').remove();
-                
-                gameAlert("SUCCESS", `โอนสำเร็จ! เงินกำลังเข้ากระเป๋า\n(Tx: ${finalPayload.transactionHash.slice(0,6)}...)`);
-            } else {
-                gameAlert("FAILED", "การทำรายการล้มเหลว");
-            }
-
-        } catch (e) {
-            console.error(e);
-            gameAlert("ERROR", e.message || "เกิดข้อผิดพลาด");
+        if (finalPayload.status === "success") {
+            alert("✅ World App เด้งแล้ว!\nSignature ได้รับเรียบร้อย");
+        } else {
+            alert("❌ User ยกเลิกการเซ็น");
         }
-    };
 
-  }
+    } catch (e) {
+        console.error("SIGN ERROR:", e);
+        alert("เกิด error ตอนเรียก signMessage");
+    }
+};
     </script>
 </body>
 </html>
