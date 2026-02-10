@@ -483,7 +483,10 @@ async function loginWithWorldID() {
         // BLOCK 3 รับผิดชอบทั้งหมด
         if (typeof cloudLoad === "function") {
             await cloudLoad(window.currentUserId);
-nav('home');
+if (typeof nav === "function") {
+    nav('home');
+}
+
 updateLobbyStats();
 updateBalance();
         } catch (err) {
