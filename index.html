@@ -7,223 +7,160 @@
     <script src="https://cdn.ethers.io/lib/ethers-5.7.2.umd.min.js" type="application/javascript"></script>
 
     <script type="module">
-        // แทนที่บรรทัด import เดิมด้วยบรรทัดนี้
-import { MiniKit, Tokens, tokenToDecimals } from "https://cdn.jsdelivr.net/npm/@worldcoin/minikit-js@latest/+esm";
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js"; // แก้ Version เป็น 10.8.0
-        import { getFirestore, doc, getDoc, setDoc, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+/* ======================================================
+   1) IMPORT
+====================================================== */
+import { MiniKit } from "https://cdn.jsdelivr.net/npm/@worldcoin/minikit-js@latest/+esm";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import { getFirestore, doc, getDoc, setDoc, collection, addDoc } 
+from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        // 1. ติดตั้ง MiniKit
-        const APP_ID = "app_6203a46daf3053d01617ef5293135678";
-        MiniKit.install(APP_ID);
-        console.log("MiniKit Installed");
-        window.MiniKit = MiniKit; // ส่งออกให้โค้ดอื่นใช้
+/* ======================================================
+   2) WORLD ID (MINIKIT)
+====================================================== */
+const APP_ID = "app_6203a46daf3053d01617ef5293135678";
+MiniKit.install(APP_ID);
+window.MiniKit = MiniKit;
+console.log("[MiniKit] installed");
 
-        // 2. ตั้งค่า Firebase
-        const firebaseConfig = {
-            apiKey: "AIzaSyDPxiP-isMK4VOnwRip2RczXOnqxHSyPtk",
-            authDomain: "project-chaser-bc0bd.firebaseapp.com",
-            projectId: "project-chaser-bc0bd",
-            storageBucket: "project-chaser-bc0bd.firebasestorage.app",
-            messagingSenderId: "327717972073",
-            appId: "1:327717972073:web:49c32d904243569cd7daf8",
-            measurementId: "G-8B45RXBNED"
-        };
+/* ======================================================
+   3) FIREBASE INIT
+====================================================== */
+const firebaseConfig = {
+    apiKey: "AIzaSyDPxiP-isMK4VOnwRip2RczXOnqxHSyPtk",
+    authDomain: "project-chaser-bc0bd.firebaseapp.com",
+    projectId: "project-chaser-bc0bd",
+    storageBucket: "project-chaser-bc0bd.firebasestorage.app",
+    messagingSenderId: "327717972073",
+    appId: "1:327717972073:web:49c32d904243569cd7daf8"
+};
 
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        let REAL_USER_ID = null;
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
 
-        // ฟังก์ชัน Save ลง Cloud
-        window.cloudSave = async function(data) {
-            if(!REAL_USER_ID) return;
-            const loader = document.getElementById('cloud-loader');
-            if(loader) loader.style.display = 'block';
-            try { await setDoc(doc(db, "users", REAL_USER_ID), data); } 
-            catch (e) { console.error("Save Error: ", e); }
-            if(loader) loader.style.display = 'none';
-        }
+/* ======================================================
+   4) GLOBAL USER ID
+====================================================== */
+window.REAL_USER_ID = null;
 
-        // ================================
-// CLOUD LOAD (SAFE / READ ONLY)
-// ================================
-window.cloudLoad = async function (worldID) {
-    try {
-        // 1️⃣ map ID ให้ชัด
-        const userId = worldID;
-        window.REAL_USER_ID = userId;
-        // ================================
-// LOAD GAME FROM SERVER
-// ================================
-async function loadGameFromServer() {
-    try {
-        const res = await fetch(SERVER_URL + "/load", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                userId: window.REAL_USER_ID
-            })
-        });
-
-        const json = await res.json();
-        console.log("[GAME LOAD]", json);
-
-        if (json.ok && json.data) {
-            applyGameData(json.data);
-        } else {
-            applyGameData(null);
-        }
-
-    } catch (e) {
-        console.warn("[GAME LOAD] failed, fallback", e);
-        applyGameData(null);
+/* ======================================================
+   5) CLOUD SAVE (FIREBASE ONLY)
+   - ใช้ schema เดียว
+   - PART 2 จะเปลี่ยนให้ดึงจาก gameState
+====================================================== */
+window.cloudSave = async function (data) {
+    if (!window.REAL_USER_ID) {
+        console.warn("[cloudSave] no user id");
+        return;
     }
-}
-        console.log("[CLOUD] start load, userId =", userId);
 
-        // 2️⃣ loader UI (ถ้ามี)
-        const loader = document.getElementById("cloud-loader");
-        if (loader) loader.style.display = "block";
+    const loader = document.getElementById("cloud-loader");
+    if (loader) loader.style.display = "block";
 
-        // 3️⃣ sanity check server url
-        if (typeof SERVER_URL !== "string") {
-            throw new Error("SERVER_URL not defined");
-        }
+    try {
+        await setDoc(
+            doc(db, "users", window.REAL_USER_ID),
+            data,
+            { merge: true }
+        );
+        console.log("[cloudSave] success");
+    } catch (e) {
+        console.error("[cloudSave] error", e);
+    } finally {
+        if (loader) loader.style.display = "none";
+    }
+};
 
-        // 4️⃣ CALL SERVER (READ ONLY)
-        console.log("[CLOUD] calling server /load");
+/* ======================================================
+   6) CLOUD LOAD (FIREBASE ONLY / READ ONLY)
+====================================================== */
+window.cloudLoad = async function (userId) {
+    window.REAL_USER_ID = userId;
 
-        const res = await fetch(SERVER_URL + "/load", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ userId })
-        });
+    const loader = document.getElementById("cloud-loader");
+    if (loader) loader.style.display = "block";
 
-        console.log("[CLOUD] server status =", res.status);
+    try {
+        const ref = doc(db, "users", userId);
+        const snap = await getDoc(ref);
 
-        const raw = await res.text();
-        console.log("[CLOUD] server raw =", raw);
-
-        // 5️⃣ parse json แบบปลอดภัย
-        let serverData = null;
-        try {
-            serverData = JSON.parse(raw);
-        } catch (e) {
-            console.warn("[CLOUD] invalid JSON, skip apply");
-        }
-
-        // 6️⃣ apply data ถ้ามี
-        if (serverData && typeof window.applyGameData === "function") {
-            console.log("[CLOUD] applying game data");
-            window.applyGameData(serverData);
+        if (snap.exists()) {
+            console.log("[cloudLoad] data found");
+            if (typeof window.applyGameData === "function") {
+                window.applyGameData(snap.data());
+            }
         } else {
-            console.log("[CLOUD] no data, using default");
+            console.log("[cloudLoad] new user");
             if (typeof window.applyGameData === "function") {
                 window.applyGameData(null);
             }
         }
-
-    } catch (err) {
-        console.warn("[CLOUD] load failed, fallback local", err);
-
-        // fallback local
+    } catch (e) {
+        console.warn("[cloudLoad] failed", e);
         if (typeof window.applyGameData === "function") {
             window.applyGameData(null);
         }
-
     } finally {
-        // 7️⃣ hide loader
-        const loader = document.getElementById("cloud-loader");
         if (loader) loader.style.display = "none";
     }
 };
-        // ================================
-// CLOUD SAVE (MASTER / FULL SAVE)
-// ================================
-window.cloudSave = async function () {
-    if (!window.REAL_USER_ID) {
-        console.warn("[GAME SAVE] no user id");
-        return;
-    }
+
+/* ======================================================
+   7) WITHDRAW LOG (ADMIN / BACKOFFICE)
+   - ไม่ยุ่งกับ game save
+====================================================== */
+window.logWithdrawal = async function (coinAmount, wldAmount) {
+    if (!window.REAL_USER_ID) return;
 
     try {
-        const payload = {
-            userId: window.REAL_USER_ID,
-            data: collectGameData() // << รวม state เกมทั้งหมด
-        };
+        const playerName =
+            document.getElementById("uiPlayerName")?.innerText.trim() || "UNKNOWN";
 
-        const res = await fetch(SERVER_URL + "/save", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload)
-        });
-
-        const json = await res.json();
-        console.log("[GAME SAVE]", json);
-
-        if (!json.ok) {
-            console.warn("[GAME SAVE] server rejected");
-        }
-    } catch (e) {
-        console.error("[GAME SAVE] failed", e);
-    }
-};
-         window.logWithdrawal = async function(coinAmount, wldAmount) {
-    if(!REAL_USER_ID) return;
-    
-    try {
-        const playerName = document.getElementById('uiPlayerName').innerText.trim();
-        // สร้างเอกสารใหม่ใน Collection "withdrawals"
         await addDoc(collection(db, "withdrawals"), {
-            userId: REAL_USER_ID,
+            userId: window.REAL_USER_ID,
             name: playerName,
             coinSpent: coinAmount,
             wldToReceive: wldAmount,
-            status: "PENDING", // สำหรับให้คุณมาเช็กและเปลี่ยนเป็น COMPLETED หลังโอนแล้ว
-            timestamp: new Date().toISOString()
+            status: "PENDING",
+            createdAt: new Date().toISOString()
         });
-        console.log("Withdrawal log created");
+
+        console.log("[withdrawal] logged");
     } catch (e) {
-        console.error("Log Error: ", e);
-    }
-}
-      // ฟังก์ชันสำหรับขออนุญาตเข้าถึง Wallet Address
-window.getWalletAddress = async function() {
-    console.log("Start getting wallet address...");
-    
-    if (!window.MiniKit || !window.MiniKit.isInstalled()) {
-        alert("⚠️ MiniKit not installed (ต้องเปิดใน World App)");
-        return null;
-    }
-
-    // สร้างรหัสสุ่ม (Nonce) เพื่อความปลอดภัย
-    const nonce = Math.random().toString(36).substring(7);
-
-    try {
-        // เรียกคำสั่ง walletAuth ของ MiniKit
-        const { finalPayload } = await window.MiniKit.commandsAsync.walletAuth({
-            nonce: nonce,
-            requestId: '0', // Optional
-            expirationTime: new Date(new Date().getTime() + 7 * 24 * 60 * 60 * 1000), // Optional
-            notBefore: new Date() // Optional
-        });
-
-        if (finalPayload.status === 'success') {
-            // สำเร็จ! ดึงเลขกระเป๋าได้แล้ว
-            const walletAddress = finalPayload.address; // หรือบางทีอาจจะอยู่ใน finalPayload.walletAddress เช็ค console ดูอีกที
-            console.log("✅ Wallet Address Found:", walletAddress);
-            return walletAddress;
-        } else {
-            console.error("❌ Wallet Auth Failed:", finalPayload);
-            return null;
-        }
-    } catch (error) {
-        console.error("❌ Wallet Auth Error:", error);
-        return null;
+        console.error("[withdrawal] error", e);
     }
 };
 
+/* ======================================================
+   8) WALLET ADDRESS (READ ONLY)
+====================================================== */
+window.getWalletAddress = async function () {
+    if (!window.MiniKit || !window.MiniKit.isInstalled()) {
+        alert("⚠️ ต้องเปิดผ่าน World App");
+        return null;
+    }
 
-    </script>
+    try {
+        const nonce = Math.random().toString(36).slice(2);
+
+        const { finalPayload } =
+            await window.MiniKit.commandsAsync.walletAuth({
+                nonce,
+                requestId: "wallet-auth"
+            });
+
+        if (finalPayload.status === "success") {
+            console.log("[wallet] address =", finalPayload.address);
+            return finalPayload.address;
+        }
+    } catch (e) {
+        console.error("[wallet] error", e);
+    }
+
+    return null;
+};
+
+</script>
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Kanit:wght@300;500;600&family=Orbitron:wght@700;900&display=swap');
