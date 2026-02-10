@@ -483,29 +483,33 @@ async function loginWithWorldID() {
         // BLOCK 3 รับผิดชอบทั้งหมด
         if (typeof cloudLoad === "function") {
             await cloudLoad(window.currentUserId);
-if (typeof nav === "function") {
-    nav('home');
-}
+    if (typeof cloudLoad === "function") {
+        await cloudLoad(window.currentUserId);
 
-updateLobbyStats();
-updateBalance();
-        } catch (err) {
+        if (typeof nav === "function") {
+            nav('home');
+        }
+
+        updateLobbyStats();
+        updateBalance();
+    } else {
+        console.warn("cloudLoad not found");
+
+        if (typeof applyGameData === "function") {
+            applyGameData(null);
+
+            if (typeof nav === "function") {
+                nav('home');
+            }
+
+            updateLobbyStats();
+            updateBalance();
+        }
+    }
+} catch (err) {
     console.error("Login error:", err);
     LOGIN_STATE = "error";
     setLoginStatus("เกิดข้อผิดพลาด", "red");
-
-    if (typeof applyGameData === "function") {
-        applyGameData(null);
-        nav('home');
-        updateLobbyStats();
-        updateBalance();
-    }
-}
-
-    } catch (err) {
-        console.error("Login error:", err);
-        LOGIN_STATE = "error";
-        setLoginStatus("เกิดข้อผิดพลาด", "red");
         alert(err.message || "Login error");
    }
 }
