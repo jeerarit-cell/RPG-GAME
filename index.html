@@ -427,163 +427,196 @@ const monsterDB = [
   { id: 7, name: "THE OVERLORD", hp: 40, type: "boss", loc: "Tower", url: "https://github.com/user-attachments/assets/6dec1453-a3f9-4b8f-8499-ac45bd42da29" },
   { id: 8, name: "GOLDEN DRAGON", hp: 50, type: "legendary", loc: "Sky Realm", url: "https://github.com/user-attachments/assets/b8379da1-b55e-4c8f-bcfb-e68eaae581ed" }
 ];
-        // =====================================================
-// BLOCK 2: LOGIN / AUTH (World ID / MiniKit)
-// วางต่อจาก BLOCK 1
-// =====================================================
+        // ========================================================
+// BLOCK 2 : LOGIN / WORLD ID (CONNECT TO SAVE SYSTEM)
+// ========================================================
 
-// ---- LOGIN STATE ----
-let LOGIN_STATE = "idle"; // idle | loading | success | failed
-let CURRENT_USER_ID = null;
+// ---------- LOGIN STATE ----------
+let LOGIN_STATE = "idle"; // idle | loading | success | error
+window.currentUserId = null;
 
-// ---- HELPER: UPDATE LOGIN UI ----
+// ---------- UI HELPER ----------
 function setLoginStatus(text, color) {
-  const el = document.getElementById('loginStatus');
-  if (!el) return;
-  el.innerText = text;
-  el.style.color = color;
+    const el = document.getElementById('loginStatus');
+    if (!el) return;
+    el.innerText = text;
+    el.style.color = color;
 }
 
-// ---- MAIN LOGIN FUNCTION ----
+// ---------- MAIN LOGIN ----------
 async function loginWithWorldID() {
-  if (LOGIN_STATE === "loading" || LOGIN_STATE === "success") return;
+    // กันกดซ้ำ / กัน login ซ้อน
+    if (LOGIN_STATE === "loading" || LOGIN_STATE === "success") return;
 
-  LOGIN_STATE = "loading";
-  setLoginStatus("กำลังเชื่อมต่อ...", "#ff9d00");
+    LOGIN_STATE = "loading";
+    setLoginStatus("กำลังเชื่อมต่อ...", "#ff9d00");
 
-  // ตรวจ World App
-  if (!window.MiniKit || !MiniKit.isInstalled()) {
-    LOGIN_STATE = "failed";
-    setLoginStatus("ไม่พบ World App", "red");
-    alert("⚠️ กรุณาเปิดเกมผ่าน World App");
-    return;
-  }
-
-  try {
-    const nonce = Math.random().toString(36).substring(2, 10);
-
-    const { finalPayload } = await MiniKit.commandsAsync.verify({
-      action: 'login',
-      signal: nonce,
-      verification_level: 'device'
-    });
-
-    if (!finalPayload || finalPayload.status !== 'success') {
-      throw new Error("Verify failed");
+    // ต้องเปิดใน World App เท่านั้น
+    if (!window.MiniKit || !window.MiniKit.isInstalled()) {
+        LOGIN_STATE = "error";
+        setLoginStatus("กรุณาเปิดใน World App", "red");
+        alert("⚠️ กรุณาเปิดเกมผ่าน World App");
+        return;
     }
 
-    // ---- LOGIN SUCCESS ----
-    CURRENT_USER_ID = finalPayload.nullifier_hash;
-    LOGIN_STATE = "success";
+    try {
+        // nonce สำหรับ verify
+        const nonce = Math.random().toString(36).substring(2, 10);
 
-    setLoginStatus("ยืนยันตัวตนสำเร็จ", "#00ff00");
+        const { finalPayload } = await MiniKit.commandsAsync.verify({
+            action: 'login',
+            signal: nonce,
+            verification_level: 'device'
+        });
 
-    // ---- LOAD GAME DATA (ONCE) ----
-    if (typeof cloudLoad === "function") {
-      await cloudLoad(CURRENT_USER_ID);
-    } else if (typeof applyGameData === "function") {
-      applyGameData(null);
+        if (!finalPayload || finalPayload.status !== 'success') {
+            throw new Error("Verify failed");
+        }
+
+        // ---------- LOGIN SUCCESS ----------
+        window.currentUserId = finalPayload.nullifier_hash;
+        LOGIN_STATE = "success";
+
+        setLoginStatus("ยืนยันตัวตนสำเร็จ", "#00ff00");
+
+        // ---------- LOAD GAME DATA ----------
+        // BLOCK 3 รับผิดชอบทั้งหมด
+        if (typeof cloudLoad === "function") {
+            await cloudLoad(window.currentUserId);
+        } else {
+            console.warn("cloudLoad not found");
+            if (typeof applyGameData === "function") {
+                applyGameData(null);
+            }
+        }
+
+    } catch (err) {
+        console.error("Login error:", err);
+        LOGIN_STATE = "error";
+        setLoginStatus("เกิดข้อผิดพลาด", "red");
+        alert(err.message || "Login error");
+    }
+}
+
+// ---------- BUTTON BIND ----------
+(function bindLoginButton() {
+    const btn = document.getElementById('btnWorldID');
+    if (!btn) {
+        console.warn("btnWorldID not found");
+        return;
     }
 
-  } catch (err) {
-    console.error(err);
-    LOGIN_STATE = "failed";
-    setLoginStatus("เกิดข้อผิดพลาด", "red");
-    alert(err.message || "Login error");
-  }
+    btn.onclick = () => {
+        if (LOGIN_STATE !== "loading") {
+            loginWithWorldID();
+        }
+    };
+})();
+       // ========================================================
+// BLOCK 3 : CORE SAVE / LOAD SYSTEM
+// ========================================================
+
+// ---------- CONFIG ----------
+const SAVE_VERSION = 1;
+
+// ---------- UTIL ----------
+function deepClone(obj) {
+    return JSON.parse(JSON.stringify(obj));
 }
 
-// ---- BUTTON BINDING ----
-const btnWorldID = document.getElementById('btnWorldID');
-if (btnWorldID) {
-  btnWorldID.onclick = () => {
-    if (LOGIN_STATE !== "loading") {
-      loginWithWorldID();
-    }
-  };
-}
-       // =====================================================
-// BLOCK 3: SAVE / LOAD
-// วางต่อจาก BLOCK 2
-// =====================================================
+// ---------- SCHEMA ----------
+function getDefaultGameState() {
+    return {
+        version: SAVE_VERSION,
 
-// -----------------------------------------------------
-// SAVE GAME
-// -----------------------------------------------------
-function saveGame() {
-  const nameEl = document.getElementById('uiPlayerName');
-  const playerName = nameEl ? nameEl.innerText.trim() : "";
+        coin: 200,
+        level: 1,
+        exp: 0,
 
-  const saveData = {
-    coin: playerCOIN,
-    level: playerLevel,
-    exp: playerEXP,
-    hp: playerCurrentHP,
-    name: playerName,
+        hp: 20,
+        maxHP: 20,
 
-    earnedFromGameToday,
-    lastRewardDate,
-    dailyStamp,
-    stampStreak,
+        inBattle: false,
+        isSuddenDeath: false,
 
-    updatedAt: new Date().toISOString()
-  };
+        earnedToday: 0,
+        lastRewardDate: new Date().toDateString(),
+        dailyStamp: [],
+        stampStreak: 0,
 
-  if (window.cloudSave) {
-    cloudSave(saveData);
-  }
+        currentMonsterType: 'common'
+    };
 }
 
-// -----------------------------------------------------
-// APPLY GAME DATA (LOAD RESULT)
-// -----------------------------------------------------
+// ---------- EXPORT DATA ----------
+function getGameData() {
+    return deepClone(window.gameState);
+}
+
+// ---------- APPLY DATA (ONE WAY IN) ----------
 window.applyGameData = function (data) {
+    const base = getDefaultGameState();
+    const incoming = data || {};
 
-  // ---------- LOAD FROM CLOUD ----------
-  if (data) {
-    playerCOIN = Number(data.coin) || 0;
-    playerLevel = Number(data.level) || 1;
-    playerEXP = Number(data.exp) || 0;
+    // merge schema (กัน field หาย / เก่า)
+    window.gameState = Object.assign(base, incoming);
 
-    // maxHP คำนวณจาก level (logic เดิม)
-    playerMaxHP = 20 + (playerLevel - 1) * 2;
-    playerCurrentHP = Number(data.hp) || playerMaxHP;
-
-    earnedFromGameToday = data.earnedFromGameToday || 0;
-    lastRewardDate = data.lastRewardDate || new Date().toDateString();
-    dailyStamp = data.dailyStamp || [];
-    stampStreak = data.stampStreak || 0;
-
-    if (data.name) {
-      const nameEl = document.getElementById('uiPlayerName');
-      if (nameEl) nameEl.innerText = data.name.toUpperCase();
+    // safety clamp
+    if (gameState.hp > gameState.maxHP) {
+        gameState.hp = gameState.maxHP;
+    }
+    if (gameState.hp < 0) {
+        gameState.hp = 0;
     }
 
-  // ---------- NEW PLAYER ----------
-  } else {
-    playerCOIN = 200;
-    playerLevel = 1;
-    playerEXP = 0;
+    // UI update (กลาง)
+    if (typeof updateLobbyStats === 'function') updateLobbyStats();
+    if (typeof updateBalance === 'function') updateBalance();
+};
 
-    playerMaxHP = 20;
-    playerCurrentHP = 20;
-
-    dailyStamp = [new Date().toDateString()];
-    stampStreak = 1;
-
-    // reward แรกเข้า (logic เดิม)
-    if (typeof giveStampReward === "function") {
-      giveStampReward(1);
+// ---------- CLOUD LOAD ----------
+window.cloudLoad = async function (userId) {
+    if (!userId) {
+        console.warn("cloudLoad: missing userId");
+        applyGameData(null);
+        return;
     }
-  }
 
-  // ---------- UPDATE UI ----------
-  if (typeof updateBalance === "function") updateBalance();
-  if (typeof updateLobbyStats === "function") updateLobbyStats();
-  if (typeof initMap === "function") initMap();
+    try {
+        // 👉 ตรงนี้ผูก Firebase / backend จริง
+        const savedData = await firebaseLoad(userId); // ต้องคืน object หรือ null
 
-  // ---------- GO HOME ----------
-  if (typeof nav === "function") nav('home');
+        if (savedData) {
+            applyGameData(savedData);
+        } else {
+            applyGameData(null);
+            await cloudSave(getGameData(), userId);
+        }
+    } catch (err) {
+        console.error("cloudLoad error:", err);
+        applyGameData(null);
+    }
+};
+
+// ---------- CLOUD SAVE ----------
+window.cloudSave = async function (data, userId = window.currentUserId) {
+    if (!userId || !data) {
+        console.warn("cloudSave skipped");
+        return;
+    }
+
+    try {
+        await firebaseSave(userId, deepClone(data));
+    } catch (err) {
+        console.error("cloudSave error:", err);
+    }
+};
+
+// ---------- SAFE SAVE ----------
+window.saveGame = function () {
+    if (window.cloudSave) {
+        cloudSave(getGameData());
+    }
 };
        // =====================================================
 // BLOCK 4: UI / NAVIGATION / AUDIO
@@ -767,528 +800,458 @@ function initMap() {
     `;
   });
 }
-       // =====================================================
-// BLOCK 6: BATTLE CORE
-// วางต่อจาก BLOCK 5
-// =====================================================
+       // ========================================================
+// BLOCK 6 : BATTLE CORE + inBattle / DISCONNECT / FORFEIT
+// ========================================================
 
-// -----------------------------------------------------
-// BATTLE STATE
-// -----------------------------------------------------
-let battle_enemy = null;
+// ---------- BATTLE STATE (TRANSIENT ONLY) ----------
+let battle_eMaxHP = 20;
+let battle_eHP = 20;
 
-let battle_pHP = 0;
-let battle_eHP = 0;
-let battle_eMaxHP = 0;
+let battle_pDeck = [];
+let battle_eDeck = [];
+let battle_placedCards = [null, null, null, null, null];
 
 let battle_turn = 0;
 let battle_isPlaying = false;
 
-let battle_pDeck = [];
-let battle_eDeck = [];
+// ---------- PREPARE BATTLE ----------
+window.prepareBattle = function (monsterID) {
+    // ต้อง login และโหลดเกมแล้ว
+    if (typeof LOGIN_STATE !== "undefined" && LOGIN_STATE !== "success") {
+        gameAlert("ERROR", "กรุณา Login ก่อน");
+        return;
+    }
 
-let battle_placedCards = [null, null, null, null, null];
+    const monster = monsterDB.find(m => m.id === monsterID);
+    if (!monster) return;
 
-// -----------------------------------------------------
-// PREPARE BATTLE (FROM MAP)
-// -----------------------------------------------------
-window.prepareBattle = function (monsterId) {
-  const monster = monsterDB.find(m => m.id === monsterId);
-  if (!monster) return;
+    // เงินประกัน (logic เดิม)
+    if (playerCOIN < playerMaxHP) {
+        gameAlert(
+            "ACCESS DENIED",
+            `เงินไม่พอ! <br>ต้องมีเงินประกัน <b style="color:#ff0000">${playerMaxHP} COINS</b>`
+        );
+        playSfx('click');
+        return;
+    }
 
-  battle_enemy = monster;
+    // ----- SET GAME STATE -----
+    gameState.inBattle = true;
+    gameState.currentMonsterType = monster.type;
 
-  battle_eMaxHP = monster.hp;
-  battle_eHP = monster.hp;
+    // ไม่ heal ถ้าเป็น sudden death
+    if (!gameState.isSuddenDeath) {
+        playerCurrentHP = playerMaxHP;
+        gameState.hp = playerCurrentHP;
+    }
 
-  battle_pHP = playerCurrentHP;
+    // ----- SET BATTLE STATE -----
+    battle_eMaxHP = monster.hp;
+    battle_eHP = monster.hp;
 
-  initBattleState();
-  nav('battle');
+    // ----- UI -----
+    document.getElementById('battleEnemyName').innerText = monster.name;
+    document.getElementById('bossImg').src = monster.url;
+    document.getElementById('screen-battle').style.backgroundImage =
+        "url('https://github.com/user-attachments/assets/13b147e2-f363-49ce-bd43-68530d231a60')";
+
+    nav('battle');
+    initBattleState();
 };
 
-// -----------------------------------------------------
-// INIT BATTLE
-// -----------------------------------------------------
+// ---------- INIT BATTLE ----------
 function initBattleState() {
-  battle_turn = 1;
-  battle_isPlaying = true;
-
-  // player deck (logic เดิม: สุ่ม 5 ใบ)
-  battle_pDeck = Array.from({ length: 5 }, () =>
-    Math.floor(Math.random() * 5) + 1
-  );
-
-  // enemy deck (logic เดิม: สุ่ม 5 ใบ)
-  battle_eDeck = Array.from({ length: 5 }, () =>
-    Math.floor(Math.random() * 5) + 1
-  );
-
-  battle_placedCards = [null, null, null, null, null];
-
-  updateBattleUI();
-}
-
-// -----------------------------------------------------
-// PLAYER SELECT CARD
-// -----------------------------------------------------
-function selectCardAction(value, index) {
-  if (!battle_isPlaying) return;
-  if (battle_placedCards[index] !== null) return;
-
-  battle_placedCards[index] = value;
-  playSfx('place');
-
-  // ถ้าครบ 5 ใบ → run battle
-  if (battle_placedCards.every(v => v !== null)) {
-    runBattleSequence();
-  }
-
-  updateBattleUI();
-}
-
-// -----------------------------------------------------
-// RUN TURN SEQUENCE
-// -----------------------------------------------------
-async function runBattleSequence() {
-  battle_isPlaying = false;
-
-  for (let i = 0; i < 5; i++) {
-    const pCard = battle_placedCards[i];
-    const eCard = battle_eDeck[i];
-
-    if (pCard > eCard) {
-      battle_eHP -= (pCard - eCard);
-      flashDamage('enemy', pCard - eCard);
-      playSfx('hit');
-    } else if (eCard > pCard) {
-      battle_pHP -= (eCard - pCard);
-      flashDamage('player', eCard - pCard);
-      playSfx('hit');
-    }
-
-    updateBattleUI();
-    await new Promise(r => setTimeout(r, 500));
-
-    if (battle_eHP <= 0 || battle_pHP <= 0) break;
-  }
-
-  checkBattleResult();
-}
-
-// -----------------------------------------------------
-// BATTLE RESULT CHECK
-// -----------------------------------------------------
-function checkBattleResult() {
-  if (battle_eHP <= 0) {
-    // WIN
-    playSfx('win');
-
-    playerCurrentHP = Math.max(1, battle_pHP);
-
+    battle_turn = 0;
     battle_isPlaying = false;
-    setTimeout(() => {
-      handleBattleWin();
-    }, 600);
-
-  } else if (battle_pHP <= 0) {
-    // LOSE
-    playerCurrentHP = 1;
-
-    battle_isPlaying = false;
-    setTimeout(() => {
-      handleBattleLose();
-    }, 600);
-
-  } else {
-    // NEXT TURN
-    battle_turn++;
-    battle_isPlaying = true;
-
-    battle_pDeck = Array.from({ length: 5 }, () =>
-      Math.floor(Math.random() * 5) + 1
-    );
-    battle_eDeck = Array.from({ length: 5 }, () =>
-      Math.floor(Math.random() * 5) + 1
-    );
     battle_placedCards = [null, null, null, null, null];
 
+    document.getElementById('resultModal').style.display = 'none';
+
+    // ----- CLASH ZONE -----
+    const cZone = document.getElementById('clashZone');
+    cZone.innerHTML = '';
+    for (let i = 0; i < 5; i++) {
+        const slot = document.createElement('div');
+        slot.className = i === 0 ? 'clash-slot active' : 'clash-slot';
+        slot.dataset.id = i;
+        cZone.appendChild(slot);
+    }
+
+    // ----- ENEMY DECK -----
+    const eRow = document.getElementById('enemyCardRow');
+    eRow.innerHTML = '';
+    battle_eDeck = [1, 2, 3, 4, 5].sort(() => Math.random() - 0.5);
+
+    const enemyImg = document.getElementById('bossImg').src;
+    for (let i = 0; i < 5; i++) {
+        const wrap = document.createElement('div');
+        wrap.className = 'card-perspective';
+        wrap.id = `eWrap${i}`;
+        wrap.innerHTML = `
+            <div class="card-inner">
+                <div class="card-front"
+                     style="background-image:url('${enemyImg}');
+                            background-size:cover;
+                            background-position:center;">
+                </div>
+                <div class="card-back enemy-revealed" id="eCard${i}">?</div>
+            </div>`;
+        eRow.appendChild(wrap);
+    }
+
+    // ----- PLAYER DECK -----
+    const pRow = document.getElementById('playerCardRow');
+    pRow.innerHTML = '';
+    battle_pDeck = [1, 2, 3, 4, 5].sort(() => Math.random() - 0.5);
+
+    battle_pDeck.forEach(val => {
+        const card = document.createElement('div');
+        card.className = 'my-card';
+        card.textContent = val;
+        card.onclick = () => selectCardAction(val, card);
+        pRow.appendChild(card);
+    });
+
+    // ----- ACTION BUTTON -----
+    const btn = document.getElementById('actionBtn');
+    btn.textContent = "SELECT CARDS";
+    btn.disabled = true;
+    btn.className = 'main-btn';
+    btn.onclick = null;
+
     updateBattleUI();
-  }
+    playSfx('place');
 }
 
-// -----------------------------------------------------
-// DAMAGE FLASH
-// -----------------------------------------------------
-function flashDamage(target, amount) {
-  const el =
-    target === 'enemy'
-      ? document.getElementById('enemyHP')
-      : document.getElementById('playerHP');
+// ---------- PLAYER SELECT CARD ----------
+function selectCardAction(val, el) {
+    if (battle_isPlaying) return;
+    if (battle_turn >= 5) return;
+    if (el.classList.contains('used')) return;
 
-  if (!el) return;
+    battle_placedCards[battle_turn] = val;
+    el.classList.add('used');
 
-  el.classList.add('flash');
-  el.innerText = Math.max(0, el.innerText - amount);
+    const slot = document.querySelector(
+        `.clash-slot[data-id="${battle_turn}"]`
+    );
+    slot.innerHTML = `<div>${val}</div>`;
+    slot.classList.remove('active');
 
-  setTimeout(() => el.classList.remove('flash'), 300);
+    battle_turn++;
+
+    if (battle_turn < 5) {
+        document
+            .querySelector(`.clash-slot[data-id="${battle_turn}"]`)
+            .classList.add('active');
+    } else {
+        const btn = document.getElementById('actionBtn');
+        btn.textContent = "ATTACK !!!";
+        btn.disabled = false;
+        btn.classList.add('attack');
+        btn.onclick = runBattleSequence;
+    }
+
+    playSfx('click');
 }
 
-// -----------------------------------------------------
-// UPDATE BATTLE UI
-// -----------------------------------------------------
+// ---------- RUN BATTLE ----------
+async function runBattleSequence() {
+    battle_isPlaying = true;
+    document.getElementById('actionBtn').disabled = true;
+
+    let pSurvivors = [];
+    let eSurvivors = [];
+
+    for (let i = 0; i < 5; i++) {
+        const pVal = battle_placedCards[i];
+        const eVal = battle_eDeck[i];
+
+        const eWrap = document.getElementById(`eWrap${i}`);
+        const eBack = document.getElementById(`eCard${i}`);
+        eBack.textContent = eVal;
+        eWrap.classList.add('flipped');
+
+        await new Promise(r => setTimeout(r, 600));
+
+        const pSlot = document.querySelector(
+            `.clash-slot[data-id="${i}"]`
+        );
+        const pCard = pSlot.querySelector('div');
+
+        if (pVal > eVal) {
+            eBack.classList.add('dead-content');
+            pCard.parentElement.classList.add('win-pulse');
+            pSurvivors.push(pVal);
+        } else if (eVal > pVal) {
+            pCard.classList.add('dead-content');
+            eBack.classList.add('win-pulse');
+            eSurvivors.push(eVal);
+        } else {
+            eBack.classList.add('dead-content');
+            pCard.classList.add('dead-content');
+        }
+
+        playSfx('hit');
+        await new Promise(r => setTimeout(r, 400));
+    }
+
+    // ----- DAMAGE CALC -----
+    let dmgToEnemy = 0;
+    let dmgToPlayer = 0;
+
+    if (pSurvivors.length > eSurvivors.length) {
+        dmgToEnemy = pSurvivors.reduce((a, b) => a + b, 0);
+    } else if (eSurvivors.length > pSurvivors.length) {
+        dmgToPlayer = eSurvivors.reduce((a, b) => a + b, 0);
+    } else {
+        dmgToEnemy = pSurvivors.reduce((a, b) => a + b, 0);
+        dmgToPlayer = eSurvivors.reduce((a, b) => a + b, 0);
+    }
+
+    battle_eHP -= dmgToEnemy;
+    playerCurrentHP -= dmgToPlayer;
+
+    if (playerCurrentHP < 0) playerCurrentHP = 0;
+
+    updateBattleUI();
+
+    await new Promise(r => setTimeout(r, 1200));
+
+    // ----- DELEGATE RESULT -----
+    // BLOCK 7 รับไปตัดสิน
+    if (typeof handleBattleResult === "function") {
+        handleBattleResult({
+            enemyHP: battle_eHP,
+            enemyMaxHP: battle_eMaxHP,
+            playerHP: playerCurrentHP
+        });
+    }
+}
+
+// ---------- UPDATE BATTLE UI ----------
 function updateBattleUI() {
-  const pHpEl = document.getElementById('playerHP');
-  const eHpEl = document.getElementById('enemyHP');
-  const turnEl = document.getElementById('battleTurn');
+    if (battle_eHP < 0) battle_eHP = 0;
 
-  if (pHpEl) pHpEl.innerText = Math.max(0, battle_pHP);
-  if (eHpEl) eHpEl.innerText = Math.max(0, battle_eHP);
-  if (turnEl) turnEl.innerText = "TURN " + battle_turn;
+    document.getElementById('enemyHpBar').style.width =
+        (battle_eHP / battle_eMaxHP) * 100 + "%";
+    document.getElementById('enemyHpText').innerText =
+        `${battle_eHP}/${battle_eMaxHP}`;
 
-  // render player cards
-  battle_pDeck.forEach((v, i) => {
-    const el = document.getElementById('pCard' + i);
-    if (el) {
-      el.innerText = v;
-      el.onclick = () => selectCardAction(v, i);
+    document.getElementById('playerHpBar').style.width =
+        (playerCurrentHP / playerMaxHP) * 100 + "%";
+    document.getElementById('playerHpText').innerText =
+        `${playerCurrentHP}/${playerMaxHP}`;
+}
+
+// ---------- DISCONNECT / FORFEIT SAFETY ----------
+window.addEventListener("beforeunload", () => {
+    if (gameState.inBattle) {
+        gameState.hp = 0;
+        gameState.inBattle = false;
+
+        if (navigator.sendBeacon && typeof cloudSave === "function") {
+            navigator.sendBeacon(
+                "/saveGame",
+                JSON.stringify({
+                    userId: window.currentUserId,
+                    gameState: getGameData()
+                })
+            );
+        }
     }
-  });
+});
 
-  // render enemy cards (hidden)
-  battle_eDeck.forEach((_, i) => {
-    const el = document.getElementById('eCard' + i);
-    if (el) el.innerText = "?";
-  });
-}
-       // =====================================================
-// BLOCK 7: BATTLE RESULT / REWARD / EXP / SAVE
-// วางต่อจาก BLOCK 6
-// =====================================================
-
-const BASE_HP = 20;
-const MAX_DAILY_LIMIT = 500;
-
-// -----------------------------------------------------
-// HANDLE BATTLE WIN
-// -----------------------------------------------------
-function handleBattleWin() {
-  let rewardCoin = calculateBattleReward();
-  let gainedEXP = expReward[battle_enemy.type] || 1;
-
-  // ---- Daily Limit ----
-  const today = new Date().toDateString();
-  if (gameState.lastRewardDate !== today) {
-    gameState.lastRewardDate = today;
-    gameState.earnedToday = 0;
-  }
-
-  let actualReward = rewardCoin;
-  if (gameState.earnedToday + rewardCoin > MAX_DAILY_LIMIT) {
-    actualReward = Math.max(0, MAX_DAILY_LIMIT - gameState.earnedToday);
-    gameAlert(
-      "ลิมิตรางวัล",
-      `วันนี้ได้รับ COINS ครบลิมิตแล้ว<br>ได้เพิ่ม ${actualReward} COINS`
-    );
-  }
-
-  gameState.coin += actualReward;
-  gameState.earnedToday += actualReward;
-
-  // ---- EXP / LEVEL ----
-  gameState.exp += gainedEXP;
-  checkLevelUp(cfg => {
-    gameAlert(
-      "LEVEL UP!",
-      `เลเวลเพิ่มเป็น ${gameState.level}<br>Max HP +${cfg.bonus}`
-    );
-  });
-
-  // ---- HP หลังจบ ----
-  if (!gameState.isSuddenDeath) {
-    gameState.hp = gameState.maxHP;
-  }
-
-  // ---- Reset Battle Flag ----
-  gameState.inBattle = false;
-  gameState.currentMonsterType = null;
-
-  saveGame();
-
-  // ---- Result UI ----
-  showResultModal({
-    title: "VICTORY",
-    color: "#ff9d00",
-    text: `
-      +${actualReward} COINS<br>
-      +${gainedEXP} EXP
-    `,
-    btnText: "CONTINUE",
-    onClose: () => nav('map')
-  });
-}
-
-// -----------------------------------------------------
-// HANDLE BATTLE LOSE
-// -----------------------------------------------------
-function handleBattleLose() {
-  let penalty;
-
-  if (battle_eHP >= battle_eMaxHP / 2) {
-    penalty = gameState.maxHP;
-  } else {
-    penalty = Math.floor(gameState.maxHP / 2);
-  }
-
-  gameState.coin = Math.max(0, gameState.coin - penalty);
-
-  // ---- Sudden Death Lose ----
-  if (gameState.isSuddenDeath) {
-    exitSuddenDeath();
-  }
-
-  gameState.hp = gameState.maxHP;
-  gameState.inBattle = false;
-
-  saveGame();
-
-  showResultModal({
-    title: "DEFEATED",
-    color: "red",
-    text: `เสีย ${penalty} COINS`,
-    btnText: "BACK TO MAP",
-    onClose: () => nav('map')
-  });
-}
-
-// -----------------------------------------------------
-// DOUBLE KO → SUDDEN DEATH
-// -----------------------------------------------------
-function enterSuddenDeath(enemyHP = 10) {
-  gameState.isSuddenDeath = true;
-  gameState.maxHP = 10;
-  gameState.hp = 10;
-
-  battle_eMaxHP = enemyHP;
-  battle_eHP = enemyHP;
-
-  saveGame();
-
-  showResultModal({
-    title: "DOUBLE KO",
-    color: "yellow",
-    text: "เข้าสู่โหมด SUDDEN DEATH<br>HP = 10",
-    btnText: "FIGHT!",
-    onClose: () => {
-      initBattleState();
-      nav('battle');
+document.addEventListener("visibilitychange", () => {
+    if (
+        document.visibilityState === "hidden" &&
+        gameState.inBattle
+    ) {
+        saveGame();
     }
-  });
-}
+});
+       // ========================================================
+// BLOCK 7 : BATTLE RESULT / REWARD / PENALTY / SAVE
+// ========================================================
 
-function exitSuddenDeath() {
-  gameState.isSuddenDeath = false;
-  gameState.maxHP = BASE_HP + (gameState.level - 1) * 2;
-  gameState.hp = gameState.maxHP;
-}
+// ---------- MAIN ENTRY FROM BLOCK 6 ----------
+window.handleBattleResult = function ({ enemyHP, enemyMaxHP, playerHP }) {
 
-// -----------------------------------------------------
-// CALCULATE REWARD
-// -----------------------------------------------------
-function calculateBattleReward() {
-  const damageTaken = gameState.maxHP - battle_pHP;
-  let reward = battle_eMaxHP - damageTaken;
-  return Math.max(0, reward);
-}
+    // ---------- ENEMY DEFEATED ----------
+    if (enemyHP <= 0 && playerHP > 0) {
+        applyVictory();
+        return;
+    }
 
-// -----------------------------------------------------
-// LEVEL UP CHECK
-// -----------------------------------------------------
-function checkLevelUp(onLevelUp) {
-  const cfg = levelConfig[gameState.level];
-  if (!cfg) return;
+    // ---------- PLAYER DEFEATED ----------
+    if (playerHP <= 0) {
+        applyDefeat();
+        return;
+    }
 
-  if (gameState.exp >= cfg.need) {
-    gameState.exp -= cfg.need;
-    gameState.level++;
-    gameState.maxHP += cfg.bonus;
+    // ---------- BOTH STILL ALIVE ----------
+    continueBattle();
+};
 
+// ---------- VICTORY ----------
+function applyVictory() {
+    gameState.inBattle = false;
+
+    const rewardCoin = calculateBattleReward();
+
+    playerCOIN += rewardCoin;
+    gameState.coin = playerCOIN;
+
+    // Sudden Death ไม่ heal
     if (!gameState.isSuddenDeath) {
-      gameState.hp = gameState.maxHP;
+        playerCurrentHP = playerMaxHP;
+        gameState.hp = playerCurrentHP;
+    } else {
+        gameState.hp = playerCurrentHP;
     }
 
-    if (onLevelUp) onLevelUp(cfg);
-  }
-}
+    showBattleResultModal({
+        title: "VICTORY!",
+        message: `ได้รับ <b style="color:#00ff00">${rewardCoin} COINS</b>`
+    });
 
-// -----------------------------------------------------
-// RESULT MODAL
-// -----------------------------------------------------
-function showResultModal({ title, color, text, btnText, onClose }) {
-  const modal = document.getElementById('resultModal');
-  const titleEl = document.getElementById('resultTitle');
-  const subEl = document.getElementById('resultSub');
-  const btnEl = document.getElementById('restartBtn');
-
-  titleEl.innerText = title;
-  titleEl.style.color = color;
-  subEl.innerHTML = text;
-
-  btnEl.innerText = btnText;
-  btnEl.onclick = () => {
-    modal.style.display = 'none';
-    if (onClose) onClose();
-  };
-
-  modal.style.display = 'flex';
-}
-       // =====================================================
-// BLOCK 8: DAILY REWARD / STAMP / ALERT / NAME
-// วางต่อจาก BLOCK 7
-// =====================================================
-
-// -----------------------------------------------------
-// DAILY STAMP REWARD
-// -----------------------------------------------------
-function processDailyStamp() {
-  const today = new Date().toDateString();
-
-  if (gameState.lastStampDate === today) return;
-
-  gameState.lastStampDate = today;
-  gameState.stampStreak = (gameState.stampStreak || 0) + 1;
-
-  let reward = 0;
-  let msg = "";
-
-  switch (gameState.stampStreak) {
-    case 1: reward = 1; msg = "วันแรก +1 COIN"; break;
-    case 2: reward = 1; msg = "วันที่ 2 +1 COIN"; break;
-    case 3: reward = 2; msg = "วันที่ 3 +2 COINS"; break;
-    case 4: reward = 2; msg = "วันที่ 4 +2 COINS"; break;
-    case 5: reward = 3; msg = "วันที่ 5 +3 COINS"; break;
-    case 6: reward = 3; msg = "วันที่ 6 +3 COINS"; break;
-    case 7:
-      reward = 8;
-      msg = "ครบ 7 วัน! โบนัส +8 COINS";
-      gameState.stampStreak = 0;
-      break;
-    default:
-      gameState.stampStreak = 1;
-      reward = 1;
-      msg = "เริ่มรอบใหม่ +1 COIN";
-  }
-
-  gameState.coin += reward;
-  saveGame();
-
-  gameAlert("DAILY REWARD", msg);
-}
-
-// -----------------------------------------------------
-// GENERIC GAME ALERT
-// -----------------------------------------------------
-function gameAlert(title, message, callback = null) {
-  const old = document.getElementById('customAlert');
-  if (old) old.remove();
-
-  const overlay = document.createElement('div');
-  overlay.id = 'customAlert';
-  overlay.style.cssText = `
-    position:fixed; inset:0;
-    background:rgba(0,0,0,0.85);
-    z-index:9999;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-  `;
-
-  const box = document.createElement('div');
-  box.style.cssText = `
-    background:#111;
-    border:2px solid #ff0000;
-    padding:20px;
-    width:80%;
-    max-width:360px;
-    border-radius:10px;
-    text-align:center;
-    font-family:'Kanit',sans-serif;
-  `;
-
-  box.innerHTML = `
-    <h2 style="color:#ff0000;margin-bottom:10px;">${title}</h2>
-    <p style="color:#ddd;font-size:0.9rem;">${message}</p>
-    <button id="alertOkBtn" class="main-btn" style="margin-top:15px;">OK</button>
-  `;
-
-  overlay.appendChild(box);
-  document.body.appendChild(overlay);
-
-  document.getElementById('alertOkBtn').onclick = () => {
-    overlay.remove();
-    if (typeof callback === 'function') callback();
-  };
-}
-
-// -----------------------------------------------------
-// CHANGE PLAYER NAME
-// -----------------------------------------------------
-function openChangeNameModal() {
-  const old = document.getElementById('nameModal');
-  if (old) old.remove();
-
-  const overlay = document.createElement('div');
-  overlay.id = 'nameModal';
-  overlay.style.cssText = `
-    position:fixed; inset:0;
-    background:rgba(0,0,0,0.9);
-    z-index:10000;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-  `;
-
-  const box = document.createElement('div');
-  box.style.cssText = `
-    background:#111;
-    border:2px solid #00eaff;
-    padding:20px;
-    width:85%;
-    max-width:320px;
-    border-radius:12px;
-    text-align:center;
-    font-family:'Kanit',sans-serif;
-  `;
-
-  box.innerHTML = `
-    <h3 style="color:#00eaff;">SET YOUR NAME</h3>
-    <input id="nameInput" maxlength="8"
-      style="width:100%;margin:15px 0;padding:10px;
-      background:#000;color:#fff;text-align:center;
-      font-size:1.2rem;border:1px solid #444;"
-      placeholder="NAME (MAX 8)">
-    <button id="confirmNameBtn" class="main-btn">CONFIRM</button>
-  `;
-
-  overlay.appendChild(box);
-  document.body.appendChild(overlay);
-
-  document.getElementById('confirmNameBtn').onclick = () => {
-    const val = document.getElementById('nameInput').value.trim();
-    if (!val) return;
-
-    const regex = /^[A-Za-z0-9ก-๙]+$/;
-    if (!regex.test(val)) {
-      gameAlert("ERROR", "ห้ามใช้อักขระพิเศษหรือเว้นวรรค");
-      return;
-    }
-
-    gameState.name = val.toUpperCase();
-    document.getElementById('uiPlayerName').innerText = gameState.name;
     saveGame();
-    overlay.remove();
-  };
 }
+
+// ---------- DEFEAT ----------
+function applyDefeat() {
+    gameState.inBattle = false;
+
+    // แพ้ = HP 0 เสมอ
+    playerCurrentHP = 0;
+    gameState.hp = 0;
+
+    // Sudden Death = ลงโทษหนัก
+    if (gameState.isSuddenDeath) {
+        const penalty = Math.min(playerCOIN, playerMaxHP);
+        playerCOIN -= penalty;
+        gameState.coin = playerCOIN;
+
+        showBattleResultModal({
+            title: "DEFEATED",
+            message: `Sudden Death!<br>เสีย <b style="color:#ff0000">${penalty} COINS</b>`
+        });
+    } else {
+        showBattleResultModal({
+            title: "DEFEATED",
+            message: "คุณแพ้การต่อสู้"
+        });
+    }
+
+    saveGame();
+}
+
+// ---------- CONTINUE ----------
+function continueBattle() {
+    showBattleResultModal({
+        title: "NEXT ROUND",
+        message: "เตรียมต่อสู้รอบถัดไป"
+    });
+
+    // ไม่ save ตรงนี้
+    // battle จะ reset ผ่าน BLOCK 6
+}
+
+// ---------- REWARD CALC ----------
+function calculateBattleReward() {
+    let base = 10;
+
+    if (gameState.currentMonsterType === "boss") {
+        base = 25;
+    }
+
+    if (gameState.isSuddenDeath) {
+        base = Math.floor(base * 1.5);
+    }
+
+    return base;
+}
+
+// ---------- RESULT MODAL ----------
+function showBattleResultModal({ title, message }) {
+    const modal = document.getElementById('resultModal');
+    const titleEl = document.getElementById('resultTitle');
+    const msgEl = document.getElementById('resultMessage');
+
+    titleEl.innerHTML = title;
+    msgEl.innerHTML = message;
+
+    modal.style.display = 'flex';
+
+    const btn = document.getElementById('resultBtn');
+    btn.onclick = () => {
+        modal.style.display = 'none';
+        nav('home');
+    };
+}
+       // ========================================================
+// BLOCK 8 : DAILY REWARD / PLAYER NAME / ONE-TIME SAVE
+// ========================================================
+
+// ---------- DAILY REWARD ----------
+window.checkDailyReward = function () {
+    if (!gameState) return;
+
+    const today = new Date().toISOString().slice(0, 10);
+
+    if (gameState.lastDailyReward === today) return;
+
+    const rewardCoin = 30;
+
+    playerCOIN += rewardCoin;
+    gameState.coin = playerCOIN;
+    gameState.lastDailyReward = today;
+
+    showDailyRewardModal(rewardCoin);
+
+    saveGame(); // ให้แล้วเซฟทันที
+};
+
+// ---------- DAILY MODAL ----------
+function showDailyRewardModal(amount) {
+    const modal = document.getElementById('dailyModal');
+    const text = document.getElementById('dailyText');
+
+    text.innerHTML = `🎁 ได้รับ <b style="color:#00ff00">${amount} COINS</b>`;
+    modal.style.display = 'flex';
+
+    document.getElementById('dailyBtn').onclick = () => {
+        modal.style.display = 'none';
+    };
+}
+
+// ---------- PLAYER NAME ----------
+window.setPlayerName = function (name) {
+    if (!name || name.trim().length < 3) {
+        gameAlert("ERROR", "ชื่อต้องอย่างน้อย 3 ตัวอักษร");
+        return;
+    }
+
+    gameState.playerName = name.trim();
+
+    saveGame(); // เปลี่ยนชื่อ = save
+};
+
+// ---------- ONE-TIME GRANT (FUTURE SAFE) ----------
+window.grantOnce = function (key, rewardFn) {
+    if (!gameState.oneTimeFlags) {
+        gameState.oneTimeFlags = {};
+    }
+
+    if (gameState.oneTimeFlags[key]) return;
+
+    rewardFn();
+
+    gameState.oneTimeFlags[key] = true;
+
+    saveGame();
+};
        // =====================================================
 // BLOCK 9: EXCHANGE / BUY / SELL (WORLD APP)
 // วางต่อจาก BLOCK 8
