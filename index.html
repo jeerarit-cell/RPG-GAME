@@ -432,59 +432,76 @@ const monsterDB = [
 // วางต่อจาก BLOCK 1
 // =====================================================
 
-// ปุ่ม Login ด้วย World ID
-document.getElementById('btnWorldID').onclick = async () => {
-  const statusEl = document.getElementById('loginStatus');
-  statusEl.innerText = "กำลังเชื่อมต่อ...";
-  statusEl.style.color = "#ff9d00";
+// ---- LOGIN STATE ----
+let LOGIN_STATE = "idle"; // idle | loading | success | failed
+let CURRENT_USER_ID = null;
 
-  // ตรวจว่าเปิดใน World App หรือไม่
+// ---- HELPER: UPDATE LOGIN UI ----
+function setLoginStatus(text, color) {
+  const el = document.getElementById('loginStatus');
+  if (!el) return;
+  el.innerText = text;
+  el.style.color = color;
+}
+
+// ---- MAIN LOGIN FUNCTION ----
+async function loginWithWorldID() {
+  if (LOGIN_STATE === "loading" || LOGIN_STATE === "success") return;
+
+  LOGIN_STATE = "loading";
+  setLoginStatus("กำลังเชื่อมต่อ...", "#ff9d00");
+
+  // ตรวจ World App
   if (!window.MiniKit || !MiniKit.isInstalled()) {
-    statusEl.innerText = "ไม่พบ World App";
-    statusEl.style.color = "red";
+    LOGIN_STATE = "failed";
+    setLoginStatus("ไม่พบ World App", "red");
     alert("⚠️ กรุณาเปิดเกมผ่าน World App");
     return;
   }
 
   try {
-    // สร้าง nonce สำหรับ verify
     const nonce = Math.random().toString(36).substring(2, 10);
 
-    // เรียก World ID Verify
     const { finalPayload } = await MiniKit.commandsAsync.verify({
       action: 'login',
       signal: nonce,
       verification_level: 'device'
     });
 
-    // ตรวจผลลัพธ์
-    if (finalPayload && finalPayload.status === 'success') {
-      statusEl.innerText = "ยืนยันตัวตนสำเร็จ";
-      statusEl.style.color = "#00ff00";
+    if (!finalPayload || finalPayload.status !== 'success') {
+      throw new Error("Verify failed");
+    }
 
-      // ใช้ nullifier_hash เป็น userId
-      const userId = finalPayload.nullifier_hash;
+    // ---- LOGIN SUCCESS ----
+    CURRENT_USER_ID = finalPayload.nullifier_hash;
+    LOGIN_STATE = "success";
 
-      // โหลดข้อมูลจาก cloud (ถ้ามี)
-      if (window.cloudLoad) {
-        await cloudLoad(userId);
-      } else if (window.applyGameData) {
-        // fallback กรณีไม่มี cloudLoad
-        applyGameData(null);
-      }
+    setLoginStatus("ยืนยันตัวตนสำเร็จ", "#00ff00");
 
-    } else {
-      statusEl.innerText = "ยืนยันตัวตนไม่ผ่าน";
-      statusEl.style.color = "red";
-      alert("❌ Verify ไม่สำเร็จ");
+    // ---- LOAD GAME DATA (ONCE) ----
+    if (typeof cloudLoad === "function") {
+      await cloudLoad(CURRENT_USER_ID);
+    } else if (typeof applyGameData === "function") {
+      applyGameData(null);
     }
 
   } catch (err) {
-    statusEl.innerText = "เกิดข้อผิดพลาด";
-    statusEl.style.color = "red";
+    console.error(err);
+    LOGIN_STATE = "failed";
+    setLoginStatus("เกิดข้อผิดพลาด", "red");
     alert(err.message || "Login error");
   }
-};
+}
+
+// ---- BUTTON BINDING ----
+const btnWorldID = document.getElementById('btnWorldID');
+if (btnWorldID) {
+  btnWorldID.onclick = () => {
+    if (LOGIN_STATE !== "loading") {
+      loginWithWorldID();
+    }
+  };
+}
        // =====================================================
 // BLOCK 3: SAVE / LOAD
 // วางต่อจาก BLOCK 2
