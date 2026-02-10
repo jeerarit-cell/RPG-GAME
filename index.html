@@ -513,7 +513,7 @@ async function loginWithWorldID() {
     };
 })();
        // ========================================================
-// BLOCK 3 : CORE SAVE / LOAD / APPLY (SERVER BRIDGE)
+// BLOCK 3 : CORE SAVE / LOAD / APPLY (FLOW SAFE)
 // ========================================================
 
 // ---------- 3.1 DEFAULT STATE ----------
@@ -533,39 +533,29 @@ function getDefaultGameState() {
     dailyStamp: [],
     stampStreak: 0,
 
-    currentMonsterType: 'common'
+    currentMonsterType: "common"
   };
 }
 
 // ---------- 3.2 SNAPSHOT ----------
 function getGameData() {
-  // clone ป้องกัน reference พัง
   return JSON.parse(JSON.stringify(window.gameState));
 }
 
-// ---------- 3.3 APPLY GAME DATA ----------
+// ---------- 3.3 APPLY GAME DATA (STATE ONLY) ----------
 window.applyGameData = function (data) {
-  // NEW USER / FALLBACK
   if (!data) {
     window.gameState = getDefaultGameState();
-    console.log("[BLOCK3] New user initialized");
-    nav('home');
-    updateLobbyStats();
-    updateBalance();
+    console.log("[BLOCK3] New user state created");
     return;
   }
 
-  // MERGE SCHEMA (กัน field หาย)
   window.gameState = Object.assign(
     getDefaultGameState(),
     data
   );
 
-  console.log("[BLOCK3] Game data applied", window.gameState);
-
-  nav('home');
-  updateLobbyStats();
-  updateBalance();
+  console.log("[BLOCK3] Game state applied", window.gameState);
 };
 
 // ---------- 3.4 CLOUD LOAD ----------
@@ -573,71 +563,77 @@ window.cloudLoad = async function (userId) {
   try {
     console.log("[BLOCK3] cloudLoad:", userId);
 
-    // ❗ ตัวอย่าง Firebase / Server fetch
-    // const snapshot = await getDoc(doc(db, "users", userId));
-    // const data = snapshot.exists() ? snapshot.data() : null;
-
-    const data = null; // ← mock / ถ้าไม่มีข้อมูล = new user
+    // TODO: replace with real server / firebase
+    const data = null; // mock
 
     applyGameData(data);
+    return true;
   } catch (err) {
     console.error("[BLOCK3] cloudLoad error", err);
-    applyGameData(null); // fallback ปลอดภัย
+    applyGameData(null);
+    return false;
   }
 };
 
 // ---------- 3.5 CLOUD SAVE ----------
-window.cloudSave = async function (data) {
+window.cloudSave = async function (userId, data) {
   try {
-    console.log("[BLOCK3] cloudSave", data);
+    console.log("[BLOCK3] cloudSave:", userId, data);
 
-    // ❗ ตัวอย่าง Firebase / Server save
-    // await setDoc(doc(db, "users", userId), data, { merge: true });
-
+    // TODO: server save
   } catch (err) {
     console.error("[BLOCK3] cloudSave error", err);
   }
 };
 
 // ---------- 3.6 SAVE WRAPPER ----------
-function saveGame() {
-  if (!window.cloudSave) return;
-  cloudSave(getGameData());
+function saveGame(userId) {
+  if (!window.cloudSave || !userId) return;
+  cloudSave(userId, getGameData());
 }
        // ========================================================
-// BLOCK 4 : MAP & MONSTER RENDER
+// BLOCK 4 : MAP & MONSTER RENDER (FINAL / PURE)
 // ========================================================
 
 function initMap() {
-  console.log("INIT MAP");
+  console.log("[BLOCK4] initMap");
 
   const container = document.getElementById("monster-container");
   if (!container) {
-    console.error("NO monster-container");
+    console.error("[BLOCK4] monster-container NOT FOUND");
     return;
   }
 
   if (!Array.isArray(monsterDB) || monsterDB.length === 0) {
-    console.error("monsterDB EMPTY");
+    console.error("[BLOCK4] monsterDB EMPTY");
     return;
   }
 
   container.innerHTML = "";
 
-  monsterDB.forEach((m, index) => {
+  monsterDB.forEach((m) => {
     const el = document.createElement("div");
-    el.className = "monster";
+    el.className = "monster-card";
 
     el.innerHTML = `
       <div class="monster-name">${m.name}</div>
       <div class="monster-hp">HP: ${m.hp}</div>
-      <button onclick="startBattle(${index})">Fight</button>
+      <button class="monster-btn">Fight</button>
     `;
+
+    // 👉 เชื่อม BLOCK 6 โดยตรง (one-way)
+    el.querySelector(".monster-btn").onclick = () => {
+      if (typeof prepareBattle === "function") {
+        prepareBattle(m.id);
+      } else {
+        console.error("[BLOCK4] prepareBattle not found");
+      }
+    };
 
     container.appendChild(el);
   });
 
-  console.log("MONSTER RENDERED:", monsterDB.length);
+  console.log("[BLOCK4] MONSTER RENDERED:", monsterDB.length);
 }
        // =====================================================
 // BLOCK 5: MAP & MONSTER
