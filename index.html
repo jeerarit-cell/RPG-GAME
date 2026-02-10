@@ -483,6 +483,9 @@ async function loginWithWorldID() {
         // BLOCK 3 รับผิดชอบทั้งหมด
         if (typeof cloudLoad === "function") {
             await cloudLoad(window.currentUserId);
+nav('home');
+updateLobbyStats();
+updateBalance();
         } else {
             console.warn("cloudLoad not found");
             if (typeof applyGameData === "function") {
@@ -497,10 +500,6 @@ async function loginWithWorldID() {
         alert(err.message || "Login error");
    }
 }
-
-nav('home');
-updateLobbyStats();
-updateBalance();
 
 // ---------- BUTTON BIND ----------
 (function bindLoginButton() {
