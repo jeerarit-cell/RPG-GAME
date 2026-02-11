@@ -1104,16 +1104,26 @@ if (battle_eHP <= 0) {
             const txResult = await window.MiniKit.commandsAsync.sendTransaction(txPayload);
 
             if (txResult.finalPayload.status === "success") {
-                playerCOIN = data.newBalance;
-                updateBalance();
-                document.getElementById('exchangeModal').remove();
+    // อัปเดตยอดเงิน
+    playerCOIN = data.newBalance;
+    updateBalance();
+    
+    // ปิดหน้าต่าง
+    if (document.getElementById('exchangeModal')) {
+        document.getElementById('exchangeModal').remove();
+    }
 
-                if (typeof gameAlert === 'function') {
-                    gameAlert("SUCCESS", `✅ ถอนสำเร็จ!\nTX: ${txResult.finalPayload.transactionHash.substring(0,10)}...`);
-                } else {
-                    alert(`✅ ถอนสำเร็จ! WLD กำลังเข้ากระเป๋า`);
-                }
-            } else {
+    // ดึงเลข Hash แบบปลอดภัย (ถ้าไม่มีให้ใช้คำว่า 'Processing')
+    const txHash = txResult.finalPayload.transaction_hash || txResult.finalPayload.transactionHash || "Processing...";
+
+    // โชว์ข้อความความสำเร็จ
+    if (typeof gameAlert === 'function') {
+        // ใช้ ?. เพื่อป้องกัน Error ถ้าเลข Hash สั้นกว่า 10 ตัว
+        gameAlert("SUCCESS", `✅ ถอนสำเร็จ!\nTX: ${txHash.substring ? txHash.substring(0,10) : txHash}...`);
+    } else {
+        alert(`✅ ถอนสำเร็จ! WLD กำลังเข้ากระเป๋า\nTX: ${txHash}`);
+    }
+} else {
                 throw new Error("Transaction Cancelled / Failed");
             }
 
