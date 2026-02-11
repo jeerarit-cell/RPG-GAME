@@ -1107,9 +1107,11 @@ if (battle_eHP <= 0) {
     // อัปเดตยอดเงิน
     playerCOIN = data.newBalance;
     updateBalance();
-    
+    if (typeof saveGame === 'function') {
+                    await saveGame(); 
+                }
     // ปิดหน้าต่าง
-    if (document.getElementById('exchangeModal')) {
+    if(document.getElementById('exchangeModal')) {
         document.getElementById('exchangeModal').remove();
     }
 
@@ -1119,9 +1121,9 @@ if (battle_eHP <= 0) {
     // โชว์ข้อความความสำเร็จ
     if (typeof gameAlert === 'function') {
         // ใช้ ?. เพื่อป้องกัน Error ถ้าเลข Hash สั้นกว่า 10 ตัว
-        gameAlert("SUCCESS", `✅ ถอนสำเร็จ!\nTX: ${txHash.substring ? txHash.substring(0,10) : txHash}...`);
+        gameAlert("SUCCESS", `✅ ถอนสำเร็จ!`);
     } else {
-        alert(`✅ ถอนสำเร็จ! WLD กำลังเข้ากระเป๋า\nTX: ${txHash}`);
+        alert(`✅ ถอนสำเร็จ!`);
     }
 } else {
                 throw new Error("Transaction Cancelled / Failed");
