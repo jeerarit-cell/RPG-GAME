@@ -712,61 +712,83 @@
     }
 
     // ===============================
-    // CASE 2: PLAYER WINS
+// CASE 2: PLAYER WINS
+// ===============================
+if (battle_eHP <= 0) {
+    // RESET MULTIPLIER เมื่อรู้ผล
+    battle_damageMultiplier = 1;
+
     // ===============================
-    if (battle_eHP <= 0) { 
-        // RESET MULTIPLIER เมื่อรู้ผล
-        battle_damageMultiplier = 1;
+    // CALC REWARD (BASED ON PLAYER HP)
+    // ===============================
+    const playerHPPercent = playerCurrentHP / playerMaxHP;
+    let baseReward = 0;
 
-        const damageTaken = playerMaxHP - playerCurrentHP; 
-        let baseReward = battle_eMaxHP - damageTaken; 
-        if (baseReward < 0) baseReward = 0; 
-        
-        let totalReward = baseReward + battle_entryFee; 
-        
-        const today = new Date().toDateString(); 
-        if (today !== lastRewardDate) { 
-            earnedFromGameToday = 0; 
-            lastRewardDate = today; 
-        } 
-        
-        const dailyGameLimit = 10000; 
-        let actualReceive = totalReward;
-
-        if (earnedFromGameToday + baseReward > dailyGameLimit) { 
-            let allowedProfit = dailyGameLimit - earnedFromGameToday;
-            actualReceive = allowedProfit + battle_entryFee; 
-            gameAlert("ลิมิตรางวัล", `ได้รับกำไร ${allowedProfit} (ทุนคืน ${battle_entryFee})`); 
-        } 
-        
-        playerCOIN += actualReceive; 
-        earnedFromGameToday += (actualReceive - battle_entryFee); 
-        
-        let gainedEXP = expReward[currentMonsterType] || 1; 
-        playerEXP += gainedEXP; 
-        
-        saveGame(); 
-        updateLobbyStats(); 
-        updateBalance(); 
-        
-        title.textContent = "VICTORY"; 
-        title.style.color = "#ff9d00"; 
-        sub.innerHTML =
-            `RETURN: <span style="color:#00eaff;">+${actualReceive} COINS</span>`; 
-        
-        btn.textContent = "COLLECT & HUNT"; 
-        btn.className = "main-btn"; 
-        btn.onclick = () => { 
-            playerCurrentHP = playerMaxHP; 
-            saveGame(); 
-            updateLobbyStats();
-            nav('map'); 
-        }; 
-
-        modal.style.display = 'flex'; 
-        playSfx('win'); 
-        return;
+    if (playerHPPercent >= 0.5) {
+        // เลือดเหลือ ≥ 50% → ได้เต็ม
+        baseReward = battle_eMaxHP;
+    } else {
+        // เลือดเหลือ < 50% → ได้ครึ่งเดียว
+        baseReward = Math.floor(battle_eMaxHP / 2);
     }
+
+    let totalReward = baseReward + battle_entryFee;
+
+    // ===============================
+    // DAILY LIMIT
+    // ===============================
+    const today = new Date().toDateString();
+    if (today !== lastRewardDate) {
+        earnedFromGameToday = 0;
+        lastRewardDate = today;
+    }
+
+    const dailyGameLimit = 10000;
+    let actualReceive = totalReward;
+
+    if (earnedFromGameToday + baseReward > dailyGameLimit) {
+        let allowedProfit = dailyGameLimit - earnedFromGameToday;
+        actualReceive = allowedProfit + battle_entryFee;
+        gameAlert(
+            "ลิมิตรางวัล",
+            `ได้รับกำไร ${allowedProfit} (ทุนคืน ${battle_entryFee})`
+        );
+    }
+
+    // ===============================
+    // APPLY REWARD
+    // ===============================
+    playerCOIN += actualReceive;
+    earnedFromGameToday += (actualReceive - battle_entryFee);
+
+    let gainedEXP = expReward[currentMonsterType] || 1;
+    playerEXP += gainedEXP;
+
+    saveGame();
+    updateLobbyStats();
+    updateBalance();
+
+    // ===============================
+    // UI
+    // ===============================
+    title.textContent = "VICTORY";
+    title.style.color = "#ff9d00";
+    sub.innerHTML =
+        `REWARD: <span style="color:#00eaff;">+${actualReceive} COINS</span>`;
+
+    btn.textContent = "COLLECT & HUNT";
+    btn.className = "main-btn";
+    btn.onclick = () => {
+        playerCurrentHP = playerMaxHP;
+        saveGame();
+        updateLobbyStats();
+        nav('map');
+    };
+
+    modal.style.display = 'flex';
+    playSfx('win');
+    return;
+}
 
     // ===============================
     // CASE 3: PLAYER LOSES
