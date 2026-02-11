@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>CYBER RPG v7.2 (Fixed Sudden Death)</title>
+    <title>CYBER RPG v7.3 (Double KO Rematch x2)</title>
     
     <script src="https://cdn.ethers.io/lib/ethers-5.7.2.umd.min.js" type="application/javascript"></script>
     
@@ -464,7 +464,7 @@
     
     function initMap() { const container = document.getElementById('monster-list-container'); if(!container) return; container.innerHTML = ''; monsterDB.forEach(m => { let cardClass = 'rank-common'; let badgeStyle = ''; let infoExtra = ''; if(m.type === 'miniboss') { cardClass = 'rank-miniboss'; badgeStyle = 'color:#00eaff; border-color:#00eaff;'; infoExtra = '<p style="color:#00eaff; font-size:0.7rem; font-weight:bold;">★ MINI BOSS</p>'; } else if (m.type === 'boss') { cardClass = 'rank-boss'; badgeStyle = 'background:#ffd700; color:black; font-weight:bold; border:none;'; infoExtra = '<p style="color:#ffd700; font-weight:bold; font-size:0.7rem;">☠️ WORLD BOSS</p>'; } else if (m.type === 'legendary') { cardClass = 'rank-legendary'; badgeStyle = 'background:white; color:#FF8C00; font-weight:900; border:none; box-shadow: 0 0 10px white;'; infoExtra = '<p style="color:white; font-weight:900; font-size:0.8rem; text-shadow: 0 1px 2px black;">👑 LEGENDARY BOSS</p>'; } container.innerHTML += `<div class="monster-card ${cardClass}" onclick="prepareBattle(${m.id})"><div style="display:flex; align-items:center;"><img src="${m.url}" class="m-avatar"><div class="m-info"><h3>${m.name}</h3>${infoExtra}<p>${m.loc} • HP: ${m.hp}</p></div></div><div class="hp-badge" style="${badgeStyle}">HP: ${m.hp}</div></div>`; }); }
     
-    // --- 9. BATTLE LOGIC (UPDATED: Bet + Sudden Death Fixed) ---
+    // --- 9. BATTLE LOGIC (UPDATED: No Sudden Death, Just Rematch x2) ---
     let battle_eMaxHP = 20; 
     let battle_eHP = 20; 
     let battle_pDeck = [], battle_eDeck = []; 
@@ -474,7 +474,7 @@
     let currentReward = 0;
     
     let battle_entryFee = 0; 
-    let isSuddenDeath = false; // Flag for Sudden Death Mode
+    let battle_damageMultiplier = 1; // Start at 1x
     
     window.prepareBattle = function(monsterID) { 
         if (playerCOIN < playerMaxHP) { 
@@ -486,15 +486,17 @@
         const monster = monsterDB.find(m => m.id === monsterID); 
         if(!monster) return; 
         
+        // Fee deduction
         battle_entryFee = playerMaxHP; 
         playerCOIN -= battle_entryFee;
         saveGame(); 
         updateBalance(); 
 
+        // Battle Setup
         currentMonsterType = monster.type; 
         battle_eMaxHP = monster.hp; 
         battle_eHP = monster.hp; 
-        isSuddenDeath = false; // Reset Flag
+        battle_damageMultiplier = 1; // Reset Multiplier
 
         document.getElementById('battleEnemyName').innerText = monster.name; 
         document.getElementById('bossImg').src = monster.url; 
@@ -616,6 +618,7 @@
         
         await new Promise(r => setTimeout(r, 500)); 
         
+        // Calculate Damage with Multiplier
         const pCount = pSurvivors.length; 
         const eCount = eSurvivors.length; 
         let dmgToEnemy = 0; 
@@ -630,6 +633,10 @@
             dmgToPlayer = eSurvivors.reduce((a, b) => a + b.val, 0); 
         } 
         
+        // APPLY MULTIPLIER
+        dmgToEnemy *= battle_damageMultiplier;
+        dmgToPlayer *= battle_damageMultiplier;
+
         battle_eHP -= dmgToEnemy; 
         if(dmgToEnemy > 0) flashDamage('e', dmgToEnemy); 
         
@@ -671,20 +678,22 @@
         const sub = document.getElementById('resultSub'); 
         const btn = document.getElementById('restartBtn'); 
         
-        // --- CASE 1: DOUBLE KO (SUDDEN DEATH TRIGGER) ---
+        // --- CASE 1: DOUBLE KO (Both Die) -> REMATCH x2 ---
         if (battle_eHP <= 0 && playerCurrentHP <= 0) { 
-            isSuddenDeath = true; // Mark as Sudden Death
             title.textContent = "DOUBLE KO"; 
             title.style.color = "yellow"; 
-            sub.innerHTML = "เดิมพันยังอยู่!<br>สู้เพื่อชิงเงินคืน (SUDDEN DEATH)"; 
+            sub.innerHTML = "DRAW! RESTARTING MATCH...<br><span style='color:red; font-size:1.2rem; font-weight:bold;'>DAMAGE x2 !!</span>"; 
             
-            btn.textContent = "FIGHT FOR LIFE (10 HP)"; 
+            btn.textContent = "FIGHT AGAIN (DMG x2)"; 
             btn.className = "main-btn sudden"; 
             btn.onclick = () => { 
-                battle_eHP = 10; 
-                battle_eMaxHP = 10; 
-                playerCurrentHP = 10; 
-                playerMaxHP = 10; 
+                // Reset HP for Rematch
+                playerCurrentHP = playerMaxHP; 
+                battle_eHP = battle_eMaxHP;
+                
+                // Increase Multiplier
+                battle_damageMultiplier = 2;
+
                 updateBattleUI(); 
                 initBattleState(); 
             }; 
@@ -693,32 +702,20 @@
 
         // --- CASE 2: PLAYER WINS ---
         } else if (battle_eHP <= 0) { 
-            let totalReward = 0;
-            let profitText = "";
-
-            if (isSuddenDeath) {
-                // Win in Sudden Death: EntryFee + 5 Fixed
-                let profit = 5;
-                totalReward = battle_entryFee + profit;
-                profitText = `(Refund: ${battle_entryFee} + Bonus: ${profit})`;
-            } else {
-                // Win Normal
-                const damageTaken = playerMaxHP - playerCurrentHP; 
-                let baseReward = battle_eMaxHP - damageTaken; 
-                if (baseReward < 0) baseReward = 0; 
-                totalReward = baseReward + battle_entryFee;
-                profitText = `(Profit: ${baseReward} | Refund: ${battle_entryFee})`;
-            }
-
-            // Limit Check Logic
+            const damageTaken = playerMaxHP - playerCurrentHP; 
+            let baseReward = battle_eMaxHP - damageTaken; 
+            if (baseReward < 0) baseReward = 0; 
+            
+            // Refund + Reward
+            let totalReward = baseReward + battle_entryFee; 
+            
             const today = new Date().toDateString(); 
             if (today !== lastRewardDate) { earnedFromGameToday = 0; lastRewardDate = today; } 
             
             const dailyGameLimit = 10000; 
             let actualReceive = totalReward;
-            let pureProfit = actualReceive - battle_entryFee;
 
-            if (earnedFromGameToday + pureProfit > dailyGameLimit) { 
+            if (earnedFromGameToday + baseReward > dailyGameLimit) { 
                 let allowedProfit = dailyGameLimit - earnedFromGameToday;
                 actualReceive = allowedProfit + battle_entryFee; 
                 gameAlert("ลิมิตรางวัล", `ได้รับกำไร ${allowedProfit} (ทุนคืน ${battle_entryFee})`); 
@@ -727,7 +724,6 @@
             playerCOIN += actualReceive; 
             earnedFromGameToday += (actualReceive - battle_entryFee); 
             
-            // EXP Logic
             let gainedEXP = expReward[currentMonsterType] || 1; 
             playerEXP += gainedEXP; 
             let levelUpText = ""; 
@@ -751,12 +747,15 @@
             
             title.textContent = "VICTORY"; 
             title.style.color = "#ff9d00"; 
-            sub.innerHTML = `RETURN: <span style="color:#00eaff;">+${actualReceive} COINS</span><br><span style="font-size:0.8rem; color:#aaa;">${profitText}</span>${levelUpText}`; 
+            sub.innerHTML = `RETURN: <span style="color:#00eaff;">+${actualReceive} COINS</span><br><span style="font-size:0.8rem; color:#aaa;">(Profit: ${actualReceive - battle_entryFee} | Refund: ${battle_entryFee})</span>${levelUpText}`; 
             
             btn.textContent = "COLLECT & HUNT"; 
             btn.className = "main-btn"; 
             btn.onclick = () => { 
-                playerCurrentHP = playerMaxHP; // FULL HEAL RESET
+                // FORCE FULL HEAL
+                playerCurrentHP = playerMaxHP; 
+                saveGame(); // Save Full HP State
+                updateLobbyStats();
                 nav('map'); 
             }; 
             modal.style.display = 'flex'; 
@@ -767,22 +766,15 @@
             let refund = 0; 
             let msg = "";
             
-            if (isSuddenDeath) {
-                // Lose in Sudden Death: Refund EntryFee - 5
-                refund = battle_entryFee - 5;
-                if (refund < 0) refund = 0;
-                msg = `SUDDEN DEATH FAILED<br><span style="color:#00eaff; font-size:1.2rem;">REFUND: +${refund} COINS</span><br><span style="color:#666; font-size:0.8rem;">(Fine: -5 Coins)</span>`;
-            } else {
-                // Lose Normal
-                const halfMonsterHP = battle_eMaxHP / 2; 
-                if (battle_eHP >= halfMonsterHP) { 
-                    refund = 0; 
-                    msg = `ENEMY TOO STRONG (${battle_eHP} HP LEFT)<br><span style="color:red; font-size:1.2rem;">LOST FEE: -${battle_entryFee} COINS</span>`; 
-                } else { 
-                    refund = Math.floor(battle_entryFee / 2); 
-                    msg = `GOOD FIGHT! (ENEMY < 50%)<br><span style="color:#00eaff; font-size:1.2rem;">REFUND: +${refund} COINS</span><br><span style="color:#666; font-size:0.8rem;">(Lost: ${battle_entryFee - refund})</span>`; 
-                } 
-            }
+            const halfMonsterHP = battle_eMaxHP / 2; 
+            
+            if (battle_eHP >= halfMonsterHP) { 
+                refund = 0; 
+                msg = `ENEMY TOO STRONG (${battle_eHP} HP LEFT)<br><span style="color:red; font-size:1.2rem;">LOST FEE: -${battle_entryFee} COINS</span>`; 
+            } else { 
+                refund = Math.floor(battle_entryFee / 2); 
+                msg = `GOOD FIGHT! (ENEMY < 50%)<br><span style="color:#00eaff; font-size:1.2rem;">REFUND: +${refund} COINS</span><br><span style="color:#666; font-size:0.8rem;">(Lost: ${battle_entryFee - refund})</span>`; 
+            } 
             
             if (refund > 0) {
                 playerCOIN += refund;
@@ -798,7 +790,10 @@
             btn.textContent = "TRY AGAIN"; 
             btn.className = "main-btn"; 
             btn.onclick = () => { 
-                playerCurrentHP = playerMaxHP; // FULL HEAL RESET
+                // FORCE FULL HEAL
+                playerCurrentHP = playerMaxHP; 
+                saveGame(); // Save Full HP State
+                updateLobbyStats();
                 nav('map'); 
             }; 
             modal.style.display = 'flex'; 
