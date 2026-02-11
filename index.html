@@ -912,7 +912,17 @@ if (battle_eHP <= 0) {
                     const REPLIT_URL = "https://355af051-4f5d-4c22-b86b-80924de9a8c1-00-2sb1btqlfp955.pike.replit.dev/api/withdraw"; 
                     const response = await fetch(REPLIT_URL, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(withdrawalData) });
                     if (response.ok) {
-                        playerCOIN -= amountCoin; updateBalance(); saveGame(); document.getElementById('exchangeModal').remove(); gameAlert("SUCCESS", "✅ ทำรายการสำเร็จ!\nAdmin ได้รับเรื่องแล้ว กรุณารอรับ WLD");
+    const data = await response.json();
+
+    // ใช้ยอดจาก server เท่านั้น
+    playerCOIN = data.newBalance;
+    updateBalance();
+
+    document.getElementById('exchangeModal').remove();
+    gameAlert("SUCCESS", "✅ ถอนสำเร็จ กรุณารอรับ WLD");
+}
+         updateBalance(); 
+         saveGame(); document.getElementById('exchangeModal').remove(); gameAlert("SUCCESS", "✅ ทำรายการสำเร็จ!\nAdmin ได้รับเรื่องแล้ว กรุณารอรับ WLD");
                     } else { const errData = await response.json(); throw new Error(errData.message || "Server Error"); }
                 } else { throw new Error("User ยกเลิกการทำรายการ"); }
             } catch (e) {
