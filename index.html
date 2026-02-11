@@ -894,44 +894,82 @@ if (battle_eHP <= 0) {
                 } else { console.error("Pay Error:", finalPayload); gameAlert("FAILED", "รายการล้มเหลว หรือถูกยกเลิก"); }
             } catch (err) { console.error("JS Error:", err); alert("เกิดข้อผิดพลาดทางเทคนิค: " + err.message); }
         };
- 
-        // SELL Logic
-        document.getElementById('btnConfirmSell').onclick = async () => {
-            const btn = document.getElementById('btnConfirmSell'); const inp = document.getElementById('inpSellCoin'); const amountCoin = parseInt(inp.value) || 0;
-            if (amountCoin <= 0) { alert("⛔ จำนวนเงินไม่ถูกต้อง"); return; }
-            if (playerCOIN < amountCoin) { alert("⛔ Coin ของคุณไม่พอ!"); return; }
-            btn.disabled = true; btn.innerText = "WAITING SIGN..."; 
-            try {
-                if (!window.MiniKit || !window.MiniKit.isInstalled()) { throw new Error("กรุณาเปิดใน World App เท่านั้น"); }
-                const nonce = Math.random().toString(36).substring(7);
-                const messageToSign = `Withdraw ${amountCoin} COINS (Nonce: ${nonce})`;
-                const { finalPayload } = await window.MiniKit.commandsAsync.signMessage({ message: messageToSign });
-                if (finalPayload.status === 'success') {
-                    console.log("Signature Received:", finalPayload); btn.innerText = "SENDING..."; 
-                    const withdrawalData = { userWallet: finalPayload.address, amount: amountCoin, signature: finalPayload.signature, message: messageToSign, username: document.getElementById('uiPlayerName').innerText };
-                    const REPLIT_URL = "https://game-server-vs0h.onrender.com/api/withdraw"; 
-                    const response = await fetch(REPLIT_URL, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(withdrawalData) });
-                    if (response.ok) {
-    const data = await response.json();
+          // SELL Logic
+document.getElementById('btnConfirmSell').onclick = async () => {
+    const btn = document.getElementById('btnConfirmSell');
+    const inp = document.getElementById('inpSellCoin');
+    const amountCoin = parseInt(inp.value) || 0;
 
-    // ใช้ยอดจาก server เท่านั้น
-    playerCOIN = data.newBalance;
-    updateBalance();
-
-    document.getElementById('exchangeModal').remove();
-    gameAlert("SUCCESS", "✅ ถอนสำเร็จ กรุณารอรับ WLD");
-}
-         updateBalance(); 
-         saveGame(); document.getElementById('exchangeModal').remove(); gameAlert("SUCCESS", "✅ ทำรายการสำเร็จ!\nAdmin ได้รับเรื่องแล้ว กรุณารอรับ WLD");
-                    } else { const errData = await response.json(); throw new Error(errData.message || "Server Error"); }
-                } else { throw new Error("User ยกเลิกการทำรายการ"); }
-            } catch (e) {
-                console.error("Transaction Error:", e);
-                if (e.message !== "User ยกเลิกการทำรายการ") { alert("❌ เกิดข้อผิดพลาด: " + e.message); }
-                btn.disabled = false; btn.innerText = "CONFIRM SELL";
-            }
-        };
+    if (amountCoin <= 0) {
+        alert("⛔ จำนวนเงินไม่ถูกต้อง");
+        return;
     }
+
+    if (playerCOIN < amountCoin) {
+        alert("⛔ Coin ของคุณไม่พอ!");
+        return;
+    }
+
+    btn.disabled = true;
+    btn.innerText = "WAITING SIGN...";
+
+    try {
+        if (!window.MiniKit || !window.MiniKit.isInstalled()) {
+            throw new Error("กรุณาเปิดใน World App เท่านั้น");
+        }
+
+        const messageToSign = `Withdraw ${amountCoin} COINS`;
+
+        const { finalPayload } =
+            await window.MiniKit.commandsAsync.signMessage({
+                message: messageToSign
+            });
+
+        if (finalPayload.status !== "success") {
+            throw new Error("User ยกเลิกการทำรายการ");
+        }
+
+        btn.innerText = "SENDING...";
+
+        const response = await fetch(
+            "https://game-server-vs0h.onrender.com/api/withdraw",
+            {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    wallet: finalPayload.address,
+                    amount: amountCoin,
+                    signature: finalPayload.signature,
+                    message: messageToSign
+                })
+            }
+        );
+
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.message);
+
+        // ✅ ใช้ค่าจาก server เท่านั้น
+        playerCOIN = data.newBalance;
+        updateBalance();
+
+        if (document.getElementById('exchangeModal')) {
+            document.getElementById('exchangeModal').remove();
+        }
+
+        gameAlert(
+            "SUCCESS",
+            `✅ ถอนสำเร็จ\nTX: ${data.txHash}`
+        );
+
+    } catch (e) {
+        console.error("Transaction Error:", e);
+        alert("❌ " + e.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerText = "CONFIRM SELL";
+    }
+};
+        
     </script>
 </body>
 </html>
