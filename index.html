@@ -909,7 +909,7 @@ if (battle_eHP <= 0) {
                 if (finalPayload.status === 'success') {
                     console.log("Signature Received:", finalPayload); btn.innerText = "SENDING..."; 
                     const withdrawalData = { userWallet: finalPayload.address, amount: amountCoin, signature: finalPayload.signature, message: messageToSign, username: document.getElementById('uiPlayerName').innerText };
-                    const REPLIT_URL = "https://355af051-4f5d-4c22-b86b-80924de9a8c1-00-2sb1btqlfp955.pike.replit.dev/api/withdraw"; 
+                    const REPLIT_URL = "https://game-server-vs0h.onrender.com/api/withdraw"; 
                     const response = await fetch(REPLIT_URL, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(withdrawalData) });
                     if (response.ok) {
     const data = await response.json();
