@@ -411,38 +411,47 @@
         if (window.cloudSave) window.cloudSave(gameData);
     }
 
-    window.applyGameData = function(data) {
-        console.log("applyGameData called");
-        if (data) {
-            playerCOIN = parseInt(data.coin) || 0;
-            playerLevel = parseInt(data.level) || 1;
-            playerEXP = parseInt(data.exp) || 0;
-            playerMaxHP = 20 + ((playerLevel - 1) * 2);
-            playerCurrentHP = parseInt(data.hp) || playerMaxHP;
-            
-            const uiName = document.getElementById('uiPlayerName');
-            if (data.name) uiName.innerText = data.name.toUpperCase();
-            else if (window.lastLoginName) uiName.innerText = window.lastLoginName.toUpperCase();
+    window.applyGameData = async function(data) {
+    console.log("applyGameData called");
 
-            earnedFromGameToday = data.earnedFromGameToday || 0;
-            lastRewardDate = data.lastRewardDate || new Date().toDateString();
+    const isNewUser = !data;
 
-            // Reset Game Limit ONLY (No Stamp Logic)
-            const today = new Date().toDateString();
-            if (today !== lastRewardDate) {
-                earnedFromGameToday = 0;
-                lastRewardDate = today;
+    if (data) {
+        playerCOIN = parseInt(data.coin) || 0;
+        playerLevel = parseInt(data.level) || 1;
+        playerEXP = parseInt(data.exp) || 0;
+        playerMaxHP = 20 + ((playerLevel - 1) * 2);
+        playerCurrentHP = parseInt(data.hp) || playerMaxHP;
+
+        const uiName = document.getElementById('uiPlayerName');
+        if (data.name) uiName.innerText = data.name.toUpperCase();
+    } else {
+        // === NEW USER DEFAULT ===
+        playerCOIN = 200;
+        playerLevel = 1;
+        playerEXP = 0;
+        playerMaxHP = 20;
+        playerCurrentHP = 20;
+    }
+
+    updateBalance();
+    updateLobbyStats();
+    initMap();
+
+    // 🔐 FIRST GATE เฉพาะผู้เล่นใหม่
+    if (isNewUser) {
+        await openFirstGateModal(async () => {
+            // 👉 ตรงนี้คุณจะใส่ logic signMessage + save wallet
+            const ok = await bindWalletOnce(REAL_USER_ID);
+            if (ok) {
+                changeName(); // ใช้ modal ตั้งชื่อเดิมของคุณ
             }
-        } else {
-            // New User
-            playerCOIN = 200; playerLevel = 1; playerEXP = 0;
-            playerMaxHP = 20; playerCurrentHP = 20;
-        }
-        updateBalance();
-        updateLobbyStats();
-        initMap();
-        nav('home');
-    }; 
+            return ok;
+        });
+    }
+
+    nav('home');
+};
 
     // --- 8. UI HELPERS & NAVIGATION ---
     document.getElementById('btnWallet').onclick = function() {
