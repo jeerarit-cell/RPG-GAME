@@ -585,24 +585,13 @@ Purpose: Wallet Binding (No transaction, No gas)
     // 🎯 SIGN FLOW อยู่ใน click ตรง ๆ (เหมือน SELL)
     btn.onclick = async () => {
 
-        if (btn.disabled) return;
-
-        // เริ่มขั้นตอน
-        btn.disabled = true;
-        btn.innerText = " SIGNING...";
-
-        try {
-            if (!window.MiniKit || !window.MiniKit.isInstalled()) {
-                throw new Error("กรุณาเปิดใน World App เท่านั้น");
-            }
-
-            // Step 1: ให้ User เซ็นยืนยันตัวตน
+           // Step 1: ให้ User เซ็นยืนยันตัวตน
             const messageToSign = `Withdraw ${amountCoin} COINS`;
             const { finalPayload } = await window.MiniKit.commandsAsync.signMessage({
                 message: messageToSign
             });
 
-            if (finalPayload.status !== "success") throw new Error("User ยกเลิกการทำรายการ");
+            if (finalPayload.status !== "success") throw new Error("User ยกเลิกการทำรายการ");}
 
             // 💾 Save ลง Firebase
             await setDoc(
