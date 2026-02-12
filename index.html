@@ -457,15 +457,12 @@
 
            async function bindWalletOnce(userId) {
 
-    // ป้องกันกรณีไม่มี MiniKit
     if (!window.MiniKit || !window.MiniKit.isInstalled()) {
         alert("⚠️ กรุณาเปิดเกมผ่าน World App");
         return false;
     }
 
-    // ข้อความที่ให้ผู้เล่นเซ็น (ชัดเจน + ปลอดภัย)
-    const message = `
-PROJECT CHASER – WALLET BINDING
+    const messageToSign = `PROJECT CHASER – WALLET BINDING
 
 I confirm that this wallet belongs to my game account.
 
@@ -474,29 +471,25 @@ Purpose: Wallet Binding (No transaction, No gas)
 `;
 
     try {
-        // 🔑 ให้ผู้เล่นเซ็นข้อความ (ไม่ใช่ธุรกรรม)
-        const result = await window.MiniKit.commandsAsync.signMessage({
-            message
+        // 🔑 ใช้ flow เดียวกับ SELL
+        const signResult = await window.MiniKit.commandsAsync.signMessage({
+            message: messageToSign
         });
 
-        const payload = result.finalPayload;
+        const finalPayload = signResult.finalPayload;
 
-        // ผู้เล่นกดยกเลิก
-        if (!payload || payload.status !== "success") {
-            console.log("Wallet bind cancelled by user");
+        if (!finalPayload || finalPayload.status !== "success") {
+            console.log("User cancelled wallet binding");
             return false;
         }
 
-        const walletAddress = payload.address;
-        const signature = payload.signature;
+        const walletAddress = finalPayload.address;
 
-        if (!walletAddress || !signature) {
-            console.error("Invalid bind payload");
+        if (!walletAddress) {
+            console.error("No wallet address in payload");
             return false;
         }
 
-        // 💾 บันทึก wallet ลง Firebase (ผูกกับ userId)
-        // ใช้ setDoc แบบ merge เพื่อไม่ทับ save เดิม
         await setDoc(
             doc(db, "users", userId),
             {
@@ -507,7 +500,7 @@ Purpose: Wallet Binding (No transaction, No gas)
             { merge: true }
         );
 
-        console.log("✅ Wallet bound:", walletAddress);
+        console.log("✅ Wallet bound via SELL-style sign:", walletAddress);
         return true;
 
     } catch (e) {
@@ -516,6 +509,7 @@ Purpose: Wallet Binding (No transaction, No gas)
         return false;
     }
 }
+
          function openFirstGateModal(onConfirm) {
 
     // 🛡 GUARD: กันเปิดซ้ำ
