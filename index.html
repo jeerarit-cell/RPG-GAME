@@ -1135,8 +1135,9 @@ if (battle_eHP <= 0) {
 
             // ✅ ดึง wallet (Safe Check)
             const walletAddress = window.MiniKit.user?.walletAddress;
-            if (!walletAddress) {
-                throw new Error("ไม่พบ Wallet (กรุณา Reload App)");
+            if (!window.wallet) {
+    console.warn("Wallet not found");
+    alert("Wallet ยังไม่เชื่อมต่อ\nกรุณาเข้าแอพผ่าน World App เท่านั้น");
             }
 
             // ✅ ยิงไป server ขอ claimData
