@@ -411,10 +411,10 @@
         if (window.cloudSave) window.cloudSave(gameData);
     }
 
-    window.applyGameData = async function(data) {
+    window.applyGameData = function(data) {
+
     console.log("applyGameData called");
 
-    const isNewUser = !data;
     const alreadyBound = data?.walletBound === true;
 
     if (data) {
@@ -426,8 +426,9 @@
 
         const uiName = document.getElementById('uiPlayerName');
         if (data.name) uiName.innerText = data.name.toUpperCase();
+
     } else {
-        // === NEW USER DEFAULT ===
+        // NEW USER DEFAULT
         playerCOIN = 200;
         playerLevel = 1;
         playerEXP = 0;
@@ -439,16 +440,9 @@
     updateLobbyStats();
     initMap();
 
-    // 🔐 FIRST GATE เฉพาะผู้เล่นใหม่
+    // 🔐 เปิด First Gate ถ้ายังไม่ bind
     if (!alreadyBound) {
-        await openFirstGateModal(async () => {
-            // 👉 ตรงนี้คุณจะใส่ logic signMessage + save wallet
-            const ok = await bindWalletOnce(REAL_USER_ID);
-            if (ok) {
-                changeName(); // ใช้ modal ตั้งชื่อเดิมของคุณ
-            }
-            return ok;
-        });
+        openFirstGateModal();
     }
 
     nav('home');
@@ -510,22 +504,18 @@ Purpose: Wallet Binding (No transaction, No gas)
     }
 }
 
-         function openFirstGateModal(onConfirm) {
+         function openFirstGateModal() {
 
-    // 🛡 GUARD: กันเปิดซ้ำ
-    if (document.getElementById("firstGateModal")) {
-        console.log("First Gate already open");
-        return;
-    }
+    // 🛡 Guard กันเปิดซ้ำ
+    if (document.getElementById("firstGateModal")) return;
 
-    // ===== OVERLAY =====
     const overlay = document.createElement("div");
     overlay.id = "firstGateModal";
     overlay.style.cssText = `
         position: fixed;
         inset: 0;
         background: rgba(0,0,0,0.92);
-        backdrop-filter: blur(10px);
+        backdrop-filter: blur(8px);
         z-index: 99999;
         display: flex;
         align-items: center;
@@ -533,7 +523,6 @@ Purpose: Wallet Binding (No transaction, No gas)
         font-family: 'Orbitron','Kanit',sans-serif;
     `;
 
-    // ===== BOX =====
     const box = document.createElement("div");
     box.style.cssText = `
         width: 90%;
@@ -545,11 +534,10 @@ Purpose: Wallet Binding (No transaction, No gas)
         box-shadow: 0 0 40px rgba(0,234,255,.25);
         color: #eafcff;
         text-align: center;
-        position: relative;
     `;
 
     box.innerHTML = `
-        <div style="font-size:0.75rem; letter-spacing:2px; color:#00eaff; opacity:.85;">
+        <div style="font-size:0.75rem; letter-spacing:2px; color:#00eaff;">
             INITIATION PROTOCOL
         </div>
 
@@ -564,73 +552,104 @@ Purpose: Wallet Binding (No transaction, No gas)
 
         <p style="font-size:0.95rem; line-height:1.6; color:#cfefff;">
             ยินดีต้อนรับสู่ <b>Project Chaser</b><br>
-            ก่อนที่คุณจะก้าวเข้าสู่โลกแห่งการไล่ล่า<br>
-            กรุณายืนยันตัวตนของคุณ
+            กรุณายืนยัน Wallet ของคุณก่อนเริ่มต้น
         </p>
 
-        <div style="
-            background:#05080c;
-            border:1px solid #123;
-            border-radius:10px;
-            padding:14px;
-            margin:18px 0;
-            text-align:left;
-            font-size:0.8rem;
-            color:#9fdfff;
-        ">
-            <div>✔ ไม่ใช่การโอนเหรียญ</div>
-            <div>✔ ไม่เสียค่าแก๊ส</div>
-            <div>✔ ทำเพียงครั้งเดียว</div>
-        </div>
-
         <button id="btnEnterGate" style="
+            margin-top:20px;
             width:100%;
             padding:14px;
             font-size:1rem;
             border-radius:10px;
-            border:1px solid #00eaff;
-            background:linear-gradient(180deg,#00eaff,#008cff);
+            border:none;
+            background:linear-gradient(135deg,#00eaff,#008cff);
             color:#001018;
             font-weight:bold;
             cursor:pointer;
-            box-shadow:0 0 20px rgba(0,234,255,.6);
+            transition:all .1s ease;
+            box-shadow:0 4px 0 #004a66;
         ">
             🔓 ENTER THE GATE
         </button>
 
-        <div style="margin-top:14px; font-size:0.7rem; color:#6aa;">
-            This is a message signature only. No gas, no transfer.
+        <div style="margin-top:12px;font-size:0.75rem;color:#7fd;">
+            No gas • No transfer • Sign message only
         </div>
     `;
 
     overlay.appendChild(box);
     document.body.appendChild(overlay);
 
-    // ===== EVENT =====
-    const btn = box.querySelector("#btnEnterGate");
+    const btn = document.getElementById("btnEnterGate");
 
+    // 🎯 SIGN FLOW อยู่ใน click ตรง ๆ (เหมือน SELL)
     btn.onclick = async () => {
+
         if (btn.disabled) return;
 
         btn.disabled = true;
-        const originalText = btn.innerText;
-        btn.innerText = "VERIFYING...";
+        btn.style.transform = "translateY(3px)";
+        btn.style.boxShadow = "0 1px 0 #004a66";
+        btn.innerText = "SIGNING...";
 
         try {
-            if (typeof onConfirm === "function") {
-                const ok = await onConfirm();
 
-                if (ok) {
-                    overlay.remove(); // ปิดประตู
-                } else {
-                    btn.disabled = false;
-                    btn.innerText = originalText;
-                }
+            // 🛑 เช็ค MiniKit
+            if (!window.MiniKit || !window.MiniKit.isInstalled()) {
+                alert("⚠️ กรุณาเปิดผ่าน World App");
+                btn.disabled = false;
+                btn.innerText = "🔓 ENTER THE GATE";
+                return;
             }
-        } catch (e) {
-            console.error("First Gate error:", e);
+
+            const message = `
+PROJECT CHASER – WALLET BINDING
+
+I confirm this wallet belongs to my account.
+
+UserId: ${REAL_USER_ID}
+Purpose: Wallet Binding Only
+`;
+
+            // 🔑 เหมือน SELL ทุกประการ
+            const signResult = await window.MiniKit.commandsAsync.signMessage({
+                message: message
+            });
+
+            const payload = signResult.finalPayload;
+
+            if (!payload || payload.status !== "success") {
+                throw new Error("User cancelled signing");
+            }
+
+            const walletAddress = payload.address;
+
+            if (!walletAddress) {
+                throw new Error("No wallet address returned");
+            }
+
+            // 💾 Save ลง Firebase
+            await setDoc(
+                doc(db, "users", REAL_USER_ID),
+                {
+                    walletAddress: walletAddress,
+                    walletBound: true,
+                    walletBoundAt: new Date().toISOString()
+                },
+                { merge: true }
+            );
+
+            console.log("✅ Wallet bound:", walletAddress);
+
+            overlay.remove();      // ปิด Gate
+            changeName();          // ไปตั้งชื่อ
+
+        } catch (err) {
+            console.error("First Gate error:", err);
             btn.disabled = false;
-            btn.innerText = originalText;
+            btn.style.transform = "none";
+            btn.style.boxShadow = "0 4px 0 #004a66";
+            btn.innerText = "🔓 ENTER THE GATE";
         }
     };
 }
