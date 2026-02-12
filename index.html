@@ -1131,32 +1131,43 @@ if (battle_eHP <= 0) {
     // เช็คว่ามี Wallet Address หรือยัง
     let walletAddress = window.MiniKit?.user?.walletAddress;
 
-    // ถ้ายังไม่มี ให้ทำการเรียก Verify (Login) ก่อน
     if (!walletAddress) {
         btn.disabled = true;
         btn.innerText = "CONNECTING...";
 
         try {
-            // เรียกคำสั่ง Verify เพื่อขอสิทธิ์/Login
             const res = await window.MiniKit.commandsAsync.verify({
-                action: "login", // ⚠️ แก้ตรงนี้: ใส่ชื่อ Action ที่ตั้งใน Dev Portal
+                action: "login", // เช็คชื่อ action ให้ตรง
                 signal: "", 
-                verification_level: "orb" // หรือ "device" ตามที่คุณตั้งค่า
+                verification_level: "orb"
             });
 
             if (res.finalPayload.status === 'success') {
-                // พยายามดึง Wallet Address อีกครั้งหลัง Login สำเร็จ
+                
+                // ✅ LOGIC ใหม่: วนเช็ค Wallet สูงสุด 30 ครั้ง (ครั้งละ 100ms = 3 วินาที)
+                // ถ้ามาเร็ว ก็ไปต่อเลย ถ้ามาช้า ก็รอหน่อย
+                btn.innerText = "SYNCING WALLET...";
+                let attempts = 0;
+                while (!window.MiniKit?.user?.walletAddress && attempts < 30) {
+                    await new Promise(r => setTimeout(r, 100)); // รอ 0.1 วิ
+                    attempts++;
+                }
+
+                // ดึงค่าล่าสุดออกมา
                 walletAddress = window.MiniKit?.user?.walletAddress;
                 
-                // กรณี Login ผ่านแต่ค่า Wallet ยังไม่มาในทันที (อาจเกิดได้ในบาง SDK)
+                // ถ้าวนครบ 3 วิ แล้วยังไม่มาจริงๆ ค่อยยอมแพ้
                 if (!walletAddress) {
-                    alert("✅ เชื่อมต่อสำเร็จ! กรุณากดปุ่ม Sell อีกครั้ง");
+                    alert("⚠️ เชื่อมต่อแล้ว แต่ระบบยังโหลดไม่ทัน\nกรุณากดปุ่ม Sell อีกครั้งครับ");
                     btn.disabled = false;
                     btn.innerText = "CONFIRM SELL";
                     return; 
                 }
+                
+                // ถ้าได้ Wallet Address แล้ว โค้ดจะไหลลงไปทำงานต่อข้างล่างเอง (ถอนเงิน)
+
             } else {
-                // User กดยกเลิก หรือ Error
+                // User ยกเลิก
                 btn.disabled = false;
                 btn.innerText = "CONFIRM SELL";
                 return;
@@ -1166,7 +1177,7 @@ if (battle_eHP <= 0) {
             console.error("Login Error:", e);
             btn.disabled = false;
             btn.innerText = "CONFIRM SELL";
-            return; // หยุดทำงานถ้า Login ไม่ผ่าน
+            return;
         }
     }
 
