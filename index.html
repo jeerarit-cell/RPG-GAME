@@ -1103,143 +1103,152 @@ if (battle_eHP <= 0) {
     };
 
     
-     // 7. SELL LOGIC (AUTO WAIT VERSION)
-     
-    document.getElementById('btnConfirmSell').onclick = async () => {
+     //sell
 
-        const btn = document.getElementById('btnConfirmSell');
-        if (btn.disabled) return; 
+document.getElementById('btnConfirmSell').onclick = async () => {
 
-        const amountCoin = parseInt(inpSell.value) || 0;
+    const btn = document.getElementById('btnConfirmSell');
+    if (btn.disabled) return; 
 
-        // ---------- 1. VALIDATION ----------
-        if (amountCoin < MIN_SELL) {
-            alert(`⛔ ขั้นต่ำ ${MIN_SELL} Coins`);
-            return;
-        }
+    const amountCoin = parseInt(inpSell.value) || 0;
 
-        if (typeof playerCOIN === 'undefined') {
-            alert("⛔ ไม่พบข้อมูลผู้เล่น");
-            return;
-        }
+    // ==========================================
+    // 1. VALIDATION (ตรวจสอบเงื่อนไข)
+    // ==========================================
 
-        if (playerCOIN < amountCoin) {
-            alert("⛔ Coin ของคุณไม่พอ!");
-            return;
-        }
+    if (amountCoin < MIN_SELL) {
+        alert(`⛔ ขั้นต่ำ ${MIN_SELL} Coins`);
+        return;
+    }
 
-        // ---------- 2. AUTO CONNECT / LOGIN ----------
-        let walletAddress = window.MiniKit?.user?.walletAddress;
+    if (typeof playerCOIN === 'undefined') {
+        alert("⛔ ไม่พบข้อมูลผู้เล่น");
+        return;
+    }
 
-        if (!walletAddress) {
-            btn.disabled = true;
-            btn.innerText = "CONNECTING..."; // ขั้นตอนที่ 1: ขอเชื่อมต่อ
+    if (playerCOIN < amountCoin) {
+        alert("⛔ Coin ของคุณไม่พอ!");
+        return;
+    }
 
-            try {
-                const res = await window.MiniKit.commandsAsync.verify({
-                    action: "login", // ⚠️ อย่าลืมเช็คชื่อ Action ให้ตรงกับ Dev Portal
-                    signal: "", 
-                    verification_level: "orb"
-                });
+    // ==========================================
+    // 2. AUTO CONNECT / LOGIN (ถ้ายังไม่มี Wallet)
+    // ==========================================
 
-                if (res.finalPayload.status === 'success') {
-                    
-                    // ✅ จุดสำคัญ: วนลูปรอ Wallet (สูงสุด 5 วินาที)
-                    btn.innerText = "SYNCING..."; // ถ้าขึ้นคำนี้ แสดงว่าเป็นโค้ดใหม่แล้ว
-                    
-                    let attempts = 0;
-                    // เช็คซ้ำๆ ทุก 0.1 วินาที จนกว่าจะเจอ Wallet
-                    while (!window.MiniKit?.user?.walletAddress && attempts < 50) {
-                        await new Promise(r => setTimeout(r, 100)); 
-                        attempts++;
-                    }
+    let walletAddress = window.MiniKit?.user?.walletAddress;
 
-                    // ดึงค่าล่าสุดออกมา
-                    walletAddress = window.MiniKit?.user?.walletAddress;
-                    
-                    // ถ้าวนครบ 5 วิ แล้วยังไม่มาจริงๆ ค่อยแจ้งเตือน
-                    if (!walletAddress) {
-                        alert("⚠️ ระบบโหลดข้อมูลไม่ทัน\nกรุณากดปุ่ม Sell อีกครั้งเพื่อทำรายการต่อ");
-                        btn.disabled = false;
-                        btn.innerText = "CONFIRM SELL";
-                        return; 
-                    }
-                    
-                    // ถ้าได้ Wallet Address แล้ว... ปล่อยผ่านไปทำรายการถอนเลย! (ไม่ Alert แล้ว)
+    if (!walletAddress) {
+        btn.disabled = true;
+        btn.innerText = "CONNECTING..."; 
 
-                } else {
-                    btn.disabled = false;
-                    btn.innerText = "CONFIRM SELL";
-                    return;
+        try {
+            // เรียกคำสั่ง Verify เพื่อขอสิทธิ์/Login
+            const res = await window.MiniKit.commandsAsync.verify({
+                action: "login", // ⚠️ เช็คชื่อ Action ให้ตรงกับ Dev Portal
+                signal: "", 
+                verification_level: "orb"
+            });
+
+            if (res.finalPayload.status === 'success') {
+                
+                // วนลูปรอ Wallet (เหมือนเดิม)
+                btn.innerText = "SYNCING..."; 
+                let attempts = 0;
+                while (!window.MiniKit?.user?.walletAddress && attempts < 50) {
+                    await new Promise(r => setTimeout(r, 100)); 
+                    attempts++;
                 }
 
-            } catch (e) {
-                console.error("Login Error:", e);
+                walletAddress = window.MiniKit?.user?.walletAddress;
+                
+                if (!walletAddress) {
+                    alert("⚠️ เชื่อมต่อแล้วแต่โหลดไม่ทัน กรุณากดใหม่");
+                    btn.disabled = false;
+                    btn.innerText = "CONFIRM SELL";
+                    return; 
+                }
+
+            } else {
+                // User ยกเลิก Login
                 btn.disabled = false;
                 btn.innerText = "CONFIRM SELL";
                 return;
             }
-        }
 
-        // ---------- 3. START SELLING PROCESS ----------
-        // ถึงตรงนี้ต้องมี Wallet แล้วแน่นอน
-        if (!walletAddress) {
-            alert("❌ ไม่พบ Wallet Address");
+        } catch (e) {
+            console.error("Login Error:", e);
             btn.disabled = false;
             btn.innerText = "CONFIRM SELL";
             return;
         }
+    }
 
-        btn.disabled = true;
-        btn.innerText = "PROCESSING...";
+    // ==========================================
+    // 3. SIGNING & REQUEST (เริ่มกระบวนการถอน)
+    // ==========================================
 
-        try {
-            if (typeof saveGame === 'function') await saveGame();
+    btn.disabled = true;
+    btn.innerText = "1/2 SIGNING...";
 
-            const response = await fetch(
-                "https://game-server-vs0h.onrender.com/api/withdraw", // เช็ค URL ให้ถูก
-                {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        wallet: walletAddress,
-                        amount: amountCoin
-                    })
-                }
-            );
+    try {
+        // Step 1: ให้ User เซ็นยืนยันตัวตน (เพิ่มความปลอดภัย)
+        const messageToSign = `Withdraw ${amountCoin} COINS`;
+        const signResult = await window.MiniKit.commandsAsync.signMessage({
+            message: messageToSign
+        });
 
-            if (!response.ok) throw new Error("Server error: " + response.status);
+        const finalPayload = signResult.finalPayload;
+        if (finalPayload.status !== "success") {
+            throw new Error("User ยกเลิกการเซ็นชื่อ");
+        }
 
-            const data = await response.json();
-            if (!data?.success) throw new Error(data?.message || "Withdraw failed");
+        // Step 2: ส่งข้อมูลให้ Server ตรวจสอบ (แนบ Signature ไปด้วย)
+        btn.innerText = "VERIFYING...";
+        
+        const response = await fetch("https://game-server-vs0h.onrender.com/api/withdraw", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                wallet: walletAddress,      // Wallet ที่ได้จาก Login
+                amount: amountCoin,
+                signature: finalPayload.signature, // ลายเซ็นที่ได้จาก Step 1
+                message: messageToSign      // ข้อความที่เซ็น
+            })
+        });
 
-            // ---------- 4. CONFIRM TRANSACTION ----------
-            const txResult = await window.MiniKit.commandsAsync.sendTransaction({
-                transaction: [{
-                    address: data.claimData.vaultAddress,
-                    abi: [{
-                        inputs: [
-                            { internalType: "uint256", name: "amount", type: "uint256" },
-                            { internalType: "uint256", name: "nonce", type: "uint256" },
-                            { internalType: "bytes", name: "signature", type: "bytes" }
-                        ],
-                        name: "claimReward",
-                        outputs: [],
-                        stateMutability: "nonpayable",
-                        type: "function"
-                    }],
-                    functionName: "claimReward",
-                    args: [
-                        data.claimData.amount,
-                        data.claimData.nonce,
-                        data.claimData.signature
-                    ]
-                }]
-            });
+        const data = await response.json();
+        if (!data.success) throw new Error(data.message || "Server Reject");
 
-            if (txResult?.finalPayload?.status !== "success") return;
+        // Step 3: สั่งจ่ายเงิน (Claim Reward)
+        btn.innerText = "2/2 CLAIMING...";
 
-            // ---------- 5. SUCCESS ----------
+        const txPayload = {
+            transaction: [{
+                address: data.claimData.vaultAddress,
+                abi: [{
+                    "inputs": [
+                        { "internalType": "uint256", "name": "amount", "type": "uint256" },
+                        { "internalType": "uint256", "name": "nonce", "type": "uint256" },
+                        { "internalType": "bytes", "name": "signature", "type": "bytes" }
+                    ],
+                    "name": "claimReward",
+                    "outputs": [],
+                    "stateMutability": "nonpayable",
+                    "type": "function"
+                }],
+                functionName: "claimReward",
+                args: [
+                    data.claimData.amount,
+                    data.claimData.nonce,
+                    data.claimData.signature
+                ]
+            }]
+        };
+
+        const txResult = await window.MiniKit.commandsAsync.sendTransaction(txPayload);
+
+        if (txResult.finalPayload.status === "success") {
+            // --- SUCCESS ---
             playerCOIN = data.newBalance;
             if (typeof updateBalance === 'function') updateBalance();
             if (typeof saveGame === 'function') await saveGame();
@@ -1251,16 +1260,28 @@ if (battle_eHP <= 0) {
             } else {
                 alert("✅ ถอนสำเร็จ!");
             }
+        } else {
+            throw new Error("Transaction Cancelled");
+        }
 
-        } catch (e) {
-            if (e?.message?.toLowerCase().includes("user")) return;
-            console.error("SELL ERROR:", e);
+    } catch (e) {
+        // ดักจับ Error ทั้งหมด
+        if (e?.message?.toLowerCase().includes("user")) {
+            // กรณี User กดยกเลิกเอง ไม่ต้อง Alert แรง
+            console.log("User Cancelled");
+        } else {
+            console.error("Sell Process Error:", e);
             alert("❌ เกิดข้อผิดพลาด: " + (e.message || "Unknown error"));
-        } finally {
+        }
+    } finally {
+        // คืนค่าปุ่มเสมอ ไม่ว่าจะสำเร็จหรือล้มเหลว
+        if(btn) {
             btn.disabled = false;
             btn.innerText = "CONFIRM SELL";
         }
-    };
+    }
+};
+
  
 
 } // <--- ปิด function openExchangeModal ตรงนี้
