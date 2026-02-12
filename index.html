@@ -440,7 +440,7 @@
     initMap();
 
     // 🔐 FIRST GATE เฉพาะผู้เล่นใหม่
-    if (isNewUser) {
+    if (!alreadyBound) {
         await openFirstGateModal(async () => {
             // 👉 ตรงนี้คุณจะใส่ logic signMessage + save wallet
             const ok = await bindWalletOnce(REAL_USER_ID);
