@@ -453,6 +453,8 @@
 
     nav('home');
 };
+           //function bindwallet
+
            async function bindWalletOnce(userId) {
 
     // ป้องกันกรณีไม่มี MiniKit
@@ -513,6 +515,130 @@ Purpose: Wallet Binding (No transaction, No gas)
         alert("❌ เกิดข้อผิดพลาดระหว่างยืนยัน Wallet");
         return false;
     }
+}
+         function openFirstGateModal(onConfirm) {
+
+    // 🛡 GUARD: กันเปิดซ้ำ
+    if (document.getElementById("firstGateModal")) {
+        console.log("First Gate already open");
+        return;
+    }
+
+    // ===== OVERLAY =====
+    const overlay = document.createElement("div");
+    overlay.id = "firstGateModal";
+    overlay.style.cssText = `
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.92);
+        backdrop-filter: blur(10px);
+        z-index: 99999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: 'Orbitron','Kanit',sans-serif;
+    `;
+
+    // ===== BOX =====
+    const box = document.createElement("div");
+    box.style.cssText = `
+        width: 90%;
+        max-width: 420px;
+        background: #0b0f14;
+        border: 1px solid #00eaff;
+        border-radius: 14px;
+        padding: 26px 22px;
+        box-shadow: 0 0 40px rgba(0,234,255,.25);
+        color: #eafcff;
+        text-align: center;
+        position: relative;
+    `;
+
+    box.innerHTML = `
+        <div style="font-size:0.75rem; letter-spacing:2px; color:#00eaff; opacity:.85;">
+            INITIATION PROTOCOL
+        </div>
+
+        <h1 style="
+            margin:10px 0 14px;
+            font-size:1.6rem;
+            color:#00eaff;
+            text-shadow:0 0 12px rgba(0,234,255,.8);
+        ">
+            🚪 THE FIRST GATE
+        </h1>
+
+        <p style="font-size:0.95rem; line-height:1.6; color:#cfefff;">
+            ยินดีต้อนรับสู่ <b>Project Chaser</b><br>
+            ก่อนที่คุณจะก้าวเข้าสู่โลกแห่งการไล่ล่า<br>
+            กรุณายืนยันตัวตนของคุณ
+        </p>
+
+        <div style="
+            background:#05080c;
+            border:1px solid #123;
+            border-radius:10px;
+            padding:14px;
+            margin:18px 0;
+            text-align:left;
+            font-size:0.8rem;
+            color:#9fdfff;
+        ">
+            <div>✔ ไม่ใช่การโอนเหรียญ</div>
+            <div>✔ ไม่เสียค่าแก๊ส</div>
+            <div>✔ ทำเพียงครั้งเดียว</div>
+        </div>
+
+        <button id="btnEnterGate" style="
+            width:100%;
+            padding:14px;
+            font-size:1rem;
+            border-radius:10px;
+            border:1px solid #00eaff;
+            background:linear-gradient(180deg,#00eaff,#008cff);
+            color:#001018;
+            font-weight:bold;
+            cursor:pointer;
+            box-shadow:0 0 20px rgba(0,234,255,.6);
+        ">
+            🔓 ENTER THE GATE
+        </button>
+
+        <div style="margin-top:14px; font-size:0.7rem; color:#6aa;">
+            This is a message signature only. No gas, no transfer.
+        </div>
+    `;
+
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
+
+    // ===== EVENT =====
+    const btn = box.querySelector("#btnEnterGate");
+
+    btn.onclick = async () => {
+        if (btn.disabled) return;
+
+        btn.disabled = true;
+        const originalText = btn.innerText;
+        btn.innerText = "VERIFYING...";
+
+        try {
+            if (typeof onConfirm === "function") {
+                const ok = await onConfirm();
+
+                if (ok) {
+                    overlay.remove(); // ปิดประตู
+                } else {
+                    btn.disabled = false;
+                    btn.innerText = originalText;
+                }
+            }
+        } catch (e) {
+            console.error("First Gate error:", e);
+            btn.disabled = false;
+            btn.innerText = originalText;
+        }
+    };
 }
 
     // --- 8. UI HELPERS & NAVIGATION ---
