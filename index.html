@@ -415,6 +415,7 @@
     console.log("applyGameData called");
 
     const isNewUser = !data;
+    const alreadyBound = data?.walletBound === true;
 
     if (data) {
         playerCOIN = parseInt(data.coin) || 0;
@@ -498,6 +499,7 @@ Purpose: Wallet Binding (No transaction, No gas)
             doc(db, "users", userId),
             {
                 walletAddress: walletAddress,
+                walletBound: true,
                 walletBoundAt: new Date().toISOString()
             },
             { merge: true }
