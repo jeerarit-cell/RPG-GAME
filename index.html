@@ -1103,116 +1103,132 @@ if (battle_eHP <= 0) {
     };
 
 
-    /* =====================================================
-     * 7. SELL FLOW (FINAL V2)
-     * ===================================================== */
-    document.getElementById('btnConfirmSell').onclick = async () => {
+   //sell document.getElementById('btnConfirmSell').onclick = async () => {
 
-        const btn = document.getElementById('btnConfirmSell');
-        if (btn.disabled) return;
+    const btn = document.getElementById('btnConfirmSell');
+    if (btn.disabled) return; // 🛑 กันกดซ้อน
 
-        // ⚠️ ต้องแปลงเป็น Int เสมอเพื่อความชัวร์ในการคำนวณ
-        const amountCoin = parseInt(document.getElementById('inpSellCoin').value) || 0;
+    const amountCoin = parseInt(inpSell.value) || 0;
 
-        if (amountCoin < MIN_SELL) {
-            alert(`⛔ ขั้นต่ำ ${MIN_SELL} Coins`);
-            return;
+    // ---------- VALIDATION ----------
+    if (amountCoin < MIN_SELL) {
+        alert(`⛔ ขั้นต่ำ ${MIN_SELL} Coins`);
+        return;
+    }
+
+    if (typeof playerCOIN === 'undefined') {
+        alert("⛔ ไม่พบข้อมูลผู้เล่น");
+        return;
+    }
+
+    if (playerCOIN < amountCoin) {
+        alert("⛔ Coin ของคุณไม่พอ!");
+        return;
+    }
+
+    // ---------- WALLET CHECK ----------
+    const walletAddress = window.MiniKit?.user?.walletAddress;
+    if (!walletAddress) {
+        alert("Wallet ยังไม่พร้อม\nกรุณาเปิดเกมผ่าน World App");
+        return;
+    }
+
+    btn.disabled = true;
+    btn.innerText = "PROCESSING...";
+
+    try {
+
+        // ---------- SAVE POINT #1 (ก่อนยิง server) ----------
+        // ป้องกัน refresh / crash กลางทาง
+        if (typeof saveGame === 'function') {
+            await saveGame();
         }
 
-        if (playerCOIN < amountCoin) {
-            alert("⛔ Coin ของคุณไม่พอ!");
-            return;
-        }
-
-        btn.disabled = true;
-        btn.innerText = "PROCESSING...";
-
-        try {
-            // ✅ เช็ค MiniKit
-            if (!window.MiniKit || !window.MiniKit.isInstalled()) {
-                throw new Error("กรุณาเปิดใน World App");
-            }
-
-            // ✅ ดึง wallet (Safe Check)
-            const walletAddress = window.MiniKit.user?.walletAddress;
-            if (!window.wallet) {
-    console.warn("Wallet not found");
-    alert("Wallet ยังไม่เชื่อมต่อ\nกรุณาเข้าแอพผ่าน World App เท่านั้น");
-            }
-
-            // ✅ ยิงไป server ขอ claimData
-            const response = await fetch(WITHDRAW_API, { // ใช้ตัวแปร CONST ที่ประกาศไว้
+        // ---------- REQUEST CLAIM DATA ----------
+        const response = await fetch(
+            "https://game-server-vs0h.onrender.com/api/withdraw",
+            {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     wallet: walletAddress,
                     amount: amountCoin
                 })
-            });
-
-            if (!response.ok) {
-                throw new Error("Server error: " + response.status);
             }
+        );
 
-            const data = await response.json();
-            if (!data?.success) throw new Error(data?.message);
-
-            // 🔥 Confirm Transaction
-            const txResult = await window.MiniKit.commandsAsync.sendTransaction({
-                transaction: [{
-                    address: data.claimData.vaultAddress,
-                    abi: [{
-                        inputs: [
-                            { internalType: "uint256", name: "amount", type: "uint256" },
-                            { internalType: "uint256", name: "nonce", type: "uint256" },
-                            { internalType: "bytes", name: "signature", type: "bytes" }
-                        ],
-                        name: "claimReward",
-                        outputs: [],
-                        stateMutability: "nonpayable",
-                        type: "function"
-                    }],
-                    functionName: "claimReward",
-                    args: [
-                        data.claimData.amount,
-                        data.claimData.nonce,
-                        data.claimData.signature
-                    ]
-                }]
-            });
-
-            // ✅ ถ้า user กดยกเลิก
-            if (txResult?.finalPayload?.status !== "success") {
-                return;
-            }
-
-            // ✅ อัปเดต coin หลังถอนสำเร็จ
-            playerCOIN = data.newBalance;
-
-            if (typeof updateBalance === "function") updateBalance();
-            if (typeof saveGame === "function") await saveGame();
-
-            document.getElementById("exchangeModal")?.remove();
-
-            if (typeof gameAlert === "function") {
-                gameAlert("SUCCESS", "✅ ถอนสำเร็จ!");
-            } else {
-                alert("✅ ถอนสำเร็จ!");
-            }
-
-        } catch (e) {
-            if (e?.message?.toLowerCase().includes("user")) {
-                return;
-            }
-            console.error("Sell Error:", e);
-            alert("เกิดข้อผิดพลาด: " + (e.message || "Unknown error"));
-        } finally {
-            if(document.getElementById('btnConfirmSell')){
-                btn.disabled = false;
-                btn.innerText = "CONFIRM SELL";
-            }
+        if (!response.ok) {
+            throw new Error("Server error: " + response.status);
         }
-    };
+
+        const data = await response.json();
+        if (!data?.success) {
+            throw new Error(data?.message || "Withdraw failed");
+        }
+
+        // ---------- CONFIRM (ONLY ONCE) ----------
+        const txResult = await window.MiniKit.commandsAsync.sendTransaction({
+            transaction: [{
+                address: data.claimData.vaultAddress,
+                abi: [{
+                    inputs: [
+                        { internalType: "uint256", name: "amount", type: "uint256" },
+                        { internalType: "uint256", name: "nonce", type: "uint256" },
+                        { internalType: "bytes", name: "signature", type: "bytes" }
+                    ],
+                    name: "claimReward",
+                    outputs: [],
+                    stateMutability: "nonpayable",
+                    type: "function"
+                }],
+                functionName: "claimReward",
+                args: [
+                    data.claimData.amount,
+                    data.claimData.nonce,
+                    data.claimData.signature
+                ]
+            }]
+        });
+
+        // ---------- SILENT CANCEL ----------
+        if (txResult?.finalPayload?.status !== "success") {
+            return;
+        }
+
+        // ---------- APPLY RESULT ----------
+        playerCOIN = data.newBalance;
+
+        if (typeof updateBalance === 'function') {
+            updateBalance();
+        }
+
+        // ---------- SAVE POINT #2 (หลังถอนสำเร็จ) ----------
+        if (typeof saveGame === 'function') {
+            await saveGame();
+        }
+
+        document.getElementById('exchangeModal')?.remove();
+
+        if (typeof gameAlert === 'function') {
+            gameAlert("SUCCESS", "✅ ถอนสำเร็จ!");
+        }
+
+    } catch (e) {
+
+        // user cancel → เงียบ
+        if (e?.message?.toLowerCase().includes("user")) {
+            return;
+        }
+
+        console.error("SELL ERROR:", e);
+        alert("❌ เกิดข้อผิดพลาดในการถอน");
+
+    } finally {
+        btn.disabled = false;
+        btn.innerText = "CONFIRM SELL";
+    }
+};
+   
 
 } // <--- ปิด function openExchangeModal ตรงนี้
 
