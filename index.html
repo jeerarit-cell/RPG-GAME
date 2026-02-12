@@ -587,46 +587,22 @@ Purpose: Wallet Binding (No transaction, No gas)
 
         if (btn.disabled) return;
 
+        // เริ่มขั้นตอน
         btn.disabled = true;
-        btn.style.transform = "translateY(3px)";
-        btn.style.boxShadow = "0 1px 0 #004a66";
-        btn.innerText = "SIGNING...";
+        btn.innerText = " SIGNING...";
 
         try {
-
-            // 🛑 เช็ค MiniKit
             if (!window.MiniKit || !window.MiniKit.isInstalled()) {
-                alert("⚠️ กรุณาเปิดผ่าน World App");
-                btn.disabled = false;
-                btn.innerText = "🔓 ENTER THE GATE";
-                return;
+                throw new Error("กรุณาเปิดใน World App เท่านั้น");
             }
 
-            const message = `
-PROJECT CHASER – WALLET BINDING
-
-I confirm this wallet belongs to my account.
-
-UserId: ${REAL_USER_ID}
-Purpose: Wallet Binding Only
-`;
-
-            // 🔑 เหมือน SELL ทุกประการ
-            const signResult = await window.MiniKit.commandsAsync.signMessage({
-                message: message
+            // Step 1: ให้ User เซ็นยืนยันตัวตน
+            const messageToSign = `Withdraw ${amountCoin} COINS`;
+            const { finalPayload } = await window.MiniKit.commandsAsync.signMessage({
+                message: messageToSign
             });
 
-            const finalPayload = signResult.finalPayload;
-        
-        // ถ้า User กดยกเลิก
-        if (finalPayload.status !== "success") {
-            throw new Error("User Cancelled Signing");
-        }
-            const walletAddress = finalpayload.address;
-
-            if (!walletAddress) {
-                throw new Error("No wallet address returned");
-            }
+            if (finalPayload.status !== "success") throw new Error("User ยกเลิกการทำรายการ");
 
             // 💾 Save ลง Firebase
             await setDoc(
