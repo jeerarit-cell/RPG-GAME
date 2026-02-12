@@ -1110,7 +1110,7 @@ if (battle_eHP <= 0) {
 
     const amountCoin = parseInt(inpSell.value) || 0;
 
-    // ---------- VALIDATION ----------
+    // ---------- 1. VALIDATION ----------
     if (amountCoin < MIN_SELL) {
         alert(`⛔ ขั้นต่ำ ${MIN_SELL} Coins`);
         return;
@@ -1126,25 +1126,68 @@ if (battle_eHP <= 0) {
         return;
     }
 
-    // ---------- WALLET CHECK ----------
-    const walletAddress = window.MiniKit?.user?.walletAddress;
+    // ---------- 2. AUTO CONNECT / LOGIN ----------
+    // เช็คว่ามี Wallet Address หรือยัง
+    let walletAddress = window.MiniKit?.user?.walletAddress;
+
+    // ถ้ายังไม่มี ให้ทำการเรียก Verify (Login) ก่อน
     if (!walletAddress) {
-        alert("Wallet ยังไม่พร้อม\nกรุณาเปิดเกมผ่าน World App");
+        btn.disabled = true;
+        btn.innerText = "CONNECTING...";
+
+        try {
+            // เรียกคำสั่ง Verify เพื่อขอสิทธิ์/Login
+            const res = await window.MiniKit.commandsAsync.verify({
+                action: "login", // ⚠️ แก้ตรงนี้: ใส่ชื่อ Action ที่ตั้งใน Dev Portal
+                signal: "", 
+                verification_level: "orb" // หรือ "device" ตามที่คุณตั้งค่า
+            });
+
+            if (res.finalPayload.status === 'success') {
+                // พยายามดึง Wallet Address อีกครั้งหลัง Login สำเร็จ
+                walletAddress = window.MiniKit?.user?.walletAddress;
+                
+                // กรณี Login ผ่านแต่ค่า Wallet ยังไม่มาในทันที (อาจเกิดได้ในบาง SDK)
+                if (!walletAddress) {
+                    alert("✅ เชื่อมต่อสำเร็จ! กรุณากดปุ่ม Sell อีกครั้ง");
+                    btn.disabled = false;
+                    btn.innerText = "CONFIRM SELL";
+                    return; 
+                }
+            } else {
+                // User กดยกเลิก หรือ Error
+                btn.disabled = false;
+                btn.innerText = "CONFIRM SELL";
+                return;
+            }
+
+        } catch (e) {
+            console.error("Login Error:", e);
+            btn.disabled = false;
+            btn.innerText = "CONFIRM SELL";
+            return; // หยุดทำงานถ้า Login ไม่ผ่าน
+        }
+    }
+
+    // เช็คซ้ำครั้งสุดท้ายเพื่อความชัวร์
+    if (!walletAddress) {
+        alert("❌ ไม่พบ Wallet Address กรุณาลองใหม่");
+        btn.disabled = false;
+        btn.innerText = "CONFIRM SELL";
         return;
     }
 
+    // ---------- 3. START SELLING PROCESS ----------
     btn.disabled = true;
     btn.innerText = "PROCESSING...";
 
     try {
-
-        // ---------- SAVE POINT #1 (ก่อนยิง server) ----------
-        // ป้องกัน refresh / crash กลางทาง
+        // SAVE POINT #1 (ก่อนยิง server)
         if (typeof saveGame === 'function') {
             await saveGame();
         }
 
-        // ---------- REQUEST CLAIM DATA ----------
+        // REQUEST CLAIM DATA
         const response = await fetch(
             "https://game-server-vs0h.onrender.com/api/withdraw",
             {
@@ -1166,7 +1209,7 @@ if (battle_eHP <= 0) {
             throw new Error(data?.message || "Withdraw failed");
         }
 
-        // ---------- CONFIRM (ONLY ONCE) ----------
+        // ---------- 4. CONFIRM TRANSACTION ----------
         const txResult = await window.MiniKit.commandsAsync.sendTransaction({
             transaction: [{
                 address: data.claimData.vaultAddress,
@@ -1190,19 +1233,19 @@ if (battle_eHP <= 0) {
             }]
         });
 
-        // ---------- SILENT CANCEL ----------
+        // SILENT CANCEL
         if (txResult?.finalPayload?.status !== "success") {
             return;
         }
 
-        // ---------- APPLY RESULT ----------
+        // ---------- 5. SUCCESS ----------
         playerCOIN = data.newBalance;
 
         if (typeof updateBalance === 'function') {
             updateBalance();
         }
 
-        // ---------- SAVE POINT #2 (หลังถอนสำเร็จ) ----------
+        // SAVE POINT #2 (หลังถอนสำเร็จ)
         if (typeof saveGame === 'function') {
             await saveGame();
         }
@@ -1214,20 +1257,20 @@ if (battle_eHP <= 0) {
         }
 
     } catch (e) {
-
         // user cancel → เงียบ
         if (e?.message?.toLowerCase().includes("user")) {
             return;
         }
 
         console.error("SELL ERROR:", e);
-        alert("❌ เกิดข้อผิดพลาดในการถอน");
+        alert("❌ เกิดข้อผิดพลาดในการถอน: " + (e.message || "Unknown error"));
 
     } finally {
         btn.disabled = false;
         btn.innerText = "CONFIRM SELL";
     }
 };
+
    
 
 } // <--- ปิด function openExchangeModal ตรงนี้
