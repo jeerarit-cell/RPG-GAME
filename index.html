@@ -1102,7 +1102,8 @@ if (battle_eHP <= 0) {
         }
     };
 
-    //sell
+   //sell
+
 document.getElementById('btnConfirmSell').onclick = async () => {
 
     const btn = document.getElementById('btnConfirmSell');
@@ -1111,7 +1112,7 @@ document.getElementById('btnConfirmSell').onclick = async () => {
     const amountCoin = parseInt(inpSell.value) || 0;
 
     // ==========================================
-    // 1. VALIDATION
+    // 1. VALIDATION (ตรวจสอบเงื่อนไข)
     // ==========================================
     if (amountCoin < MIN_SELL) {
         alert(`⛔ ขั้นต่ำ ${MIN_SELL} Coins`);
@@ -1129,79 +1130,62 @@ document.getElementById('btnConfirmSell').onclick = async () => {
     }
 
     // ==========================================
-    // 2. CHECK WALLET (แบบเงียบ)
+    // 2. STEP 1: SIGN MESSAGE (ยืนยันตัวตน)
     // ==========================================
-
-    // พยายามดึง Wallet ปัจจุบัน
-    let walletAddress = window.MiniKit?.user?.walletAddress;
-
-    // ⚠️ ถ้าไม่มี Wallet จริงๆ (ยังไม่เคยเข้าเกม) ยังไงก็ต้องขอ Login 1 ครั้งครับ
-    // แต่ถ้าเคยเข้าแล้ว จะข้ามส่วนนี้ไปเลย
-    if (!walletAddress) {
-        btn.disabled = true;
-        btn.innerText = "CONNECTING..."; 
-        try {
-            const res = await window.MiniKit.commandsAsync.verify({
-                action: "login", 
-                signal: "", 
-                verification_level: "orb"
-            });
-            if (res.finalPayload.status === 'success') {
-                // รอ Wallet มา
-                let attempts = 0;
-                while (!window.MiniKit?.user?.walletAddress && attempts < 50) {
-                    await new Promise(r => setTimeout(r, 100)); 
-                    attempts++;
-                }
-                walletAddress = window.MiniKit?.user?.walletAddress;
-            } else {
-                btn.disabled = false;
-                btn.innerText = "CONFIRM SELL";
-                return;
-            }
-        } catch (e) {
-            btn.disabled = false;
-            btn.innerText = "CONFIRM SELL";
-            return;
-        }
-    }
-
-    // ถ้าสุดท้ายยังหาไม่เจอ
-    if (!walletAddress) {
-        alert("❌ ไม่พบ Wallet กรุณาลองใหม่");
-        btn.disabled = false;
-        btn.innerText = "CONFIRM SELL";
-        return;
-    }
-
-    // ==========================================
-    // 3. ONE-SHOT TRANSACTION (เด้งเดียว)
-    // ==========================================
-
     btn.disabled = true;
-    btn.innerText = "PROCESSING..."; // เปลี่ยนจาก SIGNING เป็น PROCESSING เลย
+    btn.innerText = "1/2 SIGNING..."; 
 
     try {
-        // SAVE ก่อนยิง (กันเหนียว)
-        if (typeof saveGame === 'function') await saveGame();
+        // ตรวจสอบว่าเปิดใน World App ไหม
+        if (!window.MiniKit || !window.MiniKit.isInstalled()) {
+            throw new Error("กรุณาเปิดใน World App เท่านั้น");
+        }
 
-        // ยิง Server เลย (ไม่ต้อง Sign Message ก่อน)
+        const messageToSign = `Withdraw ${amountCoin} COINS`;
+        
+        // สั่งเซ็นชื่อ (Popup เด้งที่ 1)
+        const signResult = await window.MiniKit.commandsAsync.signMessage({
+            message: messageToSign
+        });
+
+        const finalPayload = signResult.finalPayload;
+        
+        // ถ้า User กดยกเลิก
+        if (finalPayload.status !== "success") {
+            throw new Error("User Cancelled Signing");
+        }
+
+        // ==========================================
+        // 3. STEP 2: REQUEST SERVER (ส่งบิลไปเบิก)
+        // ==========================================
+        btn.innerText = "VERIFYING...";
+
+        // ดึง Wallet Address จากการเซ็นชื่อ (แม่นยำที่สุด)
+        const walletAddress = finalPayload.address;
+
         const response = await fetch("https://game-server-vs0h.onrender.com/api/withdraw", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 wallet: walletAddress,
                 amount: amountCoin,
-                // ไม่ส่ง Signature แล้ว เพราะเราตัดขั้นตอนทิ้ง
+                currentCoin: playerCOIN,       // ✅ หัวใจสำคัญ: ส่งยอดเงินปัจจุบันไปบอก Server
+                signature: finalPayload.signature, // แนบลายเซ็นไปด้วย
+                message: messageToSign
             })
         });
 
         const data = await response.json();
-        if (!data.success) throw new Error(data.message || "Server Reject");
-
-        // --- POPUP เดียวที่จะเกิดขึ้น คือตรงนี้ ---
-        btn.innerText = "CLAIMING...";
         
+        if (!data.success) {
+            throw new Error(data.message || "Server Rejected");
+        }
+
+        // ==========================================
+        // 4. STEP 3: CLAIM REWARD (รับเงินเข้ากระเป๋า)
+        // ==========================================
+        btn.innerText = "2/2 CLAIMING...";
+
         const txPayload = {
             transaction: [{
                 address: data.claimData.vaultAddress,
@@ -1225,16 +1209,17 @@ document.getElementById('btnConfirmSell').onclick = async () => {
             }]
         };
 
+        // สั่งทำธุรกรรม (Popup เด้งที่ 2)
         const txResult = await window.MiniKit.commandsAsync.sendTransaction(txPayload);
 
         if (txResult.finalPayload.status === "success") {
+            // --- SUCCESS ---
             
-            // ✅ แก้ปัญหาเหรียญเพิ่ม: สั่งลบเหรียญที่หน้าจอทันที (Visual Update)
-            playerCOIN -= amountCoin;
-            
-            // ถ้า Server ส่งยอดใหม่มา ค่อยอัปเดตทับ (แต่ถ้า Server มั่ว เราก็มีบรรทัดบนกันไว้แล้ว)
+            // อัปเดตยอดเงินตามที่ Server บอกกลับมา
             if (data.newBalance !== undefined) {
-                playerCOIN = data.newBalance; 
+                playerCOIN = data.newBalance;
+            } else {
+                playerCOIN -= amountCoin; // Fallback
             }
 
             if (typeof updateBalance === 'function') updateBalance();
@@ -1248,20 +1233,25 @@ document.getElementById('btnConfirmSell').onclick = async () => {
                 alert("✅ ถอนสำเร็จ!");
             }
         } else {
-            // User กดยกเลิกหน้า Transaction
-            btn.disabled = false;
-            btn.innerText = "CONFIRM SELL";
+            throw new Error("Transaction Cancelled");
         }
 
     } catch (e) {
-        console.error("Sell Error:", e);
-        if (!e?.message?.toLowerCase().includes("user")) {
-            alert("❌ Error: " + (e.message || "Unknown"));
+        // ถ้า User ยกเลิกเอง ไม่ต้อง Alert แรง
+        if (e?.message?.toLowerCase().includes("user") || e?.message?.includes("Cancelled")) {
+            console.log("User Cancelled");
+        } else {
+            console.error("Sell Process Error:", e);
+            alert("❌ เกิดข้อผิดพลาด: " + (e.message || "Unknown error"));
         }
-        btn.disabled = false;
-        btn.innerText = "CONFIRM SELL";
+    } finally {
+        if(btn) {
+            btn.disabled = false;
+            btn.innerText = "CONFIRM SELL";
+        }
     }
 };
+
 
 
  
