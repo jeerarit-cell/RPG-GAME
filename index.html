@@ -865,264 +865,217 @@ if (battle_eHP <= 0) {
     };
     
     function openExchangeModal() {
-    // --- 1. CONFIGURATION (ตั้งค่าทั้งหมดตรงนี้) ---
-    const SELL_RATE = 1100;     // เรทขาย: 1100 Coins = 1 WLD
-    const MIN_SELL = 110;       // ขั้นต่ำขาย: 110 Coins
-    
-    const BUY_RATE = 1000;      // เรทซื้อ: 1 WLD = 1000 Coins
-    const MIN_BUY_WLD = 0.1;    // ขั้นต่ำซื้อ: 0.1 WLD (World App บังคับขั้นต่ำประมาณนี้)
 
-    // --- 2. CLEANUP (ล้างหน้าต่างเก่า) ---
-    const oldModal = document.getElementById('exchangeModal');
-    if (oldModal) oldModal.remove();
+    /* =====================================================
+     * 1. CONFIG
+     * ===================================================== */
+    const SELL_RATE = 1100;
+    const MIN_SELL = 110;
+    const BUY_RATE = 1000;
+    const MIN_BUY_WLD = 0.1;
+    const VAULT_RECEIVER = "0x0c07D1879f06B72a0976fe69B777c0BF84410eFa";
+    const WITHDRAW_API = "https://game-server-vs0h.onrender.com/api/withdraw";
 
-    // --- 3. UI BUILDER (สร้างหน้าต่างใหม่) ---
-    const overlay = document.createElement('div');
-    overlay.id = 'exchangeModal';
-    overlay.style.cssText = `position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 10000; display: flex; justify-content: center; align-items: center; backdrop-filter: blur(8px);`;
-    
-    const box = document.createElement('div');
-    box.style.cssText = `background: #111; border: 1px solid #00eaff; width: 90%; max-width: 400px; padding: 20px; border-radius: 12px; font-family: 'Kanit', sans-serif; box-shadow: 0 0 30px rgba(0, 234, 255, 0.2); position: relative;`;
-    
+    /* =====================================================
+     * 2. CLEANUP OLD MODAL
+     * ===================================================== */
+    document.getElementById("exchangeModal")?.remove();
+
+    /* =====================================================
+     * 3. BUILD UI
+     * ===================================================== */
+    const overlay = document.createElement("div");
+    overlay.id = "exchangeModal";
+    overlay.style.cssText = `
+        position:fixed; inset:0;
+        background:rgba(0,0,0,.9);
+        z-index:10000;
+        display:flex;
+        justify-content:center;
+        align-items:center;
+        backdrop-filter:blur(8px);
+    `;
+
+    const box = document.createElement("div");
+    box.style.cssText = `
+        background:#111;
+        border:1px solid #00eaff;
+        width:90%;
+        max-width:400px;
+        padding:20px;
+        border-radius:12px;
+        font-family:'Kanit',sans-serif;
+        box-shadow:0 0 30px rgba(0,234,255,.2);
+        position:relative;
+    `;
+
     box.innerHTML = `
-        <div style="position:absolute; top:10px; right:15px; color:#666; cursor:pointer; font-size:1.5rem;" onclick="document.getElementById('exchangeModal').remove()">×</div>
-        <h2 style="color:#00eaff; margin:0 0 20px 0; font-family:'Orbitron'; text-align:center;">EXCHANGE</h2>
-        
-        <div style="display:flex; justify-content:space-around; margin-bottom:20px; border-bottom:1px solid #333; padding-bottom:10px;">
-            <div id="tabBuy" style="color:#666; cursor:pointer; flex:1; text-align:center;">BUY COINS</div>
-            <div id="tabSell" style="color:#00eaff; cursor:pointer; font-weight:bold; border-bottom:2px solid #00eaff; flex:1; text-align:center;">SELL COINS</div>
+        <div style="position:absolute;top:10px;right:15px;cursor:pointer;font-size:1.5rem;color:#666"
+             onclick="document.getElementById('exchangeModal')?.remove()">×</div>
+
+        <h2 style="color:#00eaff;text-align:center;font-family:'Orbitron'">EXCHANGE</h2>
+
+        <div style="display:flex;margin-bottom:15px;border-bottom:1px solid #333">
+            <div id="tabBuy"  style="flex:1;text-align:center;cursor:pointer;color:#666">BUY</div>
+            <div id="tabSell" style="flex:1;text-align:center;cursor:pointer;color:#00eaff;border-bottom:2px solid #00eaff">SELL</div>
         </div>
-        
-        <div id="panelBuy" style="display:none;">
-            <p style="color:#aaa; font-size:0.8rem; text-align:center;">RATE: 1 WLD = ${BUY_RATE} COINS</p>
-            <div style="background:#222; padding:15px; border-radius:8px; margin:10px 0;">
-                <label style="color:#fff; display:block; margin-bottom:5px;">จ่าย WLD</label>
-                <input type="number" id="inpBuyWLD" value="${MIN_BUY_WLD}" step="0.1" style="width:100%; background:#000; border:1px solid #444; color:#fff; padding:10px; font-size:1.2rem; font-family:'Orbitron'; text-align:center;">
-                <p style="color:#666; font-size:0.7rem; margin-top:5px; text-align:right;">Min: ${MIN_BUY_WLD} WLD</p>
+
+        <div id="panelBuy" style="display:none">
+            <p style="color:#aaa;text-align:center;font-size:.8rem">
+                RATE: 1 WLD = ${BUY_RATE} COINS
+            </p>
+            <input id="inpBuyWLD" type="number" step="0.1" value="${MIN_BUY_WLD}"
+                   style="width:100%;padding:10px;text-align:center;font-family:'Orbitron'">
+            <div style="text-align:center;margin:10px 0">
+                <span id="txtGetCoin">${Math.floor(MIN_BUY_WLD * BUY_RATE)}</span> COINS
             </div>
-            <div style="text-align:center; color:#fff; margin-bottom:15px;">⬇ ได้รับ ⬇ <br><span id="txtGetCoin" style="color:#ffd700; font-size:1.5rem; font-family:'Orbitron';">${Math.floor(MIN_BUY_WLD * BUY_RATE)}</span> COINS</div>
-            <button id="btnConfirmBuy" class="main-btn" style="width:100%; margin-top:10px; padding:12px; border-radius:8px;">CONFIRM BUY</button>
+            <button id="btnConfirmBuy" class="main-btn" style="width:100%">CONFIRM BUY</button>
         </div>
-        
+
         <div id="panelSell">
-            <p style="color:#aaa; font-size:0.8rem; text-align:center;">RATE: ${SELL_RATE} COINS = 1 WLD</p>
-            <div style="background:#222; padding:15px; border-radius:8px; margin:10px 0;">
-                <label style="color:#fff; display:block; margin-bottom:5px;">ขาย COINS</label>
-                <input type="number" id="inpSellCoin" value="${MIN_SELL}" step="100" style="width:100%; background:#000; border:1px solid #444; color:#fff; padding:10px; font-size:1.2rem; font-family:'Orbitron'; text-align:center;">
-                <p style="color:#666; font-size:0.7rem; margin-top:5px; text-align:right;">Min: ${MIN_SELL} COINS</p>
+            <p style="color:#aaa;text-align:center;font-size:.8rem">
+                RATE: ${SELL_RATE} COINS = 1 WLD
+            </p>
+            <input id="inpSellCoin" type="number" step="100" value="${MIN_SELL}"
+                   style="width:100%;padding:10px;text-align:center;font-family:'Orbitron'">
+            <div style="text-align:center;margin:10px 0">
+                <span id="txtGetWLD">${(MIN_SELL / SELL_RATE).toFixed(4)}</span> WLD
             </div>
-            <div style="text-align:center; color:#fff; margin-bottom:15px;">⬇ ได้รับ (ประมาณ) ⬇ <br><span id="txtGetWLD" style="color:#00eaff; font-size:1.5rem; font-family:'Orbitron';">${(MIN_SELL / SELL_RATE).toFixed(4)}</span> WLD</div>
-            <button id="btnConfirmSell" class="main-btn" style="width:100%; background:#333; border:1px solid #666; padding:12px; border-radius:8px; color:white;">CONFIRM SELL</button>
+            <button id="btnConfirmSell" class="main-btn" style="width:100%">CONFIRM SELL</button>
         </div>
     `;
-    
+
     overlay.appendChild(box);
     document.body.appendChild(overlay);
 
-    // --- 4. VARIABLE BINDING (จับคู่ตัวแปร) ---
-    const inpBuy = document.getElementById('inpBuyWLD');
-    const txtGetCoin = document.getElementById('txtGetCoin');
-    const inpSell = document.getElementById('inpSellCoin');
-    const txtGetWLD = document.getElementById('txtGetWLD');
+    /* =====================================================
+     * 4. DOM REFERENCES
+     * ===================================================== */
+    const inpBuy  = document.getElementById("inpBuyWLD");
+    const inpSell = document.getElementById("inpSellCoin");
+    const txtCoin = document.getElementById("txtGetCoin");
+    const txtWLD  = document.getElementById("txtGetWLD");
 
-    // --- 5. UI EVENTS (การทำงานหน้าจอ) ---
-    
-    // สลับ Tab
-    document.getElementById('tabBuy').onclick = () => {
-        document.getElementById('panelBuy').style.display = 'block';
-        document.getElementById('panelSell').style.display = 'none';
-        document.getElementById('tabBuy').style.color = '#00eaff';
-        document.getElementById('tabBuy').style.borderBottom = '2px solid #00eaff';
-        document.getElementById('tabSell').style.color = '#666';
-        document.getElementById('tabSell').style.borderBottom = 'none';
+    /* =====================================================
+     * 5. UI EVENTS
+     * ===================================================== */
+    document.getElementById("tabBuy").onclick = () => {
+        panelBuy.style.display = "block";
+        panelSell.style.display = "none";
     };
-    document.getElementById('tabSell').onclick = () => {
-        document.getElementById('panelBuy').style.display = 'none';
-        document.getElementById('panelSell').style.display = 'block';
-        document.getElementById('tabSell').style.color = '#00eaff';
-        document.getElementById('tabSell').style.borderBottom = '2px solid #00eaff';
-        document.getElementById('tabBuy').style.color = '#666';
-        document.getElementById('tabBuy').style.borderBottom = 'none';
+    document.getElementById("tabSell").onclick = () => {
+        panelBuy.style.display = "none";
+        panelSell.style.display = "block";
     };
 
-    // คำนวณเลข Real-time
     inpBuy.oninput = () => {
-        let val = parseFloat(inpBuy.value) || 0;
-        txtGetCoin.innerText = Math.floor(val * BUY_RATE);
+        const v = parseFloat(inpBuy.value) || 0;
+        txtCoin.innerText = Math.floor(v * BUY_RATE);
     };
     inpSell.oninput = () => {
-        let val = parseInt(inpSell.value) || 0;
-        txtGetWLD.innerText = (val / SELL_RATE).toFixed(4);
+        const v = parseInt(inpSell.value) || 0;
+        txtWLD.innerText = (v / SELL_RATE).toFixed(4);
     };
 
-    // --- 6. BUY LOGIC (ระบบซื้อ) ---
-    document.getElementById('btnConfirmBuy').onclick = async () => {
-        const btn = document.getElementById('btnConfirmBuy');
-        let amountWLD = parseFloat(inpBuy.value) || 0;
+    /* =====================================================
+     * 6. BUY LOGIC (ANTI DOUBLE CLICK)
+     * ===================================================== */
+    document.getElementById("btnConfirmBuy").onclick = async function () {
+        const btn = this;
+        if (btn.disabled) return;
 
-        if (amountWLD < MIN_BUY_WLD) {
-            alert(`⛔ ยอดขั้นต่ำคือ ${MIN_BUY_WLD} WLD`);
-            return;
-        }
-        if (!window.MiniKit || !window.MiniKit.isInstalled()) {
-            alert("⛔ กรุณาเปิดใน World App");
-            return;
-        }
+        const amountWLD = parseFloat(inpBuy.value) || 0;
+        if (amountWLD < MIN_BUY_WLD) return alert("ขั้นต่ำไม่ถึง");
+        if (!window.MiniKit?.isInstalled()) return alert("เปิดใน World App");
 
         btn.disabled = true;
         btn.innerText = "PROCESSING...";
-        
-        let coinsToReceive = Math.floor(amountWLD * BUY_RATE);
-        
+
         try {
-            // คำนวณ Wei (18 decimals)
-            const amountInWei = BigInt(Math.floor(amountWLD * 1000000)) * BigInt(1000000000000n);
-            const tokenAmountStr = amountInWei.toString();
-            
-            const payload = {
-                reference: "order_" + Date.now(),
-                to: "0x0c07D1879f06B72a0976fe69B777c0BF84410eFa", // กระเป๋าที่รับเงิน Buy
-                tokens: [{
-                    symbol: "WLD",
-                    token_amount: tokenAmountStr
-                }],
-                description: `ซื้อ ${coinsToReceive} COINS`
-            };
-            
-            const { finalPayload } = await window.MiniKit.commandsAsync.pay(payload);
-            
+            const amountWei =
+                BigInt(Math.floor(amountWLD * 1e6)) * 1000000000000n;
+
+            const { finalPayload } =
+                await window.MiniKit.commandsAsync.pay({
+                    reference: "buy_" + Date.now(),
+                    to: VAULT_RECEIVER,
+                    tokens: [{ symbol: "WLD", token_amount: amountWei.toString() }],
+                    description: "Buy Coins"
+                });
+
             if (finalPayload.status === "success") {
-                playerCOIN += coinsToReceive;
-                if(typeof saveGame === 'function') await saveGame();
-                updateBalance();
-                
-                document.getElementById('exchangeModal').remove();
-                
-                if (typeof gameAlert === 'function') {
-                    gameAlert("SUCCESS", `ได้รับ ${coinsToReceive} COINS แล้ว!`);
-                } else {
-                    alert(`✅ ได้รับ ${coinsToReceive} COINS แล้ว!`);
-                }
-            } else {
-                alert("❌ รายการล้มเหลว หรือถูกยกเลิก");
+                playerCOIN += Math.floor(amountWLD * BUY_RATE);
+                await saveGame?.();
+                updateBalance?.();
+                overlay.remove();
+                alert("✅ ซื้อสำเร็จ");
             }
-        } catch (err) {
-            console.error("Buy Error:", err);
-            alert("เกิดข้อผิดพลาด: " + err.message);
+        } catch (e) {
+            alert(e.message);
         } finally {
-            if(btn) {
-                btn.disabled = false;
-                btn.innerText = "CONFIRM BUY";
-            }
+            btn.disabled = false;
+            btn.innerText = "CONFIRM BUY";
         }
     };
 
-    // --- 7. SELL LOGIC (ระบบขาย) ---
-    document.getElementById('btnConfirmSell').onclick = async () => {
-        const btn = document.getElementById('btnConfirmSell');
+    /* =====================================================
+     * 7. SELL LOGIC (ANTI DOUBLE CLICK)
+     * ===================================================== */
+    document.getElementById("btnConfirmSell").onclick = async function () {
+        const btn = this;
+        if (btn.disabled) return;
+
         const amountCoin = parseInt(inpSell.value) || 0;
+        if (amountCoin < MIN_SELL) return alert("ขั้นต่ำไม่ถึง");
+        if (playerCOIN < amountCoin) return alert("Coin ไม่พอ");
 
-        // Validation ขั้นต่ำ
-        if (amountCoin < MIN_SELL) {
-            alert(`⛔ ขั้นต่ำ ${MIN_SELL} Coins`);
-            return;
-        }
-        if (typeof playerCOIN === 'undefined') {
-            alert("⛔ ไม่พบข้อมูลผู้เล่น (กรุณา Login ใหม่)");
-            return;
-        }
-        if (playerCOIN < amountCoin) {
-            alert("⛔ Coin ของคุณไม่พอ!");
-            return;
-        }
+        const wallet = window.MiniKit?.user?.walletAddress;
+        if (!wallet) return alert("ไม่พบ Wallet");
 
-        // เริ่มขั้นตอน
         btn.disabled = true;
-        btn.innerText = "1/3 SIGNING...";
+        btn.innerText = "1/2 REQUESTING...";
 
         try {
-            if (!window.MiniKit || !window.MiniKit.isInstalled()) {
-                throw new Error("กรุณาเปิดใน World App เท่านั้น");
-            }
+            const res = await fetch(WITHDRAW_API, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ wallet, amount: amountCoin })
+            });
 
-            
-
-            btn.innerText = "1/2 REQUESTING...";
-
-const response = await fetch("https://game-server-vs0h.onrender.com/api/withdraw", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-        wallet: window.MiniKit.user?.walletAddress, // หรือ address ที่คุณเก็บไว้ตอน login
-        amount: amountCoin
-    })
-});
-
-            const data = await response.json();
+            if (!res.ok) throw new Error("Server error");
+            const data = await res.json();
             if (!data.success) throw new Error(data.message);
 
-            // Server อนุมัติแล้ว!
-           // ===== STEP 2/2 : CLAIM =====
-btn.innerText = "2/2 CLAIMING...";
+            btn.innerText = "2/2 CLAIMING...";
 
-const vaultAbi = [
-{
-    "inputs": [
-        { "internalType": "uint256", "name": "amount", "type": "uint256" },
-        { "internalType": "uint256", "name": "nonce", "type": "uint256" },
-        { "internalType": "bytes", "name": "signature", "type": "bytes" }
-    ],
-    "name": "claimReward",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-}
-];
+            const tx = await window.MiniKit.commandsAsync.sendTransaction({
+                transaction: [{
+                    address: data.claimData.vaultAddress,
+                    abi: data.claimData.abi,
+                    functionName: "claimReward",
+                    args: [
+                        data.claimData.amount,
+                        data.claimData.nonce,
+                        data.claimData.signature
+                    ]
+                }]
+            });
 
-const txPayload = {
-    transaction: [{
-        address: data.claimData.vaultAddress,
-        abi: vaultAbi,
-        functionName: "claimReward",
-        args: [
-            data.claimData.amount,
-            data.claimData.nonce,
-            data.claimData.signature
-        ]
-    }]
-};
-
-const txResult = await window.MiniKit.commandsAsync.sendTransaction(txPayload);
-
-if (txResult.finalPayload.status !== "success") {
-    throw new Error("Transaction Cancelled / Failed");
-}
-
-// ===== SUCCESS =====
-playerCOIN = data.newBalance;
-updateBalance();
-if (typeof saveGame === 'function') {
-    await saveGame();
-}
-
-document.getElementById('exchangeModal')?.remove();
-
-if (typeof gameAlert === 'function') {
-    gameAlert("SUCCESS", "✅ ถอนสำเร็จ!");
-} else {
-    alert("✅ ถอนสำเร็จ!");
-} else {
-                throw new Error("Transaction Cancelled / Failed");
+            if (tx.finalPayload.status === "success") {
+                playerCOIN = data.newBalance;
+                await saveGame?.();
+                updateBalance?.();
+                overlay.remove();
+                alert("✅ ถอนสำเร็จ");
+            } else {
+                throw new Error("Transaction failed");
             }
 
         } catch (e) {
-            console.error("Sell Error:", e);
-            alert("❌ " + (e.message || e));
+            alert("❌ " + e.message);
         } finally {
-            if (btn) {
-                btn.disabled = false;
-                btn.innerText = "CONFIRM SELL";
-            }
+            btn.disabled = false;
+            btn.innerText = "CONFIRM SELL";
         }
     };
 }
