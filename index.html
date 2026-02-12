@@ -1108,15 +1108,14 @@ inpSell.oninput = () => {
     };
 
 
-    /* =====================================================
-     // ===== SELL FLOW START (FINAL V2) =====
+     // SELL FLOW START (FINAL V2) 
 
 document.getElementById('btnConfirmSell').onclick = async () => {
 
     const btn = document.getElementById('btnConfirmSell');
     if (btn.disabled) return; // 🔒 กันกดซ้อน
 
-    const amountCoin = parseInt(inpSell.value) || 0;
+    const amountCoin = document.getElementById('inpSellCoin').value || 0;
 
     if (amountCoin < MIN_SELL) {
         alert(`⛔ ขั้นต่ำ ${MIN_SELL} Coins`);
