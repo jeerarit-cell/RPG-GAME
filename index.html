@@ -273,6 +273,9 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
         let REAL_USER_ID = null;
+        window.db = db;
+        window.setDoc = setDoc;
+        window.doc = doc;
 
         // --- 4.2 CLOUD SAVE/LOAD FUNCTIONS ---
         window.cloudSave = async function(data) {
