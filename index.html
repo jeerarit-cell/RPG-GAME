@@ -1138,8 +1138,10 @@ document.getElementById('btnConfirmSell').onclick = async () => {
         }
 
         // ✅ ดึง wallet โดยไม่ต้อง sign (ตัด confirm ซ้ำ)
-        const user = await window.MiniKit.getUser();
-        const walletAddress = user?.walletAddress;
+         const walletAddress = window.MiniKit.user?.walletAddress;
+if (!walletAddress) {
+     throw new Error("ไม่พบ Wallet");
+}
 
         if (!walletAddress) {
             throw new Error("ไม่พบ Wallet");
