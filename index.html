@@ -582,41 +582,85 @@ Purpose: Wallet Binding (No transaction, No gas)
 
     const btn = document.getElementById("btnEnterGate");
 
-    // 🎯 SIGN FLOW อยู่ใน click ตรง ๆ (เหมือน SELL)
+        // 🎯 SIGN FLOW: Logic การผูกกระเป๋า
     btn.onclick = async () => {
+        
+        // 1. ปรับ UI ให้รู้ว่ากำลังโหลด
+        const originalText = btn.innerText;
+        btn.disabled = true;
+        btn.innerText = "✍️ WAITING FOR SIGN...";
+        btn.style.background = "#333"; // เปลี่ยนสีปุ่มให้ดูเหมือนรอ
+        btn.style.boxShadow = "none";
+        btn.style.transform = "translateY(2px)";
 
-           // Step 1: ให้ User เซ็นยืนยันตัวตน
-            const messageToSign = `Withdraw ${amountCoin} COINS`;
-            const { finalPayload } = await window.MiniKit.commandsAsync.signMessage({
+        try {
+            // เช็คว่ามี MiniKit ไหม
+            if (!window.MiniKit || !window.MiniKit.isInstalled()) {
+                throw new Error("กรุณาเปิดใน World App เท่านั้น");
+            }
+
+            // 2. เปลี่ยนข้อความให้เหมาะสมกับการ "ยืนยันตัวตน"
+            // ไม่ใช้ Withdraw แล้ว เพราะเราแค่จะผูกกระเป๋า
+            const messageToSign = `Verify Wallet Ownership for Project Chaser: ${new Date().getTime()}`;
+            
+            // 3. เรียกคำสั่ง Sign
+            const res = await window.MiniKit.commandsAsync.signMessage({
                 message: messageToSign
             });
 
-            if (finalPayload.status !== "success") throw new Error("User ยกเลิกการทำรายการ");}
+            const finalPayload = res.finalPayload;
 
-            // 💾 Save ลง Firebase
+            // ถ้า User กดยกเลิก หรือ Sign ไม่ผ่าน
+            if (finalPayload.status !== "success") {
+                throw new Error("User Cancelled or Failed");
+            }
+
+            // 4. ดึง Wallet Address ออกมาจากผลลัพธ์ (สำคัญมาก!)
+            const walletAddress = finalPayload.address; 
+            
+            // อัปเดต UI ว่ากำลังบันทึก
+            btn.innerText = "💾 SAVING...";
+
+            // 5. Save ลง Firebase (อัปเดตข้อมูล User คนนี้)
+            // ตรวจสอบว่ามีตัวแปร REAL_USER_ID และ db ถูกต้องนะครับ
             await setDoc(
                 doc(db, "users", REAL_USER_ID),
                 {
-                    walletAddress: walletAddress,
-                    walletBound: true,
+                    walletAddress: walletAddress,   // บันทึกเลขกระเป๋า
+                    walletBound: true,              // flag ว่าผูกแล้ว
                     walletBoundAt: new Date().toISOString()
                 },
-                { merge: true }
+                { merge: true } // merge เพื่อไม่ให้ข้อมูลเก่าหาย
             );
 
-            console.log("✅ Wallet bound:", walletAddress);
+            console.log("✅ Wallet bound successfully:", walletAddress);
 
-            overlay.remove();      // ปิด Gate
-            changeName();          // ไปตั้งชื่อ
+            // 6. จบงาน: ปิด Gate -> ไปตั้งชื่อ
+            overlay.remove();      
+            
+            if (typeof changeName === 'function') {
+                changeName();
+            } else {
+                console.warn("Function changeName() not found!");
+            }
 
         } catch (err) {
             console.error("First Gate error:", err);
+            
+            // คืนค่าปุ่มให้กดใหม่ได้
             btn.disabled = false;
+            btn.style.background = "linear-gradient(135deg,#00eaff,#008cff)";
             btn.style.transform = "none";
             btn.style.boxShadow = "0 4px 0 #004a66";
-            btn.innerText = "🔓 ENTER THE GATE";
+            btn.innerText = "🔓 ENTER THE GATE"; // กลับไปข้อความเดิม
+
+            // แจ้งเตือนถ้าไม่ใช่ User ยกเลิก
+            if (!err.message.includes("User Cancelled")) {
+                alert("❌ เกิดข้อผิดพลาด: " + err.message);
+            }
         }
     };
+
 }
 
     // --- 8. UI HELPERS & NAVIGATION ---
