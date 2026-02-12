@@ -616,13 +616,13 @@ Purpose: Wallet Binding Only
                 message: message
             });
 
-            const payload = signResult.finalPayload;
-
-            if (!payload || payload.status !== "success") {
-                throw new Error("User cancelled signing");
-            }
-
-            const walletAddress = payload.address;
+            const finalPayload = signResult.finalPayload;
+        
+        // ถ้า User กดยกเลิก
+        if (finalPayload.status !== "success") {
+            throw new Error("User Cancelled Signing");
+        }
+            const walletAddress = finalpayload.address;
 
             if (!walletAddress) {
                 throw new Error("No wallet address returned");
