@@ -309,7 +309,7 @@
             if(!window.REAL_USER_ID) return;
             try {
                 const playerName = document.getElementById('uiPlayerName').innerText.trim();
-                await addDoc(collection(db, "withdrawals"), {
+                await window.addDoc(window.collection(window.db, "withdrawals"), {
                     userId: window.REAL_USER_ID,
                     name: playerName,
                     coinSpent: coinAmount,
