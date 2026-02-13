@@ -280,7 +280,7 @@
             if(!REAL_USER_ID) return;
             const loader = document.getElementById('cloud-loader');
             if(loader) loader.style.display = 'block';
-            try { await setDoc(doc(db, "users", REAL_USER_ID), data); } 
+            try {  await setDoc(doc(db, "users", REAL_USER_ID), data, { merge: true }); } 
             catch (e) { console.error("Save Error: ", e); }
             if(loader) loader.style.display = 'none';
         }
@@ -468,62 +468,6 @@
     nav('home');
 };
 
-           //function bindwallet
-
-           async function bindWalletOnce(userId) {
-
-    if (!window.MiniKit || !window.MiniKit.isInstalled()) {
-        alert("⚠️ กรุณาเปิดเกมผ่าน World App");
-        return false;
-    }
-
-    const messageToSign = `PROJECT CHASER – WALLET BINDING
-
-I confirm that this wallet belongs to my game account.
-
-UserId: ${userId}
-Purpose: Wallet Binding (No transaction, No gas)
-`;
-
-    try {
-        // 🔑 ใช้ flow เดียวกับ SELL
-        const signResult = await window.MiniKit.commandsAsync.signMessage({
-            message: messageToSign
-        });
-
-        const finalPayload = signResult.finalPayload;
-
-        if (!finalPayload || finalPayload.status !== "success") {
-            console.log("User cancelled wallet binding");
-            return false;
-        }
-
-        const walletAddress = finalPayload.address;
-
-        if (!walletAddress) {
-            console.error("No wallet address in payload");
-            return false;
-        }
-
-        await setDoc(
-            doc(db, "users", userId),
-            {
-                walletAddress: walletAddress,
-                walletBound: true,
-                walletBoundAt: new Date().toISOString()
-            },
-            { merge: true }
-        );
-
-        console.log("✅ Wallet bound via SELL-style sign:", walletAddress);
-        return true;
-
-    } catch (e) {
-        console.error("Bind wallet error:", e);
-        alert("❌ เกิดข้อผิดพลาดระหว่างยืนยัน Wallet");
-        return false;
-    }
-} 
         //ประกาศหน้าเกม
 
          function openFirstGateModal() {
