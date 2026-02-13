@@ -503,166 +503,112 @@ Purpose: Wallet Binding (No transaction, No gas)
         alert("❌ เกิดข้อผิดพลาดระหว่างยืนยัน Wallet");
         return false;
     }
-}
+} 
+        //ประกาศหน้าเกม
 
          function openFirstGateModal() {
 
-    // 🛡 Guard กันเปิดซ้ำ
+    // 🛡 Guard: ป้องกันการเปิดซ้ำ
     if (document.getElementById("firstGateModal")) return;
 
+    // --- 1. สร้าง UI (Overlay + Box) ---
     const overlay = document.createElement("div");
     overlay.id = "firstGateModal";
     overlay.style.cssText = `
-        position: fixed;
-        inset: 0;
-        background: rgba(0,0,0,0.92);
-        backdrop-filter: blur(8px);
+        position: fixed; inset: 0;
+        background: rgba(0,0,0,0.95);
+        backdrop-filter: blur(10px);
         z-index: 99999;
-        display: flex;
-        align-items: center;
-        justify-content: center;
+        display: flex; align-items: center; justify-content: center;
         font-family: 'Orbitron','Kanit',sans-serif;
+        animation: fadeIn 0.3s ease-out;
     `;
 
     const box = document.createElement("div");
     box.style.cssText = `
-        width: 90%;
-        max-width: 420px;
+        width: 85%; max-width: 400px;
         background: #0b0f14;
         border: 1px solid #00eaff;
-        border-radius: 14px;
-        padding: 26px 22px;
-        box-shadow: 0 0 40px rgba(0,234,255,.25);
-        color: #eafcff;
+        border-radius: 12px;
+        padding: 30px 20px;
         text-align: center;
+        box-shadow: 0 0 30px rgba(0,234,255,0.15);
+        position: relative;
     `;
 
+    // --- 2. เนื้อหา (Announcement / Story) ---
     box.innerHTML = `
-        <div style="font-size:0.75rem; letter-spacing:2px; color:#00eaff;">
-            INITIATION PROTOCOL
+        <div style="color:#00eaff; font-size:0.8rem; letter-spacing:3px; margin-bottom:10px;">
+            SYSTEM ANNOUNCEMENT
         </div>
 
         <h1 style="
-            margin:10px 0 14px;
-            font-size:1.6rem;
-            color:#00eaff;
-            text-shadow:0 0 12px rgba(0,234,255,.8);
+            margin: 0 0 15px;
+            font-size: 1.8rem;
+            color: #fff;
+            text-shadow: 0 0 10px rgba(0,234,255,0.5);
         ">
-            🚪 THE FIRST GATE
+            PROJECT CHASER
         </h1>
 
-        <p style="font-size:0.95rem; line-height:1.6; color:#cfefff;">
-            ยินดีต้อนรับสู่ <b>Project Chaser</b><br>
-            กรุณายืนยัน Wallet ของคุณก่อนเริ่มต้น
-        </p>
+        <div style="
+            background: rgba(0,234,255,0.05);
+            border: 1px dashed #00eaff;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        ">
+            <p style="color:#cfefff; font-size:0.9rem; line-height:1.6; margin:0;">
+                ยินดีต้อนรับ Hunter!<br>
+                โลกใบใหม่กำลังรอคุณอยู่<br>
+                <span style="color:#ffd700; font-size:0.8rem;">(Beta Version 1.0)</span>
+            </p>
+        </div>
 
         <button id="btnEnterGate" style="
-            margin-top:20px;
-            width:100%;
-            padding:14px;
-            font-size:1rem;
-            border-radius:10px;
-            border:none;
-            background:linear-gradient(135deg,#00eaff,#008cff);
-            color:#001018;
-            font-weight:bold;
-            cursor:pointer;
-            transition:all .1s ease;
-            box-shadow:0 4px 0 #004a66;
+            width: 100%;
+            padding: 14px;
+            font-size: 1rem;
+            font-weight: bold;
+            color: #000;
+            background: linear-gradient(90deg, #00eaff, #008cff);
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0,234,255,0.3);
+            font-family: 'Orbitron', sans-serif;
+            transition: transform 0.1s;
         ">
-            🔓 ENTER THE GATE
+            ENTER WORLD ➔
         </button>
-
-        <div style="margin-top:12px;font-size:0.75rem;color:#7fd;">
-            No gas • No transfer • Sign message only
-        </div>
     `;
 
     overlay.appendChild(box);
     document.body.appendChild(overlay);
 
+    // --- 3. Logic ปุ่มกด (สำคัญตรงนี้) ---
     const btn = document.getElementById("btnEnterGate");
+    
+    btn.onclick = () => {
+        // เล่นเสียง (ถ้ามี)
+        if(typeof playSfx === 'function') playSfx('click');
 
-        // 🎯 SIGN FLOW: Logic การผูกกระเป๋า
-    btn.onclick = async () => {
+        // ปิดหน้าต่าง First Gate
+        overlay.remove();
+
+        // ✅ เช็คว่าต้องเปลี่ยนชื่อไหม? (Flow ผู้เล่นใหม่)
+        // ตรวจสอบจาก UI ว่าชื่อเป็นค่า Default (NAME) หรือว่างเปล่าหรือไม่
+        const currentName = document.getElementById('uiPlayerName')?.innerText?.trim();
         
-        // 1. ปรับ UI ให้รู้ว่ากำลังโหลด
-        const originalText = btn.innerText;
-        btn.disabled = true;
-        btn.innerText = "✍️ WAITING FOR SIGN...";
-        btn.style.background = "#333"; // เปลี่ยนสีปุ่มให้ดูเหมือนรอ
-        btn.style.boxShadow = "none";
-        btn.style.transform = "translateY(2px)";
-
-        try {
-            // เช็คว่ามี MiniKit ไหม
-            if (!window.MiniKit || !window.MiniKit.isInstalled()) {
-                throw new Error("กรุณาเปิดใน World App เท่านั้น");
-            }
-
-            // 2. เปลี่ยนข้อความให้เหมาะสมกับการ "ยืนยันตัวตน"
-            // ไม่ใช้ Withdraw แล้ว เพราะเราแค่จะผูกกระเป๋า
-            const messageToSign = `Verify Wallet Ownership for Project Chaser: ${new Date().getTime()}`;
-            
-            // 3. เรียกคำสั่ง Sign
-            const res = await window.MiniKit.commandsAsync.signMessage({
-                message: messageToSign
-            });
-
-            const finalPayload = res.finalPayload;
-
-            // ถ้า User กดยกเลิก หรือ Sign ไม่ผ่าน
-            if (finalPayload.status !== "success") {
-                throw new Error("User Cancelled or Failed");
-            }
-
-            // 4. ดึง Wallet Address ออกมาจากผลลัพธ์ (สำคัญมาก!)
-            const walletAddress = finalPayload.address; 
-            
-            // อัปเดต UI ว่ากำลังบันทึก
-            btn.innerText = "💾 SAVING...";
-
-            // 5. Save ลง Firebase (อัปเดตข้อมูล User คนนี้)
-            // ตรวจสอบว่ามีตัวแปร REAL_USER_ID และ db ถูกต้องนะครับ
-            await setDoc(
-                doc(db, "users", REAL_USER_ID),
-                {
-                    walletAddress: walletAddress,   // บันทึกเลขกระเป๋า
-                    walletBound: true,              // flag ว่าผูกแล้ว
-                    walletBoundAt: new Date().toISOString()
-                },
-                { merge: true } // merge เพื่อไม่ให้ข้อมูลเก่าหาย
-            );
-
-            console.log("✅ Wallet bound successfully:", walletAddress);
-
-            // 6. จบงาน: ปิด Gate -> ไปตั้งชื่อ
-            overlay.remove();      
-            
-            if (typeof changeName === 'function') {
-                changeName();
-            } else {
-                console.warn("Function changeName() not found!");
-            }
-
-        } catch (err) {
-            console.error("First Gate error:", err);
-            
-            // คืนค่าปุ่มให้กดใหม่ได้
-            btn.disabled = false;
-            btn.style.background = "linear-gradient(135deg,#00eaff,#008cff)";
-            btn.style.transform = "none";
-            btn.style.boxShadow = "0 4px 0 #004a66";
-            btn.innerText = "🔓 ENTER THE GATE"; // กลับไปข้อความเดิม
-
-            // แจ้งเตือนถ้าไม่ใช่ User ยกเลิก
-            if (!err.message.includes("User Cancelled")) {
-                alert("❌ เกิดข้อผิดพลาด: " + err.message);
-            }
+        if (!currentName || currentName === "NAME" || currentName === "UNK") {
+            // ถ้าใช่ -> เด้งหน้าต่างตั้งชื่อทันที (ซึ่งเราจะใส่ระบบ Sign Wallet ไว้ในนั้น)
+            setTimeout(() => {
+                if(typeof changeName === 'function') changeName();
+            }, 300); // หน่วงเวลานิดนึงให้ดูนุ่มนวล
         }
     };
-
 }
+
 
     // --- 8. UI HELPERS & NAVIGATION ---
     document.getElementById('btnWallet').onclick = function() {
