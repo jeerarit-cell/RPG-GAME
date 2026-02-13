@@ -820,7 +820,7 @@ document.getElementById('btnWorldID').onclick = async function() {
             // ล็อคปุ่มป้องกันคนกดเบิ้ล
             const btnAction = document.getElementById('actionBtn'); 
             btnAction.disabled = true;
-            btnAction.innerText = "⏳ SYNCING SERVER...";
+            btnAction.innerText = "⏳ WAIT...";
 
             try {
                 // 🌟 ยิง API บอก Server ให้ประมวลผล
@@ -944,12 +944,12 @@ document.getElementById('btnWorldID').onclick = async function() {
             background:linear-gradient(135deg,#00eaff,#008cff); color:#000; font-weight:bold; 
             cursor:pointer; font-family:'Orbitron'; transition:0.2s; box-shadow:0 4px 10px rgba(0,234,255,0.3);
         ">
-            CONFIRM & BIND
+            CONFIRM
         </button>
         
         <p style="color:#555; font-size:0.7rem; margin-top:15px; line-height:1.4;">
-            * การตั้งชื่อจะผูกกระเป๋า World App ของคุณทันที<br>
-            (Sign Message Only • No Gas)
+            * 🔴🟠🟡🟢🔵🟣🟤⚪️⚫️<br>
+            (Sign Message Only ❤)
         </p>
     `; 
     
@@ -974,7 +974,7 @@ document.getElementById('btnWorldID').onclick = async function() {
         // --- เริ่มกระบวนการผูกกระเป๋า ---
         try {
             btn.disabled = true;
-            btn.innerText = "1/2 ✍️ SIGNING...";
+            btn.innerText = "⏳️ WAIT...";
             btn.style.background = "#333";
             btn.style.color = "#aaa";
             btn.style.boxShadow = "none";
@@ -998,9 +998,7 @@ document.getElementById('btnWorldID').onclick = async function() {
             // 3. ได้เลขกระเป๋ามาแล้ว!
             const walletAddress = finalPayload.address;
             
-            // ปรับ UI เป็นกำลังเซฟ
-            btn.innerText = "2/2 💾 SAVING TO SERVER...";
-
+       
             // 4. ส่งข้อมูลไปให้ Server ลงทะเบียนและแจกเงินแทน
             if (!window.REAL_USER_ID) throw new Error("User ID Not Found (Login First)");
 
