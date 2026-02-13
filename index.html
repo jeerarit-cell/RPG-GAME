@@ -411,43 +411,63 @@
         };
         if (window.cloudSave) window.cloudSave(gameData);
     }
+      //window applyGameDATA
 
     window.applyGameData = function(data) {
 
-    console.log("applyGameData called");
-
-    const alreadyBound = data?.walletBound === true;
+    console.log("📥 Loading Game Data...", data ? "Found Save" : "New User");
 
     if (data) {
+        // ----------------------------------------
+        // 💾 กรณี: ผู้เล่นเก่า (มีข้อมูลใน Firebase)
+        // ----------------------------------------
         playerCOIN = parseInt(data.coin) || 0;
         playerLevel = parseInt(data.level) || 1;
         playerEXP = parseInt(data.exp) || 0;
+        
+        // คำนวณ HP Max ตามเลเวลปัจจุบัน
         playerMaxHP = 20 + ((playerLevel - 1) * 2);
-        playerCurrentHP = parseInt(data.hp) || playerMaxHP;
+        
+        // ถ้า HP เป็น 0 หรือไม่มีข้อมูล ให้เติมเต็ม
+        playerCurrentHP = parseInt(data.hp) || playerMaxHP; 
 
+        // แสดงชื่อผู้เล่น (ถ้ามี)
         const uiName = document.getElementById('uiPlayerName');
-        if (data.name) uiName.innerText = data.name.toUpperCase();
+        if (uiName) {
+            uiName.innerText = (data.name || "NAME").toUpperCase();
+        }
 
     } else {
-        // NEW USER DEFAULT
-        playerCOIN = 200;
+        // ----------------------------------------
+        // 🆕 กรณี: ผู้เล่นใหม่ (ไม่พบ Save)
+        // ----------------------------------------
+        playerCOIN = 200;       // แจกเงินขวัญถุง
         playerLevel = 1;
         playerEXP = 0;
         playerMaxHP = 20;
         playerCurrentHP = 20;
+
+        // ตั้งชื่อเริ่มต้นเป็น "NAME" 
+        // (เพื่อให้ First Gate รู้ว่าคนนี้ต้องเปลี่ยนชื่อ)
+        const uiName = document.getElementById('uiPlayerName');
+        if (uiName) {
+            uiName.innerText = "NAME"; 
+        }
     }
 
+    // --- อัปเดตหน้าจอพื้นฐาน ---
     updateBalance();
     updateLobbyStats();
-    initMap();
+    initMap(); // เตรียมมอนสเตอร์
 
-    // 🔐 เปิด First Gate ถ้ายังไม่ bind
-    if (!alreadyBound) {
-        openFirstGateModal();
-    }
+    // --- เปิดประตู First Gate เสมอ ---
+    // ตามที่คุณต้องการ: ขึ้นทุกครั้งที่เข้าเกม
+    openFirstGateModal();
 
+    // เข้าสู่หน้า Lobby
     nav('home');
 };
+
            //function bindwallet
 
            async function bindWalletOnce(userId) {
