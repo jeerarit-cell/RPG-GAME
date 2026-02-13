@@ -306,45 +306,32 @@
         }
 
         window.logWithdrawal = async function(coinAmount, wldAmount) {
-            if(!window.REAL_USER_ID) return;
-            try {
-                const playerName = document.getElementById('uiPlayerName').innerText.trim();
-                await window.addDoc(window.collection(window.db, "withdrawals"), {
-                    userId: window.REAL_USER_ID,
-                    name: playerName,
-                    coinSpent: coinAmount,
-                    wldToReceive: wldAmount,
-                    status: "PENDING", 
-                    timestamp: new Date().toISOString()
-                });
-                console.log("Withdrawal log created");
-            } catch (e) { console.error("Log Error: ", e); }
-        }
+    // 1. เช็คว่ามี User ID ไหม (ต้องใช้ window. นำหน้า)
+    if(!window.REAL_USER_ID) {
+        console.warn("ไม่สามารถบันทึกประวัติการถอนได้: ไม่พบ User ID");
+        return; 
+    }
 
-        window.getWalletAddress = async function() {
-            console.log("Start getting wallet address...");
-            if (!window.MiniKit || !window.MiniKit.isInstalled()) {
-                alert("⚠️ MiniKit not installed (ต้องเปิดใน World App)");
-                return null;
-            }
-            const nonce = Math.random().toString(36).substring(7);
-            try {
-                const { finalPayload } = await window.MiniKit.commandsAsync.walletAuth({
-                    nonce: nonce, requestId: '0', expirationTime: new Date(new Date().getTime() + 7 * 24 * 60 * 60 * 1000), notBefore: new Date()
-                });
-                if (finalPayload.status === 'success') {
-                    const walletAddress = finalPayload.address;
-                    console.log("✅ Wallet Address Found:", walletAddress);
-                    return walletAddress;
-                } else {
-                    console.error("❌ Wallet Auth Failed:", finalPayload);
-                    return null;
-                }
-            } catch (error) {
-                console.error("❌ Wallet Auth Error:", error);
-                return null;
-            }
-        };
+    try {
+        // ดึงชื่อผู้เล่นจากหน้าจอ
+        const playerName = document.getElementById('uiPlayerName').innerText.trim();
+        
+        // 2. ใช้ window. นำหน้า addDoc, collection, และ db
+        await window.addDoc(window.collection(window.db, "withdrawals"), {
+            userId: window.REAL_USER_ID,
+            name: playerName,
+            coinSpent: coinAmount,       // จำนวน Coin ที่ถูกหักในเกม
+            wldToReceive: wldAmount,     // จำนวน WLD ที่ผู้เล่นจะได้รับ
+            status: "SUCCESS",           // บันทึกว่าถอนสำเร็จ (เพราะจะถูกเรียกตอน claim ผ่านแล้ว)
+            timestamp: new Date().toISOString()
+        });
+        
+        console.log("✅ บันทึกประวัติการถอนเงินลง Database เรียบร้อย");
+    } catch (e) { 
+        console.error("❌ เกิดข้อผิดพลาดในการบันทึกประวัติการถอน: ", e); 
+    }
+}
+
     </script>
 
     <script>
