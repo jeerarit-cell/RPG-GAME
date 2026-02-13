@@ -606,6 +606,19 @@
             playSfx('click'); 
             return; 
         } 
+              // 🌟 2. ดักเรื่อง Daily Limit ก่อนเข้าสู้ (เพิ่มใหม่) 🌟
+        const today = new Date().toDateString();
+        if (today !== lastRewardDate) {
+            earnedFromGameToday = 0;
+            lastRewardDate = today;
+        }
+        
+        const dailyGameLimit = 10000;
+        if (earnedFromGameToday >= dailyGameLimit) {
+            gameAlert("DAILY LIMIT", "คุณได้รับรางวัลครบ 10,000 COINS สำหรับวันนี้แล้ว!<br><span style='color:#00eaff;'>กรุณากลับมาท้าทายใหม่พรุ่งนี้</span>");
+            playSfx('click');
+            return; // ⛔ สั่งหยุดการทำงาน บล็อกไม่ให้เข้าสู้
+        }
 
         const monster = monsterDB.find(m => m.id === monsterID); 
         if(!monster) return; 
@@ -869,12 +882,15 @@
         const dailyGameLimit = 10000;
         let actualReceive = totalReward;
 
+        // ถ้ากำไรตานี้ บวกกับของเดิมแล้วทะลุลิมิต
         if (earnedFromGameToday + baseReward > dailyGameLimit) {
-            let allowedProfit = dailyGameLimit - earnedFromGameToday;
-            actualReceive = allowedProfit + battle_entryFee;
+            // ✅ ใช้ Math.max(0, ...) บังคับไม่ให้กำไรติดลบเด็ดขาด
+            let allowedProfit = Math.max(0, dailyGameLimit - earnedFromGameToday); 
+            
+            actualReceive = allowedProfit + battle_entryFee; // ได้กำไรที่เหลือ + ทุนคืน
             gameAlert(
-                "ลิมิตรางวัล",
-                `ได้รับกำไร ${allowedProfit} (ทุนคืน ${battle_entryFee})`
+                "ถึงขีดจำกัดรายวัน",
+                `คุณได้รับกำไรสูงสุดของวันนี้แล้ว!<br>ได้รับกำไร ${allowedProfit} (ทุนคืน ${battle_entryFee})`
             );
         }
 
