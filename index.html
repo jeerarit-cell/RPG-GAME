@@ -1205,7 +1205,7 @@ document.getElementById('btnWorldID').onclick = async function() {
         txtGetWLD.innerText = parseFloat(rawWLD.toFixed(4)).toString();
     };
 
-    /* =====================================================
+        /* =====================================================
      * 5. BUY LOGIC (เชื่อมต่อ Server เพิ่มเติมเพื่อบันทึกข้อมูล)
      * ===================================================== */
     document.getElementById('btnConfirmBuy').onclick = async function () {
@@ -1214,10 +1214,10 @@ document.getElementById('btnWorldID').onclick = async function() {
 
         let amountWLD = parseFloat(inpBuy.value) || 0;
         if (amountWLD < MIN_BUY_WLD)
-            return alert(`⛔ ยอดขั้นต่ำคือ ${MIN_BUY_WLD} WLD`);
+            return gameAlert("ERROR", `⛔ ยอดขั้นต่ำคือ ${MIN_BUY_WLD} WLD`);
 
         if (!window.MiniKit?.isInstalled())
-            return alert("⛔ กรุณาเปิดใน World App");
+            return gameAlert("ERROR", "⛔ กรุณาเปิดใน World App");
 
         btn.disabled = true;
         btn.innerText = "PROCESSING PAY...";
@@ -1270,12 +1270,14 @@ document.getElementById('btnWorldID').onclick = async function() {
             if (typeof updateBalance === "function") updateBalance();
 
             overlay.remove();
-            alert(`✅ ได้รับ ${coinsToReceive} COINS แล้ว!`);
+            
+            // ✅ ใช้ gameAlert แจ้งเตือนซื้อสำเร็จ
+            gameAlert("PURCHASE SUCCESS", `ได้รับ <span style="color:#ffd700; font-size:1.2rem;">${coinsToReceive} COINS</span> เรียบร้อยแล้ว!`);
 
         } catch (err) {
             console.error("Buy Error:", err);
             if (!err.message?.includes("ยกเลิก"))
-                alert("❌ เกิดข้อผิดพลาด: " + (err.message || err));
+                gameAlert("ERROR", "❌ เกิดข้อผิดพลาด: " + (err.message || err));
         } finally {
             btn.disabled = false;
             btn.innerText = "CONFIRM BUY";
@@ -1283,8 +1285,8 @@ document.getElementById('btnWorldID').onclick = async function() {
     };
 
 
-    /* =====================================================
-     * 6. SELL LOGIC (Server เป็นคนคุมทั้งหมด)
+        /* =====================================================
+     * 6. SELL LOGIC (ตัดเลขสเต็ปออก โชว์แค่ WAIT...)
      * ===================================================== */
     document.getElementById('btnConfirmSell').onclick = async function () {
 
@@ -1294,23 +1296,24 @@ document.getElementById('btnWorldID').onclick = async function() {
         const amountCoin = parseInt(inpSell.value) || 0;
 
         if (amountCoin < MIN_SELL)
-            return alert(`⛔ ขั้นต่ำ ${MIN_SELL} Coins`);
+            return gameAlert("ERROR", `⛔ ขั้นต่ำ ${MIN_SELL} Coins`);
 
         if (typeof playerCOIN === "undefined" || playerCOIN < amountCoin)
-            return alert("⛔ Coin ของคุณไม่พอ!");
+            return gameAlert("ERROR", "⛔ Coin ของคุณไม่พอ!");
 
         if (!window.MiniKit?.isInstalled())
-            return alert("กรุณาเปิดใน World App");
+            return gameAlert("ERROR", "กรุณาเปิดใน World App");
 
         if (!window.REAL_USER_ID)
-            return alert("ไม่พบข้อมูลผู้ใช้");
+            return gameAlert("ERROR", "ไม่พบข้อมูลผู้ใช้");
 
         btn.disabled = true;
-        btn.innerText = "1/2 VERIFYING...";
+        // ✅ เปลี่ยนเป็นข้อความเดียวค้างไว้จนจบกระบวนการ
+        btn.innerText = "⏳ WAIT...";
 
         try {
 
-            // ✅ ยิงไปหา server โดยไม่ส่ง wallet / currentCoin
+            // Step 1: ยิงไปหา server เพื่อขอ Signature
             const response = await fetch(WITHDRAW_API, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -1324,8 +1327,7 @@ document.getElementById('btnWorldID').onclick = async function() {
             if (!data.success)
                 throw new Error(data.message || "Server Rejected");
 
-            btn.innerText = "2/2 CLAIMING...";
-
+            // Step 2: ให้ผู้เล่นกดยืนยันในหน้าต่าง World App (ปุ่มจะยังคงขึ้น WAIT...)
             const txPayload = {
                 transaction: [{
                     address: data.claimData.vaultAddress,
@@ -1354,28 +1356,47 @@ document.getElementById('btnWorldID').onclick = async function() {
             if (txResult?.finalPayload?.status !== "success")
                 throw new Error("รายการถูกยกเลิก");
 
-            // ✅ ใช้ newBalance จาก server ถ้ามี
-            if (data.newBalance !== undefined)
-                playerCOIN = data.newBalance;
-            else
-                playerCOIN -= amountCoin;
+            // Step 3: โอนบน Blockchain ผ่านแล้ว -> ยิงบอก Server (ปุ่มจะยังคงขึ้น WAIT...)
+            const syncRes = await fetch("https://game-server-vs0h.onrender.com/api/withdraw-success", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    userId: window.REAL_USER_ID,
+                    amount: amountCoin,
+                    nonce: data.claimData.nonce 
+                })
+            });
+
+            const syncData = await syncRes.json();
+
+            if (syncData.success && syncData.newBalance !== undefined) {
+                playerCOIN = syncData.newBalance;
+            } else {
+                playerCOIN -= amountCoin; 
+            }
 
             if (typeof updateBalance === "function") updateBalance();
 
             overlay.remove();
-            alert("✅ ถอนสำเร็จ!");
+            
+            gameAlert("WITHDRAW SUCCESS", "✅ ทำรายการสำเร็จ!<br><span style='color:#00eaff; font-size:0.9rem;'>เงินรางวัลโอนเข้ากระเป๋าของคุณแล้ว</span>");
 
         } catch (e) {
             console.error("Sell Error:", e);
             if (!e.message?.includes("ยกเลิก"))
-                alert("❌ เกิดข้อผิดพลาด: " + (e.message || "Unknown error"));
+                gameAlert("ERROR", "❌ เกิดข้อผิดพลาด: " + (e.message || "Unknown error"));
         } finally {
+            // เมื่อจบกระบวนการ (ทั้งสำเร็จและถูกยกเลิก) ปุ่มจะกลับมาเป็น CONFIRM SELL
             btn.disabled = false;
             btn.innerText = "CONFIRM SELL";
         }
-      };
-   };
-        
+    };
+    
+}; // <--- อย่าลืมปีกกาปิดฟังก์ชัน openExchangeModal ตัวนี้ด้วยนะครับ
+ 
+
     </script>
 </body>
 </html>
+
+  
