@@ -1090,38 +1090,49 @@
             const walletAddress = finalPayload.address;
             
             // ปรับ UI เป็นกำลังเซฟ
-            btn.innerText = "2/2 💾 SAVING...";
+            btn.innerText = "2/2 💾 SAVING TO SERVER...";
 
-            // 4. บันทึกทุกอย่างลง Firebase (ชื่อ + กระเป๋า + ข้อมูลเริ่มต้น)
-            // ตรวจสอบ REAL_USER_ID ว่ามีค่าไหม (ควรมีตั้งแต่ Login)
+            // 4. ส่งข้อมูลไปให้ Server ลงทะเบียนและแจกเงินแทน (ไม่เซฟเองแล้ว!)
             if (!window.REAL_USER_ID) throw new Error("User ID Not Found (Login First)");
 
-            await setDoc(window.doc(window.db, "users", window.REAL_USER_ID), {
-                name: newName,
-                walletAddress: walletAddress,
-                walletBound: true,
-                coin: 200,          // เงินเริ่มต้น
-                level: 1,
-                hp: 20,
-                exp: 0,
-                createdAt: new Date().toISOString(),
-                walletBoundAt: new Date().toISOString()
-            }, { merge: true });
+            const response = await fetch("https://game-server-vs0h.onrender.com/api/register", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    userId: window.REAL_USER_ID,
+                    wallet: walletAddress,
+                    name: newName
+                })
+            });
+
+            const data = await response.json();
+            
+            // เช็คว่า Server ยอมให้สมัครไหม (เผื่อสมัครซ้ำ)
+            if (!data.success) {
+                throw new Error(data.message || "เซิร์ฟเวอร์ปฏิเสธการลงทะเบียน");
+            }
 
             // --- สำเร็จ! ---
-            console.log("✅ Registration Complete:", newName, walletAddress);
+            console.log("✅ Registration Complete by Server:", newName, walletAddress);
             
-            // อัปเดตหน้าจอทันที
+            // อัปเดตหน้าจอทันที (เซ็ตค่าให้ตรงกับที่ Server กำหนด)
             document.getElementById('uiPlayerName').innerText = newName;
-            playerCOIN = 200; // อัปเดตตัวแปรในเกมด้วย
+            playerCOIN = 40;     // รับเงินขวัญถุง 40 เหรียญ
+            playerLevel = 1;     // เริ่มเลเวล 1
+            playerEXP = 0;
+            playerMaxHP = 20;
+            playerCurrentHP = 20;
+            
+            // สั่งอัปเดต UI หน้าจอทั้งหมด
             updateBalance();
+            updateLobbyStats();
 
             // ปิดหน้าต่าง
             overlay.remove(); 
             
             // เล่นเสียง & แจ้งเตือน
             if(typeof playSfx === 'function') playSfx('win');
-            gameAlert("WELCOME", `ยินดีต้อนรับ Hunter ${newName}!\nขอให้สนุกกับทักษะนักล่าของคุณ\n...GO>>>>...`);
+            gameAlert("WELCOME", `ยินดีต้อนรับ Hunter ${newName}!\nได้รับ 40 COINS พร้อมเริ่มงาน\n...GO>>>>...`);
 
         } catch (e) {
             console.error("Registration Error:", e);
