@@ -272,49 +272,15 @@
         };
 
         const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        window.REAL_USER_ID = null;
-        window.db = db;
-        window.doc = doc;
-        window.setDoc = setDoc;
-        window.getDoc = getDoc; // เผื่อใช้
-        
-
-            // --- 7. SAVE & LOAD LOGIC (ปรับให้ปลอดภัย) ---
-    function saveGame() {
+                   
+           function saveGame() {
     updateBalance();
     updateLobbyStats();
 }
 window.cloudSave = async () => {};
 
 
-        window.logWithdrawal = async function(coinAmount, wldAmount) {
-    // 1. เช็คว่ามี User ID ไหม (ต้องใช้ window. นำหน้า)
-    if(!window.REAL_USER_ID) {
-        console.warn("ไม่สามารถบันทึกประวัติการถอนได้: ไม่พบ User ID");
-        return; 
-    }
-
-    try {
-        // ดึงชื่อผู้เล่นจากหน้าจอ
-        const playerName = document.getElementById('uiPlayerName').innerText.trim();
         
-        // 2. ใช้ window. นำหน้า addDoc, collection, และ db
-        await window.addDoc(window.collection(window.db, "withdrawals"), {
-            userId: window.REAL_USER_ID,
-            name: playerName,
-            coinSpent: coinAmount,       // จำนวน Coin ที่ถูกหักในเกม
-            wldToReceive: wldAmount,     // จำนวน WLD ที่ผู้เล่นจะได้รับ
-            status: "SUCCESS",           // บันทึกว่าถอนสำเร็จ (เพราะจะถูกเรียกตอน claim ผ่านแล้ว)
-            timestamp: new Date().toISOString()
-        });
-        
-        console.log("✅ บันทึกประวัติการถอนเงินลง Database เรียบร้อย");
-    } catch (e) { 
-        console.error("❌ เกิดข้อผิดพลาดในการบันทึกประวัติการถอน: ", e); 
-    }
-}
-
     </script>
 
     <script>
@@ -366,13 +332,53 @@ window.cloudSave = async () => {};
                 console.error("Verify Failed:", finalPayload);
                 status.innerText = "ยืนยันตัวตนไม่ผ่าน";
                 status.style.color = "red";
-                alert("❌ Verify Error: " + (finalPayload.error_code || "Unknown"));
-            }
-        } catch (error) {
-            console.error(error);
-            alert("❌ Error: " + error.message);
+                alert("❌ Verify Error: "
+
+ + // --- 6. AUTHENTICATION & LOGIN ---
+document.getElementById('btnWorldID').onclick = async function() {
+    const status = document.getElementById('loginStatus');
+    status.innerText = "กำลังเชื่อมต่อ...";
+    status.style.color = "#ff9d00";
+
+    if (!window.MiniKit || !window.MiniKit.isInstalled()) {
+        alert("⚠️ กรุณาเปิดใน World App");
+        return;
+    }
+
+    try {
+        const nonce = Math.random().toString(36).substring(7);
+
+        const { finalPayload } = await window.MiniKit.commandsAsync.verify({
+            action: 'login',
+            signal: nonce,
+            verification_level: 'device'
+        });
+
+        if (finalPayload && finalPayload.status === 'success') {
+
+            // ✅ ตั้ง User ID ตัวจริงตรงนี้
+            window.REAL_USER_ID = finalPayload.nullifier_hash;
+
+            console.log("✅ REAL_USER_ID =", window.REAL_USER_ID);
+
+            status.innerText = "สำเร็จ!";
+            status.style.color = "#00ff00";
+
+            // ❌ ไม่ใช้ cloudLoad แล้ว
+            window.applyGameData(null);
+
+        } else {
+            console.error("Verify Failed:", finalPayload);
+            status.innerText = "ยืนยันตัวตนไม่ผ่าน";
+            status.style.color = "red";
+            alert("❌ Verify Error: " + (finalPayload?.error_code || "Unknown"));
         }
-    };
+
+    } catch (error) {
+        console.error(error);
+        alert("❌ Error: " + error.message);
+    }
+};
 
     // --- 7. SAVE & LOAD LOGIC (No Stamp) ---
     function saveGame() {
