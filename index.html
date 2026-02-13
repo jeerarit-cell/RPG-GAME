@@ -282,21 +282,10 @@
 
             // --- 7. SAVE & LOAD LOGIC (ปรับให้ปลอดภัย) ---
     function saveGame() {
-        // ❌ ปิดการเซฟลง Firebase จากฝั่งหน้าเว็บโดยเด็ดขาด!
-        // เพราะตอนนี้ Server เป็นคนจัดการเซฟข้อมูล (เงิน, เลือด, EXP) ให้ทั้งหมดแล้ว
-        // ถ้าปล่อยให้หน้าเว็บเซฟ มันจะเอาค่าเก่า/ค่าที่โดนโกง ไปทับข้อมูลจริงของ Server
-        console.log("⚠️ Local save bypassed: Data is now securely handled by Server API.");
-        
-        // เราแค่สั่งอัปเดตตัวเลขบนหน้าจอให้ตรงกันก็พอ
-        updateBalance();
-        updateLobbyStats();
-    }
-
-
-                window.cloudSave = async function(data) {
-            // ❌ ยกเลิกการใช้งาน ฝั่งหน้าเว็บจะไม่มีสิทธิ์เขียนทับ Collection "users" อีกต่อไป
-            console.warn("cloudSave is disabled. Using Backend API instead.");
-        }
+    updateBalance();
+    updateLobbyStats();
+}
+window.cloudSave = async () => {};
 
 
         window.logWithdrawal = async function(coinAmount, wldAmount) {
@@ -1263,150 +1252,155 @@
     };
 
     /* =====================================================
-     * 5. BUY LOGIC (ซื้อเหรียญ + บันทึกประวัติ)
-     * ===================================================== */
-    document.getElementById('btnConfirmBuy').onclick = async function () {
-        if (this.disabled) return;
-        const btn = this;
+ * 5. BUY LOGIC (Client-side only + ไม่ใช้ Firebase)
+ * ===================================================== */
+document.getElementById('btnConfirmBuy').onclick = async function () {
+    if (this.disabled) return;
+    const btn = this;
 
-        let amountWLD = parseFloat(inpBuy.value) || 0;
-        if (amountWLD < MIN_BUY_WLD) return alert(`⛔ ยอดขั้นต่ำคือ ${MIN_BUY_WLD} WLD`);
-        if (!window.MiniKit?.isInstalled()) return alert("⛔ กรุณาเปิดใน World App");
+    let amountWLD = parseFloat(inpBuy.value) || 0;
+    if (amountWLD < MIN_BUY_WLD)
+        return alert(`⛔ ยอดขั้นต่ำคือ ${MIN_BUY_WLD} WLD`);
 
-        btn.disabled = true;
-        btn.innerText = "PROCESSING...";
+    if (!window.MiniKit?.isInstalled())
+        return alert("⛔ กรุณาเปิดใน World App");
 
-        try {
-            const coinsToReceive = Math.floor(amountWLD * BUY_RATE);
-            const amountInWei = BigInt(Math.floor(amountWLD * 1000000)) * 1000000000000n;
+    btn.disabled = true;
+    btn.innerText = "PROCESSING...";
 
-            const result = await window.MiniKit.commandsAsync.pay({
-                reference: "order_" + Date.now(),
-                to: RECEIVER,
-                tokens: [{ symbol: "WLD", token_amount: amountInWei.toString() }],
-                description: `Buy ${coinsToReceive} COINS`
-            });
+    try {
+        const coinsToReceive = Math.floor(amountWLD * BUY_RATE);
+        const amountInWei =
+            BigInt(Math.floor(amountWLD * 1000000)) * 1000000000000n;
 
-            if (result?.finalPayload?.status === "success") {
-                playerCOIN += coinsToReceive;
-                if (typeof updateBalance === 'function') updateBalance();
-                if (typeof saveGame === 'function') await saveGame();
+        const result = await window.MiniKit.commandsAsync.pay({
+            reference: "order_" + Date.now(),
+            to: RECEIVER,
+            tokens: [{
+                symbol: "WLD",
+                token_amount: amountInWei.toString()
+            }],
+            description: `Buy ${coinsToReceive} COINS`
+        });
 
-                // บันทึกประวัติการซื้อลง Firebase (Logging)
-                if (window.REAL_USER_ID && window.db) {
-                    await window.addDoc(window.collection(window.db, "purchases"), {
-                        userId: window.REAL_USER_ID,
-                        name: document.getElementById('uiPlayerName')?.innerText || "UNKNOWN",
-                        wldSpent: amountWLD,
-                        coinReceived: coinsToReceive,
-                        timestamp: new Date().toISOString()
-                    });
-                }
-                
-                overlay.remove();
-                if (typeof gameAlert === 'function') gameAlert("SUCCESS", `ได้รับ ${coinsToReceive} COINS แล้ว!`);
-                else alert(`✅ ได้รับ ${coinsToReceive} COINS แล้ว!`);
-            } else {
-                throw new Error("รายการถูกยกเลิก");
-            }
-        } catch (err) {
-            console.error("Buy Error:", err);
-            if (!err.message?.includes("ยกเลิก")) alert("❌ เกิดข้อผิดพลาด: " + (err.message || err));
-        } finally {
-            btn.disabled = false;
-            btn.innerText = "CONFIRM BUY";
+        if (result?.finalPayload?.status !== "success") {
+            throw new Error("รายการถูกยกเลิก");
         }
-    };
 
-    /* =====================================================
-     * 6. SELL LOGIC (ลดเหลือ 1 เด้ง + ส่งข้อมูลกระเป๋าไปเซิร์ฟเวอร์)
-     * ===================================================== */
-    document.getElementById('btnConfirmSell').onclick = async () => {
-        const btn = document.getElementById('btnConfirmSell');
-        if (btn.disabled) return; 
+        // เติม Coin ฝั่งเกม (เงินจริงจบที่ pay แล้ว)
+        playerCOIN += coinsToReceive;
 
-        const amountCoin = parseInt(inpSell.value) || 0;
+        if (typeof updateBalance === "function") updateBalance();
+        if (typeof saveGame === "function") await saveGame();
 
-        if (amountCoin < MIN_SELL) return alert(`⛔ ขั้นต่ำ ${MIN_SELL} Coins`);
-        if (typeof playerCOIN === 'undefined' || playerCOIN < amountCoin) return alert("⛔ Coin ของคุณไม่พอ!");
+        overlay.remove();
+        alert(`✅ ได้รับ ${coinsToReceive} COINS แล้ว!`);
 
-        btn.disabled = true;
-        btn.innerText = "1/2 VERIFYING..."; // ดึงข้อมูลและติดต่อ Server
-
-        try {
-            if (!window.MiniKit?.isInstalled()) throw new Error("กรุณาเปิดใน World App");
-            if (!window.REAL_USER_ID) throw new Error("ไม่พบข้อมูล User ID");
-
-            // ดึงข้อมูล Wallet Address จาก Firebase
-            const userDocRef = window.doc(window.db, "users", window.REAL_USER_ID);
-            const userDocSnap = await window.getDoc(userDocRef);
-            
-            if (!userDocSnap.exists() || !userDocSnap.data().walletAddress) {
-                throw new Error("คุณยังไม่ได้ผูกกระเป๋า กรุณาติดต่อแอดมิน");
-            }
-
-            const boundWalletAddress = userDocSnap.data().walletAddress;
-
-            // ยิงข้อมูลไปให้ Server (ข้ามการ Sign Message ไปเลย)
-            const response = await fetch(WITHDRAW_API, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    userId: window.REAL_USER_ID,
-                    wallet: boundWalletAddress,   // ส่งกระเป๋าให้ Server เช็ค/โอน
-                    amount: amountCoin,
-                    currentCoin: playerCOIN
-                })
-            });
-
-            const data = await response.json();
-            if (!data.success) throw new Error(data.message || "Server Rejected");
-
-            btn.innerText = "2/2 CLAIMING..."; // ป๊อปอัพเด้งแค่ตรงนี้
-
-            const txPayload = {
-                transaction: [{
-                    address: data.claimData.vaultAddress,
-                    abi: [{ "inputs": [{ "internalType": "uint256", "name": "amount", "type": "uint256" }, { "internalType": "uint256", "name": "nonce", "type": "uint256" }, { "internalType": "bytes", "name": "signature", "type": "bytes" }], "name": "claimReward", "outputs": [], "stateMutability": "nonpayable", "type": "function" }],
-                    functionName: "claimReward",
-                    args: [ data.claimData.amount, data.claimData.nonce, data.claimData.signature ]
-                }]
-            };
-
-            const txResult = await window.MiniKit.commandsAsync.sendTransaction(txPayload);
-
-            if (txResult?.finalPayload?.status === "success") {
-                // สำเร็จ
-                if (data.newBalance !== undefined) playerCOIN = data.newBalance;
-                else playerCOIN -= amountCoin; 
-
-                if (typeof updateBalance === 'function') updateBalance();
-                if (typeof saveGame === 'function') await saveGame();
-
-                // บันทึกประวัติการขาย (Logging)
-                if (typeof window.logWithdrawal === 'function') {
-                    const expectedWLD = parseFloat((amountCoin / SELL_RATE).toFixed(4));
-                    window.logWithdrawal(amountCoin, expectedWLD);
-                }
-
-                overlay.remove();
-                if (typeof gameAlert === 'function') gameAlert("SUCCESS", "✅ ถอนสำเร็จ!");
-                else alert("✅ ถอนสำเร็จ!");
-            } else {
-                throw new Error("รายการถูกยกเลิก");
-            }
-        } catch (e) {
-            console.error("Sell Process Error:", e);
-            if (!e.message?.includes("ยกเลิก")) alert("❌ เกิดข้อผิดพลาด: " + (e.message || "Unknown error"));
-        } finally {
-            if(btn) {
-                btn.disabled = false;
-                btn.innerText = "CONFIRM SELL";
-            }
-        }
-    };
+    } catch (err) {
+        console.error("Buy Error:", err);
+        if (!err.message?.includes("ยกเลิก"))
+            alert("❌ เกิดข้อผิดพลาด: " + (err.message || err));
+    } finally {
+        btn.disabled = false;
+        btn.innerText = "CONFIRM BUY";
+    }
 };
 
+
+
+/* =====================================================
+ * 6. SELL LOGIC (Server เป็นคนคุมทั้งหมด)
+ * ===================================================== */
+document.getElementById('btnConfirmSell').onclick = async function () {
+
+    const btn = this;
+    if (btn.disabled) return;
+
+    const amountCoin = parseInt(inpSell.value) || 0;
+
+    if (amountCoin < MIN_SELL)
+        return alert(`⛔ ขั้นต่ำ ${MIN_SELL} Coins`);
+
+    if (typeof playerCOIN === "undefined" || playerCOIN < amountCoin)
+        return alert("⛔ Coin ของคุณไม่พอ!");
+
+    if (!window.MiniKit?.isInstalled())
+        return alert("กรุณาเปิดใน World App");
+
+    if (!window.REAL_USER_ID)
+        return alert("ไม่พบข้อมูลผู้ใช้");
+
+    btn.disabled = true;
+    btn.innerText = "1/2 VERIFYING...";
+
+    try {
+
+        // ✅ ยิงไปหา server โดยไม่ส่ง wallet / currentCoin
+        const response = await fetch(WITHDRAW_API, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                userId: window.REAL_USER_ID,
+                amount: amountCoin
+            })
+        });
+
+        const data = await response.json();
+        if (!data.success)
+            throw new Error(data.message || "Server Rejected");
+
+        btn.innerText = "2/2 CLAIMING...";
+
+        const txPayload = {
+            transaction: [{
+                address: data.claimData.vaultAddress,
+                abi: [{
+                    inputs: [
+                        { internalType: "uint256", name: "amount", type: "uint256" },
+                        { internalType: "uint256", name: "nonce", type: "uint256" },
+                        { internalType: "bytes", name: "signature", type: "bytes" }
+                    ],
+                    name: "claimReward",
+                    outputs: [],
+                    stateMutability: "nonpayable",
+                    type: "function"
+                }],
+                functionName: "claimReward",
+                args: [
+                    data.claimData.amount,
+                    data.claimData.nonce,
+                    data.claimData.signature
+                ]
+            }]
+        };
+
+        const txResult =
+            await window.MiniKit.commandsAsync.sendTransaction(txPayload);
+
+        if (txResult?.finalPayload?.status !== "success")
+            throw new Error("รายการถูกยกเลิก");
+
+        // ✅ ใช้ newBalance จาก server ถ้ามี
+        if (data.newBalance !== undefined)
+            playerCOIN = data.newBalance;
+        else
+            playerCOIN -= amountCoin;
+
+        if (typeof updateBalance === "function") updateBalance();
+        if (typeof saveGame === "function") await saveGame();
+
+        overlay.remove();
+        alert("✅ ถอนสำเร็จ!");
+
+    } catch (e) {
+        console.error("Sell Error:", e);
+        if (!e.message?.includes("ยกเลิก"))
+            alert("❌ เกิดข้อผิดพลาด: " + (e.message || "Unknown error"));
+    } finally {
+        btn.disabled = false;
+        btn.innerText = "CONFIRM SELL";
+    }
+};
         
     </script>
 </body>
