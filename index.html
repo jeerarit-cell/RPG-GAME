@@ -337,12 +337,12 @@ document.getElementById('btnWorldID').onclick = async function() {
             console.error("Verify Failed:", finalPayload);
             status.innerText = "ยืนยันตัวตนไม่ผ่าน";
             status.style.color = "red";
-            alert("❌ Verify Error: " + (finalPayload?.error_code || "Unknown"));
+            gameAlert("❌ Verify Error: " + (finalPayload?.error_code || "Unknown"));
         }
 
     } catch (error) {
         console.error(error);
-        alert("❌ Error: " + error.message);
+        gameAlert("SYSTEM ERROR","❌ เกิดข้อผิดพลาด:<br>" + error.message);
     }
 };
 
@@ -898,9 +898,9 @@ document.getElementById('btnWorldID').onclick = async function() {
 
                 modal.style.display = 'flex';
 
-            } catch (err) {
+                        } catch (err) {
                 console.error(err);
-                alert("❌ Server Sync Error: " + err.message);
+                gameAlert("SYNC ERROR", "❌ ขาดการเชื่อมต่อกับเซิร์ฟเวอร์:<br>" + err.message);
                 
                 // ปลดล็อกปุ่มให้ผู้เล่นกดลอง Sync ใหม่ได้
                 btnAction.disabled = false;
@@ -1051,7 +1051,7 @@ document.getElementById('btnWorldID').onclick = async function() {
             btn.style.color = "#fff";
 
             if (!e.message.includes("User Cancelled")) {
-                alert("❌ Error: " + e.message);
+                gameAlert("Error","❌ ไม่สามารถลงทะเบียนได้:<br>"+ e.message);
             }
         }
     }; 
