@@ -600,14 +600,15 @@
     let battle_entryFee = 0; 
     let battle_damageMultiplier = 1; // Start at 1x
     
-        window.prepareBattle = function(monsterID) { 
+            window.prepareBattle = async function(monsterID) { 
+        // 1. เช็คเงินเบื้องต้น (กันเหนียวก่อนยิง API)
         if (playerCOIN < playerMaxHP) { 
             gameAlert("ACCESS DENIED", `เงินไม่พอจ่ายค่าเข้า!<br>ต้องการ: <b style="color:#ff0000">${playerMaxHP} COINS</b>`); 
             playSfx('click'); 
             return; 
         } 
         
-        // 🌟 1. ดักเรื่อง Daily Limit ก่อนเข้าสู้
+        // 2. ดักเรื่อง Daily Limit
         const today = new Date().toDateString();
         if (today !== lastRewardDate) {
             earnedFromGameToday = 0;
@@ -623,28 +624,55 @@
 
         const monster = monsterDB.find(m => m.id === monsterID); 
         if(!monster) return; 
-        
-        // 🌟 2. ลบการหักเงิน playerCOIN -= battle_entryFee ตรงนี้ออก!
-        // (ให้ Server เป็นคนจัดการหัก/บวกเงิน รวดเดียวตอนจบเกมเพื่อป้องกันบั๊กเงินหายตอนเน็ตหลุด)
-        battle_entryFee = playerMaxHP; 
 
-        // Battle Setup
-        window.currentMonsterId = monsterID; // 🌟 เก็บ ID มอนสเตอร์ไว้ส่งให้ Server ตอนจบเกม
-        currentMonsterType = monster.type; 
-        battle_eMaxHP = monster.hp; 
-        battle_eHP = monster.hp; 
-        battle_damageMultiplier = 1; // Reset Multiplier
+        // 🌟 3. ยิง API ขอเข้าห้องบอส และให้เซิร์ฟเวอร์หักเงินทันที
+        try {
+            // โชว์โหลดดิง (ป้องกันคนกดย้ำๆ)
+            const loader = document.getElementById('cloud-loader');
+            if (loader) loader.style.display = 'block';
 
-        document.getElementById('battleEnemyName').innerText = monster.name; 
-        document.getElementById('bossImg').src = monster.url; 
-        
-        currentReward = Math.floor(monster.hp * 0.5); 
-        
-        document.getElementById('screen-battle').style.backgroundImage = "url('https://github.com/user-attachments/assets/13b147e2-f363-49ce-bd43-68530d231a60')"; 
-        nav('battle'); 
-        initBattleState(); 
+            const response = await fetch("https://game-server-vs0h.onrender.com/api/battle-start", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    userId: window.REAL_USER_ID,
+                    monsterId: monster.id
+                })
+            });
+
+            const data = await response.json();
+            if (loader) loader.style.display = 'none';
+
+            if (!data.success) {
+                // ถ้าเซิร์ฟเวอร์บอกว่าเงินไม่พอ หรือมีปัญหา ให้เด้ง Alert และยกเลิกการเข้าห้อง
+                throw new Error(data.message);
+            }
+
+            // 🌟 4. ถ้าผ่าน! อัปเดตเงินในหน้าจอให้ลดลงทันที
+            playerCOIN = data.newBalance;
+            battle_entryFee = playerMaxHP; 
+            updateBalance();
+
+            // 5. เซ็ตค่าเตรียมสู้
+            window.currentMonsterId = monsterID; 
+            currentMonsterType = monster.type; 
+            battle_eMaxHP = monster.hp; 
+            battle_eHP = monster.hp; 
+            battle_damageMultiplier = 1; 
+
+            document.getElementById('battleEnemyName').innerText = monster.name; 
+            document.getElementById('bossImg').src = monster.url; 
+            currentReward = Math.floor(monster.hp * 0.5); 
+            
+            document.getElementById('screen-battle').style.backgroundImage = "url('https://github.com/user-attachments/assets/13b147e2-f363-49ce-bd43-68530d231a60')"; 
+            nav('battle'); 
+            initBattleState(); 
+
+        } catch (err) {
+            console.error("Battle Start Error:", err);
+            gameAlert("SYSTEM ERROR", err.message || "เชื่อมต่อเซิร์ฟเวอร์ล้มเหลว");
+        }
     }
-
     
     function initBattleState() { 
         battle_turn = 0; 
