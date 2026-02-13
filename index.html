@@ -1041,14 +1041,136 @@ if (battle_eHP <= 0) {
     }
 
     window.changeName = function() { 
-        const oldModal = document.getElementById('nameModal'); if (oldModal) oldModal.remove(); 
-        const overlay = document.createElement('div'); overlay.id = 'nameModal'; overlay.style.cssText = `position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 10000; display: flex; justify-content: center; align-items: center; backdrop-filter: blur(5px); animation: fadeIn 0.2s;`; 
-        const box = document.createElement('div'); box.style.cssText = `background: #111; border: 2px solid #00eaff; box-shadow: 0 0 20px rgba(0, 234, 255, 0.3); padding: 25px; width: 85%; max-width: 320px; text-align: center; border-radius: 12px; font-family: 'Kanit', sans-serif; position: relative;`; 
-        const closeBtn = document.createElement('div'); closeBtn.innerHTML = "×"; closeBtn.style.cssText = "position: absolute; top: 5px; right: 15px; font-size: 2rem; color: #666; cursor: pointer;"; closeBtn.onclick = () => overlay.remove(); box.appendChild(closeBtn); 
-        box.innerHTML += `<div style="color:#00eaff; font-family:'Orbitron'; font-size:1.2rem; margin-bottom:10px; letter-spacing:1px;">IDENTIFICATION</div><p style="color:#aaa; font-size:0.9rem; margin-bottom:15px;">ตั้งชื่อ Hunter ของคุณ (Max 8 Chars)</p><input type="text" id="inpName" placeholder="NAME" maxlength="8" style="width: 100%; background: #000; color: #fff; border: 1px solid #444; padding: 12px; font-family: 'Orbitron'; font-size: 1.4rem; text-align: center; border-radius: 6px; margin-bottom: 20px; outline: none; text-transform: uppercase;"><button id="btnConfirmName" class="main-btn" style="height:45px; font-size:1rem; width:100%;">CONFIRM IDENTITY</button><p style="color:#555; font-size:0.7rem; margin-top:10px;">* ห้ามใช้อักขระพิเศษ / เว้นวรรค</p>`; 
-        overlay.appendChild(box); document.body.appendChild(overlay); const input = document.getElementById('inpName'); input.focus(); 
-        document.getElementById('btnConfirmName').onclick = () => { let newName = input.value.trim(); if (!newName) return; if (newName.length > 8) { alert("⛔ ชื่อยาวเกินไป! (สูงสุด 8 ตัวอักษร)"); return; } const regex = /^[ก-๙a-zA-Z0-9]+$/; if (!regex.test(newName)) { alert("⛔ ห้ามใช้อักขระพิเศษ หรือเว้นวรรค"); return; } document.getElementById('uiPlayerName').innerText = newName.toUpperCase(); if(typeof saveGame === 'function') saveGame(); overlay.remove(); if(typeof playSfx === 'function') playSfx('win'); }; 
-    };
+    // 1. สร้าง UI หน้าต่างตั้งชื่อ (เหมือนเดิม)
+    const oldModal = document.getElementById('nameModal'); 
+    if (oldModal) oldModal.remove(); 
+
+    const overlay = document.createElement('div'); 
+    overlay.id = 'nameModal'; 
+    overlay.style.cssText = `position: fixed; inset: 0; background: rgba(0,0,0,0.92); z-index: 10000; display: flex; justify-content: center; align-items: center; backdrop-filter: blur(8px); animation: fadeIn 0.3s;`; 
+    
+    const box = document.createElement('div'); 
+    box.style.cssText = `background: #0b0f14; border: 1px solid #00eaff; box-shadow: 0 0 30px rgba(0, 234, 255, 0.2); padding: 30px; width: 90%; max-width: 340px; text-align: center; border-radius: 16px; font-family: 'Kanit', sans-serif;`; 
+    
+    // (ปุ่มปิด X ผมเอาออกนะ เพื่อบังคับให้ผู้เล่นใหม่ต้องทำรายการนี้ให้จบ)
+    
+    box.innerHTML = `
+        <div style="color:#00eaff; font-family:'Orbitron'; font-size:0.8rem; letter-spacing:2px; margin-bottom:5px;">IDENTITY PROTOCOL</div>
+        <h2 style="color:#fff; margin:0 0 20px 0; font-family:'Orbitron';">HUNTER NAME</h2>
+        
+        <input type="text" id="inpName" placeholder="MAX 8 CHARS" maxlength="8" 
+            style="width: 100%; background: #1a1a1a; color: #fff; border: 1px solid #333; padding: 14px; font-family: 'Orbitron'; font-size: 1.4rem; text-align: center; border-radius: 8px; margin-bottom: 20px; outline: none; text-transform: uppercase;">
+        
+        <button id="btnConfirmName" style="
+            width:100%; padding:14px; font-size:1rem; border-radius:8px; border:none; 
+            background:linear-gradient(135deg,#00eaff,#008cff); color:#000; font-weight:bold; 
+            cursor:pointer; font-family:'Orbitron'; transition:0.2s; box-shadow:0 4px 10px rgba(0,234,255,0.3);
+        ">
+            CONFIRM & BIND
+        </button>
+        
+        <p style="color:#555; font-size:0.7rem; margin-top:15px; line-height:1.4;">
+            * การตั้งชื่อจะผูกกระเป๋า World App ของคุณทันที<br>
+            (Sign Message Only • No Gas)
+        </p>
+    `; 
+    
+    overlay.appendChild(box); 
+    document.body.appendChild(overlay); 
+    
+    const input = document.getElementById('inpName'); 
+    input.focus(); 
+
+    // --- 2. LOGIC ปุ่มกด (หัวใจสำคัญ) ---
+    const btn = document.getElementById('btnConfirmName');
+    
+    btn.onclick = async () => { 
+        const newName = input.value.trim().toUpperCase(); 
+        
+        // --- Validation เช็คชื่อ ---
+        if (!newName) return; 
+        if (newName.length > 8) { alert("⛔ ชื่อยาวเกินไป! (สูงสุด 8 ตัวอักษร)"); return; } 
+        const regex = /^[A-Z0-9]+$/; // อนุญาตแค่ A-Z และ 0-9 (ตัดภาษาไทยออกเพื่อความเท่แบบไซเบอร์ หรือจะใส่คืนก็ได้)
+        if (!regex.test(newName)) { alert("⛔ ใช้ภาษาอังกฤษ A-Z หรือตัวเลข 0-9 เท่านั้น"); return; } 
+
+        // --- เริ่มกระบวนการผูกกระเป๋า ---
+        try {
+            // ปรับ UI เป็นโหลด
+            btn.disabled = true;
+            btn.innerText = "1/2 ✍️ SIGNING...";
+            btn.style.background = "#333";
+            btn.style.color = "#aaa";
+            btn.style.boxShadow = "none";
+
+            // 1. เช็ค MiniKit
+            if (!window.MiniKit || !window.MiniKit.isInstalled()) {
+                throw new Error("กรุณาเปิดใน World App เท่านั้น");
+            }
+
+            // 2. สั่ง Sign Message
+            const messageToSign = `Register Hunter: ${newName}\nTimestamp: ${new Date().getTime()}`;
+            const signResult = await window.MiniKit.commandsAsync.signMessage({
+                message: messageToSign
+            });
+
+            const finalPayload = signResult.finalPayload;
+            if (finalPayload.status !== "success") {
+                throw new Error("User Cancelled Signing");
+            }
+
+            // 3. ได้เลขกระเป๋ามาแล้ว!
+            const walletAddress = finalPayload.address;
+            
+            // ปรับ UI เป็นกำลังเซฟ
+            btn.innerText = "2/2 💾 SAVING...";
+
+            // 4. บันทึกทุกอย่างลง Firebase (ชื่อ + กระเป๋า + ข้อมูลเริ่มต้น)
+            // ตรวจสอบ REAL_USER_ID ว่ามีค่าไหม (ควรมีตั้งแต่ Login)
+            if (!REAL_USER_ID) throw new Error("User ID Not Found (Login First)");
+
+            await setDoc(doc(db, "users", REAL_USER_ID), {
+                name: newName,
+                walletAddress: walletAddress,
+                walletBound: true,
+                coin: 200,          // เงินเริ่มต้น
+                level: 1,
+                hp: 20,
+                exp: 0,
+                createdAt: new Date().toISOString(),
+                walletBoundAt: new Date().toISOString()
+            }, { merge: true });
+
+            // --- สำเร็จ! ---
+            console.log("✅ Registration Complete:", newName, walletAddress);
+            
+            // อัปเดตหน้าจอทันที
+            document.getElementById('uiPlayerName').innerText = newName;
+            playerCOIN = 200; // อัปเดตตัวแปรในเกมด้วย
+            updateBalance();
+
+            // ปิดหน้าต่าง
+            overlay.remove(); 
+            
+            // เล่นเสียง & แจ้งเตือน
+            if(typeof playSfx === 'function') playSfx('win');
+            gameAlert("WELCOME", `ยินดีต้อนรับ Hunter ${newName}!\nกระเป๋าของคุณเชื่อมต่อแล้ว`);
+
+        } catch (e) {
+            console.error("Registration Error:", e);
+            
+            // คืนค่าปุ่มให้กดใหม่ได้
+            btn.disabled = false;
+            btn.innerText = "TRY AGAIN";
+            btn.style.background = "linear-gradient(135deg,#ff4444,#cc0000)"; // สีแดงเตือนใจ
+            btn.style.color = "#fff";
+
+            if (!e.message.includes("User Cancelled")) {
+                alert("❌ Error: " + e.message);
+            }
+        }
+    }; 
+};
+
     
     function openExchangeModal() {
 
