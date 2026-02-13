@@ -280,31 +280,24 @@
         window.getDoc = getDoc; // เผื่อใช้
         
 
-        // --- 4.2 CLOUD SAVE/LOAD FUNCTIONS ---
-        window.cloudSave = async function(data) {
-            if(!window.REAL_USER_ID) return;
-            const loader = document.getElementById('cloud-loader');
-            if(loader) loader.style.display = 'block';
-            try {  await setDoc(window.doc(window.db, "users", window.REAL_USER_ID), data, { merge: true }); } 
-            catch (e) { console.error("Save Error: ", e); }
-            if(loader) loader.style.display = 'none';
+            // --- 7. SAVE & LOAD LOGIC (ปรับให้ปลอดภัย) ---
+    function saveGame() {
+        // ❌ ปิดการเซฟลง Firebase จากฝั่งหน้าเว็บโดยเด็ดขาด!
+        // เพราะตอนนี้ Server เป็นคนจัดการเซฟข้อมูล (เงิน, เลือด, EXP) ให้ทั้งหมดแล้ว
+        // ถ้าปล่อยให้หน้าเว็บเซฟ มันจะเอาค่าเก่า/ค่าที่โดนโกง ไปทับข้อมูลจริงของ Server
+        console.log("⚠️ Local save bypassed: Data is now securely handled by Server API.");
+        
+        // เราแค่สั่งอัปเดตตัวเลขบนหน้าจอให้ตรงกันก็พอ
+        updateBalance();
+        updateLobbyStats();
+    }
+
+
+                window.cloudSave = async function(data) {
+            // ❌ ยกเลิกการใช้งาน ฝั่งหน้าเว็บจะไม่มีสิทธิ์เขียนทับ Collection "users" อีกต่อไป
+            console.warn("cloudSave is disabled. Using Backend API instead.");
         }
 
-        window.cloudLoad = async function(worldID) {
-            window.REAL_USER_ID = worldID;
-            const loader = document.getElementById('cloud-loader');
-            if(loader) loader.style.display = 'block';
-            try {
-                const docRef = window.doc(window.db, "users", window.REAL_USER_ID);
-                const docSnap = await getDoc(docRef);
-                if (docSnap.exists()) window.applyGameData(docSnap.data());
-                else window.applyGameData(null);
-            } catch (e) {
-                console.error("Load Error: ", e);
-                window.applyGameData(null);
-            }
-            if(loader) loader.style.display = 'none';
-        }
 
         window.logWithdrawal = async function(coinAmount, wldAmount) {
     // 1. เช็คว่ามี User ID ไหม (ต้องใช้ window. นำหน้า)
