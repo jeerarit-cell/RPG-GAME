@@ -779,15 +779,17 @@ document.getElementById('btnWorldID').onclick = async function() {
     }
        
     
+     // =========================================
+    // 1. ฟังก์ชันเช็คผลต่อสู้ (Double KO x2, Server Sync, กด NEXT ROUND เอง)
+    // =========================================
+
     async function checkBattleResult() { 
         const modal = document.getElementById('resultModal'); 
         const title = document.getElementById('resultTitle'); 
         const sub = document.getElementById('resultSub'); 
         const btn = document.getElementById('restartBtn'); 
         
-        // ===============================
-        // CASE 1: DOUBLE KO → REMATCH (ไม่มีการเซฟ)
-        // ===============================
+        // --- 1. DOUBLE KO → REMATCH (DAMAGE x2 ของใหม่) ---
         if (battle_eHP <= 0 && playerCurrentHP <= 0) { 
             title.textContent = "DOUBLE KO"; 
             title.style.color = "yellow"; 
@@ -797,7 +799,7 @@ document.getElementById('btnWorldID').onclick = async function() {
             btn.onclick = () => { 
                 playerCurrentHP = playerMaxHP; 
                 battle_eHP = battle_eMaxHP; 
-                battle_damageMultiplier = 2;
+                battle_damageMultiplier = 2; // คูณ 2
                 updateBattleUI(); 
                 initBattleState(); 
             }; 
@@ -806,9 +808,7 @@ document.getElementById('btnWorldID').onclick = async function() {
             return;
         }
 
-        // ===============================
-        // CASE 2 & 3: รู้ผลแพ้ชนะ (เตรียมส่ง Server)
-        // ===============================
+        // --- 2. เช็คผลแพ้ชนะ (เพื่อยิง Server รับรางวัล) ---
         let battleResult = "";
         let pHPPercent = playerCurrentHP / playerMaxHP;
         let enemyHpPercent = battle_eHP / battle_eMaxHP;
@@ -823,7 +823,7 @@ document.getElementById('btnWorldID').onclick = async function() {
             btnAction.innerText = "⏳ WAIT...";
 
             try {
-                // 🌟 ยิง API บอก Server ให้ประมวลผล
+                // ยิง API บอก Server ให้ประมวลผล
                 const response = await fetch("https://game-server-vs0h.onrender.com/api/battle-result", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
@@ -841,7 +841,7 @@ document.getElementById('btnWorldID').onclick = async function() {
 
                 const serverData = resData.data; 
 
-                // 🌟 อัปเดตข้อมูลในเกมให้ตรงกับ Database ทันที
+                // อัปเดตข้อมูลในเกมให้ตรงกับ Database
                 playerCOIN = serverData.coin;
                 playerLevel = serverData.level;
                 playerEXP = serverData.exp;
@@ -852,12 +852,11 @@ document.getElementById('btnWorldID').onclick = async function() {
                 updateLobbyStats();
                 updateBalance();
 
-                // 🌟 อัปเดต UI หน้าต่างผลลัพธ์
+                // อัปเดต UI หน้าต่างผลลัพธ์
                 if (battleResult === "win") {
                     title.textContent = "VICTORY";
                     title.style.color = "#ff9d00";
 
-                    // แจ้งเตือนลิมิตรายวันจาก Server
                     if (serverData.hitDailyLimit) {
                         gameAlert(
                             "ถึงขีดจำกัดรายวัน",
@@ -898,18 +897,29 @@ document.getElementById('btnWorldID').onclick = async function() {
 
                 modal.style.display = 'flex';
 
-                        } catch (err) {
+            } catch (err) {
                 console.error(err);
                 gameAlert("SYNC ERROR", "❌ ขาดการเชื่อมต่อกับเซิร์ฟเวอร์:<br>" + err.message);
                 
-                // ปลดล็อกปุ่มให้ผู้เล่นกดลอง Sync ใหม่ได้
                 btnAction.disabled = false;
                 btnAction.innerText = "RETRY SYNC";
                 btnAction.onclick = checkBattleResult; 
             }
+        } else {
+            // --- 3. ระบบเดิม: เปิดครบ 5 ใบ แต่ยังไม่ตายทั้งคู่ (ผู้เล่นกด NEXT ROUND เอง) ---
+            const btnAction = document.getElementById('actionBtn'); 
+            btnAction.innerText = "NEXT ROUND"; 
+            btnAction.disabled = false; // ปลดล็อกปุ่มให้กดได้
+            btnAction.className = "main-btn"; // คืนค่าสีปุ่มให้เป็นสีฟ้าปกติ
+            
+            // รอให้ผู้เล่นกดปุ่ม ถึงจะเริ่มแจกไพ่ใหม่
+            btnAction.onclick = () => {
+                if(typeof playSfx === 'function') playSfx('click');
+                initBattleState(); 
+            };
         }
     }
-    
+
     // --- 10. EXCHANGE SYSTEM & ALERTS ---
     function gameAlert(title, message, callback = null) {
         const oldModal = document.getElementById('customAlert'); if (oldModal) oldModal.remove();
