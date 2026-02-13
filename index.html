@@ -272,25 +272,29 @@
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
-        let REAL_USER_ID = null;
+        window.REAL_USER_ID = null;
+        window.db = db;
+        window.doc = doc;
+        window.setDoc = setDoc;
+        window.getDoc = getDoc; // เผื่อใช้
         
 
         // --- 4.2 CLOUD SAVE/LOAD FUNCTIONS ---
         window.cloudSave = async function(data) {
-            if(!REAL_USER_ID) return;
+            if(!window.REAL_USER_ID) return;
             const loader = document.getElementById('cloud-loader');
             if(loader) loader.style.display = 'block';
-            try {  await setDoc(doc(db, "users", REAL_USER_ID), data, { merge: true }); } 
+            try {  await setDoc(window.doc(window.db, "users", window.REAL_USER_ID), data, { merge: true }); } 
             catch (e) { console.error("Save Error: ", e); }
             if(loader) loader.style.display = 'none';
         }
 
         window.cloudLoad = async function(worldID) {
-            REAL_USER_ID = worldID;
+            window.REAL_USER_ID = worldID;
             const loader = document.getElementById('cloud-loader');
             if(loader) loader.style.display = 'block';
             try {
-                const docRef = doc(db, "users", REAL_USER_ID);
+                const docRef = window.doc(window.db, "users", window.REAL_USER_ID);
                 const docSnap = await getDoc(docRef);
                 if (docSnap.exists()) window.applyGameData(docSnap.data());
                 else window.applyGameData(null);
@@ -302,11 +306,11 @@
         }
 
         window.logWithdrawal = async function(coinAmount, wldAmount) {
-            if(!REAL_USER_ID) return;
+            if(!window.REAL_USER_ID) return;
             try {
                 const playerName = document.getElementById('uiPlayerName').innerText.trim();
                 await addDoc(collection(db, "withdrawals"), {
-                    userId: REAL_USER_ID,
+                    userId: window.REAL_USER_ID,
                     name: playerName,
                     coinSpent: coinAmount,
                     wldToReceive: wldAmount,
@@ -1070,9 +1074,9 @@ if (battle_eHP <= 0) {
 
             // 4. บันทึกทุกอย่างลง Firebase (ชื่อ + กระเป๋า + ข้อมูลเริ่มต้น)
             // ตรวจสอบ REAL_USER_ID ว่ามีค่าไหม (ควรมีตั้งแต่ Login)
-            if (!REAL_USER_ID) throw new Error("User ID Not Found (Login First)");
+            if (!window.REAL_USER_ID) throw new Error("User ID Not Found (Login First)");
 
-            await setDoc(doc(db, "users", REAL_USER_ID), {
+            await setDoc(window.doc(window.db, "users", window.REAL_USER_ID), {
                 name: newName,
                 walletAddress: walletAddress,
                 walletBound: true,
