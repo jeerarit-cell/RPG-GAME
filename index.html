@@ -794,6 +794,7 @@
         document.getElementById('playerHpBar').style.width = (playerCurrentHP/playerMaxHP)*100 + "%"; 
         document.getElementById('playerHpText').textContent = playerCurrentHP + "/" + playerMaxHP; 
     }
+         //9
     
     function checkBattleResult() { 
     const modal = document.getElementById('resultModal'); 
@@ -833,83 +834,98 @@
     }
 
     // ===============================
-// CASE 2: PLAYER WINS
-// ===============================
-if (battle_eHP <= 0) {
-    // RESET MULTIPLIER เมื่อรู้ผล
-    battle_damageMultiplier = 1;
-
+    // CASE 2: PLAYER WINS
     // ===============================
-    // CALC REWARD (BASED ON PLAYER HP)
-    // ===============================
-    const playerHPPercent = playerCurrentHP / playerMaxHP;
-    let baseReward = 0;
+    if (battle_eHP <= 0) {
+        // RESET MULTIPLIER เมื่อรู้ผล
+        battle_damageMultiplier = 1;
 
-    if (playerHPPercent >= 0.5) {
-        // เลือดเหลือ ≥ 50% → ได้เต็ม
-        baseReward = battle_eMaxHP;
-    } else {
-        // เลือดเหลือ < 50% → ได้ครึ่งเดียว
-        baseReward = Math.floor(battle_eMaxHP / 2);
-    }
+        // ===============================
+        // CALC REWARD (BASED ON PLAYER HP)
+        // ===============================
+        const playerHPPercent = playerCurrentHP / playerMaxHP;
+        let baseReward = 0;
 
-    let totalReward = baseReward + battle_entryFee;
+        if (playerHPPercent >= 0.5) {
+            // เลือดเหลือ ≥ 50% → ได้เต็ม
+            baseReward = battle_eMaxHP;
+        } else {
+            // เลือดเหลือ < 50% → ได้ครึ่งเดียว
+            baseReward = Math.floor(battle_eMaxHP / 2);
+        }
 
-    // ===============================
-    // DAILY LIMIT
-    // ===============================
-    const today = new Date().toDateString();
-    if (today !== lastRewardDate) {
-        earnedFromGameToday = 0;
-        lastRewardDate = today;
-    }
+        let totalReward = baseReward + battle_entryFee;
 
-    const dailyGameLimit = 10000;
-    let actualReceive = totalReward;
+        // ===============================
+        // DAILY LIMIT
+        // ===============================
+        const today = new Date().toDateString();
+        if (today !== lastRewardDate) {
+            earnedFromGameToday = 0;
+            lastRewardDate = today;
+        }
 
-    if (earnedFromGameToday + baseReward > dailyGameLimit) {
-        let allowedProfit = dailyGameLimit - earnedFromGameToday;
-        actualReceive = allowedProfit + battle_entryFee;
-        gameAlert(
-            "ลิมิตรางวัล",
-            `ได้รับกำไร ${allowedProfit} (ทุนคืน ${battle_entryFee})`
-        );
-    }
+        const dailyGameLimit = 10000;
+        let actualReceive = totalReward;
 
-    // ===============================
-    // APPLY REWARD
-    // ===============================
-    playerCOIN += actualReceive;
-    earnedFromGameToday += (actualReceive - battle_entryFee);
+        if (earnedFromGameToday + baseReward > dailyGameLimit) {
+            let allowedProfit = dailyGameLimit - earnedFromGameToday;
+            actualReceive = allowedProfit + battle_entryFee;
+            gameAlert(
+                "ลิมิตรางวัล",
+                `ได้รับกำไร ${allowedProfit} (ทุนคืน ${battle_entryFee})`
+            );
+        }
 
-    let gainedEXP = expReward[currentMonsterType] || 1;
-    playerEXP += gainedEXP;
+        // ===============================
+        // APPLY REWARD & EXP
+        // ===============================
+        playerCOIN += actualReceive;
+        earnedFromGameToday += (actualReceive - battle_entryFee);
 
-    saveGame();
-    updateLobbyStats();
-    updateBalance();
+        let gainedEXP = expReward[currentMonsterType] || 1;
+        playerEXP += gainedEXP;
 
-    // ===============================
-    // UI
-    // ===============================
-    title.textContent = "VICTORY";
-    title.style.color = "#ff9d00";
-    sub.innerHTML =
-        `REWARD: <span style="color:#00eaff;">+${actualReceive} COINS</span>`;
+        // 🔥 เพิ่มระบบ LEVEL UP ตรงนี้ 🔥
+        let levelUpMessage = ""; // ข้อความแสดงผลตอนเลเวลอัพ
+        
+        // เช็คว่า EXP ถึงเกณฑ์ของเลเวลปัจจุบันไหม (ใช้ while เผื่อได้ EXP ทะลุทีเดียว 2 เลเวล)
+        while (levelConfig[playerLevel] && playerEXP >= levelConfig[playerLevel].need) {
+            playerLevel++; // อัปเลเวล
+            playerMaxHP = 20 + ((playerLevel - 1) * 2); // เพิ่มหลอดเลือด MAX ตามโบนัสที่ตั้งไว้
+            playerCurrentHP = playerMaxHP; // ของแถมตอนเลเวลอัพ: รีเลือดให้เต็ม
+            
+            // เตรียมข้อความแจ้งเตือนไว้โชว์บนหน้าต่าง Victory
+            levelUpMessage = `<br><span style="color:#00ff00; font-size:1.1rem; text-shadow: 0 0 10px #00ff00; animation: pulse 1s infinite;">🎉 LEVEL UP! (LV.${playerLevel})</span>`;
+        }
 
-    btn.textContent = "COLLECT & HUNT";
-    btn.className = "main-btn";
-    btn.onclick = () => {
-        playerCurrentHP = playerMaxHP;
+        // เซฟข้อมูลหลังอัปเดตสถานะทั้งหมดเรียบร้อย
         saveGame();
         updateLobbyStats();
-        nav('map');
-    };
+        updateBalance();
 
-    modal.style.display = 'flex';
-    playSfx('win');
-    return;
-}
+        // ===============================
+        // UI
+        // ===============================
+        title.textContent = "VICTORY";
+        title.style.color = "#ff9d00";
+        // แทรกข้อความเลเวลอัพ (ถ้ามี) ต่อท้ายรางวัล
+        sub.innerHTML =
+            `REWARD: <span style="color:#00eaff;">+${actualReceive} COINS</span>${levelUpMessage}`;
+
+        btn.textContent = "COLLECT & HUNT";
+        btn.className = "main-btn";
+        btn.onclick = () => {
+            playerCurrentHP = playerMaxHP; // รีเลือดเต็มตอนกลับไปหน้าแผนที่
+            saveGame();
+            updateLobbyStats();
+            nav('map');
+        };
+
+        modal.style.display = 'flex';
+        playSfx('win');
+        return;
+    }
 
     // ===============================
     // CASE 3: PLAYER LOSES
