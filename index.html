@@ -539,33 +539,37 @@ document.getElementById('btnWorldID').onclick = async function() {
 
     async function fetchVaultBalance() {
     try {
-        // 1. ที่อยู่กระเป๋า Contract กองกลางของคุณ (เปลี่ยนได้ถ้าไม่ใช่กระเป๋านี้)
         const vaultAddress = "0x0c07D1879f06B72a0976fe69B777c0BF84410eFa"; 
-        
-        // 2. Contract Address ของเหรียญ WLD (บนเครือข่าย World Chain)
         const wldTokenAddress = "0x2cFc85d522552705054dEB0c222A0FA642DF1D22"; 
-        
-        // 3. ยิง API ฟรีของ Worldscan เพื่อเช็คยอด
         const url = `https://api.worldscan.org/api?module=account&action=tokenbalance&contractaddress=${wldTokenAddress}&address=${vaultAddress}&tag=latest`;
         
         const response = await fetch(url);
         const data = await response.json();
         
+        const uiBalance = document.getElementById('uiVaultBalance');
+
+        // ถ้าดึงข้อมูลสำเร็จ 100%
         if (data.status === "1") {
-            // ค่าที่ได้มาจะเป็นหน่วย Wei (มีเลขศูนย์ 18 ตัว) ต้องหารด้วย 10^18
             const balanceInWei = data.result;
-            const balanceWLD = (balanceInWei / 1e18).toFixed(2); // โชว์ทศนิยม 2 ตำแหน่ง
-            
-            // นำยอดไปแสดงบนหน้าจอ พร้อมใส่ลูกน้ำหลักพัน
-            document.getElementById('uiVaultBalance').innerText = parseFloat(balanceWLD).toLocaleString();
+            const balanceWLD = (balanceInWei / 1e18).toFixed(2); 
+            uiBalance.innerText = parseFloat(balanceWLD).toLocaleString();
+            uiBalance.style.color = "#00eaff"; // กลับมาเป็นสีฟ้านีออน
+            uiBalance.style.fontSize = "1.2rem";
         } else {
-            document.getElementById('uiVaultBalance').innerText = "ERROR";
+            // ถ้าติด Limit สายฟรี หรือ API ตอบกลับมาว่า Error
+            uiBalance.innerText = "⚠️ CHAIN BUSY"; 
+            uiBalance.style.color = "#ffaa00"; // เปลี่ยนเป็นสีส้มแจ้งเตือน
+            uiBalance.style.fontSize = "0.9rem"; // ลดขนาดฟอนต์ลงนิดนึง
         }
     } catch (err) {
-        console.error("ดึงยอดกองกลางไม่สำเร็จ:", err);
-        document.getElementById('uiVaultBalance').innerText = "OFFLINE";
+        // ถ้าผู้เล่นเน็ตหลุด หรือ API ล่ม
+        const uiBalance = document.getElementById('uiVaultBalance');
+        uiBalance.innerText = "❌ OFFLINE";
+        uiBalance.style.color = "#ff2a2a"; // เปลี่ยนเป็นสีแดง
+        uiBalance.style.fontSize = "0.9rem";
     }
 }
+
    
     // =========================================
     // 9. BATTLE LOGIC (Double KO = Rematch x2)
