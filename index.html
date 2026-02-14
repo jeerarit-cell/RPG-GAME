@@ -535,6 +535,58 @@ document.getElementById('btnWorldID').onclick = async function() {
     
     function initMap() { const container = document.getElementById('monster-list-container'); if(!container) return; container.innerHTML = ''; monsterDB.forEach(m => { let cardClass = 'rank-common'; let badgeStyle = ''; let infoExtra = ''; if(m.type === 'miniboss') { cardClass = 'rank-miniboss'; badgeStyle = 'color:#00eaff; border-color:#00eaff;'; infoExtra = '<p style="color:#00eaff; font-size:0.7rem; font-weight:bold;">★ MINI BOSS</p>'; } else if (m.type === 'boss') { cardClass = 'rank-boss'; badgeStyle = 'background:#ffd700; color:black; font-weight:bold; border:none;'; infoExtra = '<p style="color:#ffd700; font-weight:bold; font-size:0.7rem;">☠️ WORLD BOSS</p>'; } else if (m.type === 'legendary') { cardClass = 'rank-legendary'; badgeStyle = 'background:white; color:#FF8C00; font-weight:900; border:none; box-shadow: 0 0 10px white;'; infoExtra = '<p style="color:white; font-weight:900; font-size:0.8rem; text-shadow: 0 1px 2px black;">👑 LEGENDARY BOSS</p>'; } container.innerHTML += `<div class="monster-card ${cardClass}" onclick="prepareBattle(${m.id})"><div style="display:flex; align-items:center;"><img src="${m.url}" class="m-avatar"><div class="m-info"><h3>${m.name}</h3>${infoExtra}<p>${m.loc} • HP: ${m.hp}</p></div></div><div class="hp-badge" style="${badgeStyle}">HP: ${m.hp}</div></div>`; });
  }
+       // ฟังก์ชันดึงยอดเงินจาก World Chain ผ่าน RPC โดยตรง (ไม่พึ่ง Worldscan แล้ว!)
+async function fetchVaultBalance() {
+    try {
+        const vaultAddress = "0x0c07D1879f06B72a0976fe69B777c0BF84410eFa"; // กระเป๋ากองกลาง
+        const wldContract = "0x2cfc85d8e48f8eab294be644d9e25c3030863003"; // เหรียญ WLD
+
+        // 1. สร้างรหัส Data เพื่อส่งไปถาม Smart Contract โดยตรง
+        // (0x70a08231 คือรหัสคำสั่ง balanceOf ของบล็อกเชน)
+        const cleanAddress = vaultAddress.toLowerCase().replace("0x", "").padStart(64, "0");
+        const dataPayload = "0x70a08231" + cleanAddress;
+
+        // 2. ยิงคำสั่งตรงเข้า Public RPC ของ World Chain (ฟรี เร็ว และไม่บล็อก IP)
+        const response = await fetch("https://worldchain-mainnet.g.alchemy.com/public", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                jsonrpc: "2.0",
+                id: 1,
+                method: "eth_call",
+                params: [{
+                    to: wldContract,
+                    data: dataPayload
+                }, "latest"]
+            })
+        });
+
+        const data = await response.json();
+        const uiBalance = document.getElementById('uiVaultBalance');
+
+        // 3. ถ้าดึงสำเร็จ (บล็อกเชนจะตอบกลับมาเป็นเลขฐาน 16)
+        if (data.result && data.result !== "0x") {
+            // แปลงเลขฐาน 16 เป็นตัวเลขปกติ แล้วหารด้วย 10^18 (หน่วย Wei)
+            const balanceInWei = BigInt(data.result);
+            const balanceWLD = Number(balanceInWei) / 1e18;
+            
+            uiBalance.innerText = balanceWLD.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            uiBalance.style.color = "#00eaff"; // สีฟ้านีออน
+            uiBalance.style.fontSize = "1.2rem";
+        } else {
+            uiBalance.innerText = "⚠️ RPC BUSY"; 
+            uiBalance.style.color = "#ffaa00";
+            uiBalance.style.fontSize = "0.9rem";
+        }
+    } catch (err) {
+        console.error("RPC Error:", err);
+        const uiBalance = document.getElementById('uiVaultBalance');
+        uiBalance.innerText = "❌ OFFLINE";
+        uiBalance.style.color = "#ff2a2a";
+        uiBalance.style.fontSize = "0.9rem";
+    }
+}
+
        
     // =========================================
     // 9. BATTLE LOGIC (Double KO = Rematch x2)
