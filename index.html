@@ -215,9 +215,9 @@
                 <div class="close-btn" id="btnCloseMap">✕</div>
             </div>
             
-          <div style="background: rgba(0, 234, 255, 0.05); border: 1px solid rgba(0, 234, 255, 0.3); border-radius: 8px; padding: 8px; text-align: center; margin: 10px auto; width: 80%; box-shadow: 0 0 10px rgba(0, 234, 255, 0.1);">
-        <div style="color: #aaa; font-size: 0.7rem; font-family: 'Orbitron'; letter-spacing: 1px;">💰 REWARD POOL (WLD)</div>
-        <div style="color: #00eaff; font-size: 1.2rem; font-weight: bold; font-family: 'Orbitron'; text-shadow: 0 0 5px #00eaff;">
+          <div style="background: rgba(0, 234, 255, 0.05); border: 1px solid rgba(0, 234, 255, 0.3); border-radius: 8px; padding: 5px; text-align: center; margin: 10px auto; width: 80%; box-shadow: 0 0 10px rgba(0, 234, 255, 0.1);">
+        <div style="color: #aaa; font-size: 0.3rem; font-family: 'Orbitron'; letter-spacing: 1px;">💰 REWARD POOL (WLD)</div>
+        <div style="color: #00eaff99; font-size: 1rem; font-weight: bold; font-family: 'Orbitron'; text-shadow: 0 0 5px #00eaff;">
             <span id="uiVaultBalance">⏳ Loading...</span>
         </div>
     </div>
@@ -541,7 +541,7 @@ document.getElementById('btnWorldID').onclick = async function() {
     try {
         const vaultAddress = "0x0c07D1879f06B72a0976fe69B777c0BF84410eFa"; 
         const wldTokenAddress = "0x2cFc85d522552705054dEB0c222A0FA642DF1D22"; 
-        const url = `https://api.worldscan.org/api?module=account&action=tokenbalance&contractaddress=${wldTokenAddress}&address=${vaultAddress}&tag=latest`;
+        const url = `https://api.worldscan.org/api?module=account&action=tokenbalance&contractaddress=${wldTokenAddress}&address=${vaultAddress}&tag=latest&apikey=H2VEJ7CMGUJUZAD5JIH3TDEZM14BSE8Z53`;
         
         const response = await fetch(url);
         const data = await response.json();
