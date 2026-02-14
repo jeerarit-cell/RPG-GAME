@@ -214,6 +214,18 @@
                 <h2 style="margin:0; font-family:'Orbitron';">MONSTER HUNT</h2>
                 <div class="close-btn" id="btnCloseMap">✕</div>
             </div>
+            <div id="screen-map" class="screen" style="display:none;">
+    
+    <div style="background: rgba(0, 234, 255, 0.1); border: 1px solid rgba(0, 234, 255, 0.3); border-radius: 8px; padding: 8px; text-align: center; margin: 10px auto; width: 80%; box-shadow: 0 0 10px rgba(0, 234, 255, 0.1);">
+        <div style="color: #aaa; font-size: 0.7rem; font-family: 'Orbitron'; letter-spacing: 1px;">💰 REWARD POOL (WLD)</div>
+        <div style="color: #00eaff; font-size: 1.2rem; font-weight: bold; font-family: 'Orbitron'; text-shadow: 0 0 5px #00eaff;">
+            <span id="uiVaultBalance">⏳ Loading...</span>
+        </div>
+    </div>
+
+    ...
+</div>
+
             <div id="monster-list-container" style="padding-bottom: 80px;"></div>
         </div>
 
@@ -524,8 +536,40 @@ document.getElementById('btnWorldID').onclick = async function() {
     function updateLobbyStats() { const elLevel = document.getElementById('uiLevel'); const elExp = document.getElementById('uiExp'); const elHP = document.getElementById('uiLobbyHP'); if (!levelConfig[playerLevel]) { if(elLevel) { elLevel.innerText = "LV.MAX"; elLevel.style.color = "#ffd700"; elLevel.style.border = "1px solid #ffd700"; } if(elExp) elExp.innerText = "----/---- XP"; } else { if(elLevel) { elLevel.innerText = "LV." + playerLevel; elLevel.style.color = "#00eaff"; elLevel.style.border = "none"; } if(elExp) { const nextNeed = levelConfig[playerLevel].need; elExp.innerText = `${playerEXP}/${nextNeed} XP`; } } if(elHP) elHP.innerText = `${playerCurrentHP}/${playerMaxHP}`; }
     function nav(target) { document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); let screenId = 'screen-' + target; if(target === 'home') screenId = 'screen-lobby'; const targetScreen = document.getElementById(screenId); if(targetScreen) targetScreen.classList.add('active'); updateBalance(); updateLobbyStats(); }
     
-    function initMap() { const container = document.getElementById('monster-list-container'); if(!container) return; container.innerHTML = ''; monsterDB.forEach(m => { let cardClass = 'rank-common'; let badgeStyle = ''; let infoExtra = ''; if(m.type === 'miniboss') { cardClass = 'rank-miniboss'; badgeStyle = 'color:#00eaff; border-color:#00eaff;'; infoExtra = '<p style="color:#00eaff; font-size:0.7rem; font-weight:bold;">★ MINI BOSS</p>'; } else if (m.type === 'boss') { cardClass = 'rank-boss'; badgeStyle = 'background:#ffd700; color:black; font-weight:bold; border:none;'; infoExtra = '<p style="color:#ffd700; font-weight:bold; font-size:0.7rem;">☠️ WORLD BOSS</p>'; } else if (m.type === 'legendary') { cardClass = 'rank-legendary'; badgeStyle = 'background:white; color:#FF8C00; font-weight:900; border:none; box-shadow: 0 0 10px white;'; infoExtra = '<p style="color:white; font-weight:900; font-size:0.8rem; text-shadow: 0 1px 2px black;">👑 LEGENDARY BOSS</p>'; } container.innerHTML += `<div class="monster-card ${cardClass}" onclick="prepareBattle(${m.id})"><div style="display:flex; align-items:center;"><img src="${m.url}" class="m-avatar"><div class="m-info"><h3>${m.name}</h3>${infoExtra}<p>${m.loc} • HP: ${m.hp}</p></div></div><div class="hp-badge" style="${badgeStyle}">HP: ${m.hp}</div></div>`; }); }
-    
+    function initMap() { const container = document.getElementById('monster-list-container'); if(!container) return; container.innerHTML = ''; monsterDB.forEach(m => { let cardClass = 'rank-common'; let badgeStyle = ''; let infoExtra = ''; if(m.type === 'miniboss') { cardClass = 'rank-miniboss'; badgeStyle = 'color:#00eaff; border-color:#00eaff;'; infoExtra = '<p style="color:#00eaff; font-size:0.7rem; font-weight:bold;">★ MINI BOSS</p>'; } else if (m.type === 'boss') { cardClass = 'rank-boss'; badgeStyle = 'background:#ffd700; color:black; font-weight:bold; border:none;'; infoExtra = '<p style="color:#ffd700; font-weight:bold; font-size:0.7rem;">☠️ WORLD BOSS</p>'; } else if (m.type === 'legendary') { cardClass = 'rank-legendary'; badgeStyle = 'background:white; color:#FF8C00; font-weight:900; border:none; box-shadow: 0 0 10px white;'; infoExtra = '<p style="color:white; font-weight:900; font-size:0.8rem; text-shadow: 0 1px 2px black;">👑 LEGENDARY BOSS</p>'; } container.innerHTML += `<div class="monster-card ${cardClass}" onclick="prepareBattle(${m.id})"><div style="display:flex; align-items:center;"><img src="${m.url}" class="m-avatar"><div class="m-info"><h3>${m.name}</h3>${infoExtra}<p>${m.loc} • HP: ${m.hp}</p></div></div><div class="hp-badge" style="${badgeStyle}">HP: ${m.hp}</div></div>`; });fetchVaultBalance(); // ให้มันดึงยอดเงินมาโชว์ใหม่ทุกครั้งที่เดินเข้าหน้าบอส
+ }
+      ///ดึงยอดมาโชว์
+
+    async function fetchVaultBalance() {
+    try {
+        // 1. ที่อยู่กระเป๋า Contract กองกลางของคุณ (เปลี่ยนได้ถ้าไม่ใช่กระเป๋านี้)
+        const vaultAddress = "0x0c07D1879f06B72a0976fe69B777c0BF84410eFa"; 
+        
+        // 2. Contract Address ของเหรียญ WLD (บนเครือข่าย World Chain)
+        const wldTokenAddress = "0x2cFc85d522552705054dEB0c222A0FA642DF1D22"; 
+        
+        // 3. ยิง API ฟรีของ Worldscan เพื่อเช็คยอด
+        const url = `https://api.worldscan.org/api?module=account&action=tokenbalance&contractaddress=${wldTokenAddress}&address=${vaultAddress}&tag=latest`;
+        
+        const response = await fetch(url);
+        const data = await response.json();
+        
+        if (data.status === "1") {
+            // ค่าที่ได้มาจะเป็นหน่วย Wei (มีเลขศูนย์ 18 ตัว) ต้องหารด้วย 10^18
+            const balanceInWei = data.result;
+            const balanceWLD = (balanceInWei / 1e18).toFixed(2); // โชว์ทศนิยม 2 ตำแหน่ง
+            
+            // นำยอดไปแสดงบนหน้าจอ พร้อมใส่ลูกน้ำหลักพัน
+            document.getElementById('uiVaultBalance').innerText = parseFloat(balanceWLD).toLocaleString();
+        } else {
+            document.getElementById('uiVaultBalance').innerText = "ERROR";
+        }
+    } catch (err) {
+        console.error("ดึงยอดกองกลางไม่สำเร็จ:", err);
+        document.getElementById('uiVaultBalance').innerText = "OFFLINE";
+    }
+}
+   
     // =========================================
     // 9. BATTLE LOGIC (Double KO = Rematch x2)
     // =========================================
