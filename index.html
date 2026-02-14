@@ -535,64 +535,7 @@ document.getElementById('btnWorldID').onclick = async function() {
     
     function initMap() { const container = document.getElementById('monster-list-container'); if(!container) return; container.innerHTML = ''; monsterDB.forEach(m => { let cardClass = 'rank-common'; let badgeStyle = ''; let infoExtra = ''; if(m.type === 'miniboss') { cardClass = 'rank-miniboss'; badgeStyle = 'color:#00eaff; border-color:#00eaff;'; infoExtra = '<p style="color:#00eaff; font-size:0.7rem; font-weight:bold;">★ MINI BOSS</p>'; } else if (m.type === 'boss') { cardClass = 'rank-boss'; badgeStyle = 'background:#ffd700; color:black; font-weight:bold; border:none;'; infoExtra = '<p style="color:#ffd700; font-weight:bold; font-size:0.7rem;">☠️ WORLD BOSS</p>'; } else if (m.type === 'legendary') { cardClass = 'rank-legendary'; badgeStyle = 'background:white; color:#FF8C00; font-weight:900; border:none; box-shadow: 0 0 10px white;'; infoExtra = '<p style="color:white; font-weight:900; font-size:0.8rem; text-shadow: 0 1px 2px black;">👑 LEGENDARY BOSS</p>'; } container.innerHTML += `<div class="monster-card ${cardClass}" onclick="prepareBattle(${m.id})"><div style="display:flex; align-items:center;"><img src="${m.url}" class="m-avatar"><div class="m-info"><h3>${m.name}</h3>${infoExtra}<p>${m.loc} • HP: ${m.hp}</p></div></div><div class="hp-badge" style="${badgeStyle}">HP: ${m.hp}</div></div>`; });
  }
-      ///ดึงยอดมาโชว์
-
-    <script type="module">
-    // ดึงเครื่องมือ viem มาจาก CDN (เซิร์ฟเวอร์สำหรับหน้าเว็บโดยตรง)
-    import { createPublicClient, http, formatUnits } from 'https://esm.sh/viem@2.x';
-    import { worldchain } from 'https://esm.sh/viem@2.x/chains';
-
-    // 1. ตั้งค่า Client เชื่อมต่อกับ World Chain ผ่าน RPC ฟรี
-    const client = createPublicClient({
-        chain: worldchain,
-        transport: http() // วิ่งตรงเข้า Blockchain
-    });
-
-    const WLD_CONTRACT = '0x2cfc85d8e48f8eab294be644d9e25c3030863003'; 
-    const POOL_ADDRESS = '0x0c07D1879f06B72a0976fe69B777c0BF84410eFa'; // กระเป๋ากองกลางของคุณ
-
-    // 2. ฟังก์ชันดึงยอดเงิน (เราเอาไปผูกกับ window เพื่อให้ปุ่มอื่นเรียกใช้ได้)
-    window.fetchVaultBalance = async function() {
-        const uiBalance = document.getElementById('uiVaultBalance');
-        
-        try {
-            // สั่งอ่านข้อมูลจาก Smart Contract โดยตรง
-            const balance = await client.readContract({
-                address: WLD_CONTRACT,
-                abi: [
-                    {
-                        name: 'balanceOf',
-                        type: 'function',
-                        inputs: [{ name: 'account', type: 'address' }],
-                        outputs: [{ name: 'balance', type: 'uint256' }],
-                        stateMutability: 'view',
-                    },
-                ],
-                functionName: 'balanceOf',
-                args: [POOL_ADDRESS],
-            });
-
-            // แปลงหน่วย WLD ที่มีศูนย์ 18 ตัว
-            const formattedBalance = formatUnits(balance, 18);
-            
-            // อัปเดตขึ้นหน้าจอ พร้อมใส่ลูกน้ำหลักพันและทศนิยม 2 ตำแหน่ง
-            const displayValue = parseFloat(formattedBalance).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-            
-            uiBalance.innerText = displayValue;
-            uiBalance.style.color = "#00eaff"; // สีฟ้านีออน
-            uiBalance.style.fontSize = "1.2rem";
-
-        } catch (err) {
-            console.error("Viem RPC Error:", err);
-            uiBalance.innerText = "⚠️ RPC BUSY"; 
-            uiBalance.style.color = "#ffaa00"; 
-            uiBalance.style.fontSize = "0.9rem";
-        }
-    }
-</script>
-
-
-   
+       
     // =========================================
     // 9. BATTLE LOGIC (Double KO = Rematch x2)
     // =========================================
