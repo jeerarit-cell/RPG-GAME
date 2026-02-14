@@ -12,4 +12,4 @@ BATTLE CARD
 ![login](https://github.com/user-attachments/assets/c9b596d6-88ee-4ca0-bf0a-a80b17ab31f0)
 ![background](https://github.com/user-attachments/assets/13b147e2-f363-49ce-bd43-68530d231a60)
 ![legandary](https://github.com/user-attachments/assets/b8379da1-b55e-4c8f-bcfb-e68eaae581ed)
-![1000017169](https://github.com/user-attachments/assets/027f139b-d81c-4e2d-9feb-9dc0502c8f8b)
+![รูปโปรไฟล์](https://github.com/user-attachments/assets/027f139b-d81c-4e2d-9feb-9dc0502c8f8b)
