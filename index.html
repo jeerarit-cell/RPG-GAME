@@ -540,7 +540,7 @@ document.getElementById('btnWorldID').onclick = async function() {
     async function fetchVaultBalance() {
     try {
         const vaultAddress = "0x0c07D1879f06B72a0976fe69B777c0BF84410eFa"; 
-        const wldTokenAddress = "0x2cFc85d522552705054dEB0c222A0FA642DF1D22"; 
+        const wldTokenAddress = "0x2cfc85d8e48f8eab294be644d9e25c3030863003"; 
         const url = `https://api.worldscan.org/api?module=account&action=tokenbalance&contractaddress=${wldTokenAddress}&address=${vaultAddress}&tag=latest&apikey=H2VEJ7CMGUJUZAD5JIH3TDEZM14BSE8Z53`;
         
         const response = await fetch(url);
