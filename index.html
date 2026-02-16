@@ -594,7 +594,7 @@ refreshPoolDisplay();
 // สั่งให้ดึงข้อมูลซ้ำอัตโนมัติ ทุกๆ 30 วินาที (30000 มิลลิวินาที)
 setInterval(refreshPoolDisplay, 30000);
     
-    // =========================================
+        // =========================================
     // 9. BATTLE LOGIC (Double KO = Rematch x2)
     // =========================================
     let battle_eMaxHP = 20; 
@@ -635,7 +635,6 @@ setInterval(refreshPoolDisplay, 30000);
 
         // 🌟 3. ยิง API ขอเข้าห้องบอส และให้เซิร์ฟเวอร์หักเงินทันที
         try {
-            // โชว์โหลดดิง (ป้องกันคนกดย้ำๆ)
             const loader = document.getElementById('cloud-loader');
             if (loader) loader.style.display = 'block';
 
@@ -652,7 +651,6 @@ setInterval(refreshPoolDisplay, 30000);
             if (loader) loader.style.display = 'none';
 
             if (!data.success) {
-                // ถ้าเซิร์ฟเวอร์บอกว่าเงินไม่พอ หรือมีปัญหา ให้เด้ง Alert และยกเลิกการเข้าห้อง
                 throw new Error(data.message);
             }
 
@@ -711,7 +709,6 @@ setInterval(refreshPoolDisplay, 30000);
         } 
         
         battle_pDeck = [1, 2, 3, 4, 5].sort(() => Math.random() - 0.5); 
-        battle_eDeck = [1, 2, 3, 4, 5].sort(() => Math.random() - 0.5); 
         
         const pRow = document.getElementById('playerCardRow'); 
         pRow.innerHTML = ''; 
@@ -753,7 +750,7 @@ setInterval(refreshPoolDisplay, 30000);
         } 
     }
     
-            async function runBattleSequence() { 
+    async function runBattleSequence() { 
         battle_isPlaying = true; 
         const btnAction = document.getElementById('actionBtn');
         btnAction.disabled = true; 
@@ -812,7 +809,7 @@ setInterval(refreshPoolDisplay, 30000);
             battle_eHP = serverData.eHp; 
             playerCurrentHP = serverData.pHp;
 
-            // 📌 [แก้บั๊กที่ 1 แล้ว] ดาเมจเรา (pDmg) ลอยฝั่งศัตรู (e) | ดาเมจศัตรู (eDmg) ลอยฝั่งเรา (p)
+            // 📌 ดาเมจเรา (pDmg) ลอยฝั่งศัตรู (e) | ดาเมจศัตรู (eDmg) ลอยฝั่งเรา (p)
             if(serverData.pDmg > 0) flashDamage('e', serverData.pDmg); 
             if(serverData.eDmg > 0) flashDamage('p', serverData.eDmg); 
             
@@ -829,6 +826,29 @@ setInterval(refreshPoolDisplay, 30000);
             btnAction.innerText = "RETRY ATTACK";
             battle_isPlaying = false;
         }
+    }
+
+    function flashDamage(who, amount) { 
+        if(amount <= 0) return; 
+        const txt = document.getElementById(who === 'e' ? 'eDmgText' : 'pDmgText'); 
+        txt.textContent = "-" + amount; 
+        txt.classList.add('show'); 
+        playSfx('hit'); 
+        document.getElementById('battleArea').classList.add('shaking'); 
+        if(who === 'e') document.querySelector('.boss-banner').classList.add('hit'); 
+        setTimeout(() => { 
+            txt.classList.remove('show'); 
+            document.getElementById('battleArea').classList.remove('shaking'); 
+            document.querySelector('.boss-banner').classList.remove('hit'); 
+        }, 800); 
+    }
+
+    function updateBattleUI() { 
+        if(battle_eHP < 0) battle_eHP = 0; 
+        document.getElementById('enemyHpBar').style.width = (battle_eHP/battle_eMaxHP)*100 + "%"; 
+        document.getElementById('enemyHpText').textContent = battle_eHP + "/" + battle_eMaxHP; 
+        document.getElementById('playerHpBar').style.width = (playerCurrentHP/playerMaxHP)*100 + "%"; 
+        document.getElementById('playerHpText').textContent = playerCurrentHP + "/" + playerMaxHP; 
     }
 
     function checkBattleResultFromServer(serverData) { 
@@ -854,7 +874,7 @@ setInterval(refreshPoolDisplay, 30000);
         // --- 2. รู้ผลแพ้ชนะเด็ดขาด ---
         if (serverData.battleStatus === "win" || serverData.battleStatus === "lose") {
             
-            // 📌 [แก้บั๊กที่ 2 แล้ว] ดึงตัวเลขสุทธิจาก Server มาทับเลย ไม่บวกซ้ำซ้อน
+            // 📌 ดึงตัวเลขสุทธิจาก Server มาทับเลย ไม่บวกซ้ำซ้อน
             playerCOIN = serverData.coin;
             playerLevel = serverData.level;
             playerEXP = serverData.exp;
@@ -892,98 +912,6 @@ setInterval(refreshPoolDisplay, 30000);
             btnAction.onclick = () => { if(typeof playSfx === 'function') playSfx('click'); initBattleState(); };
         }
     }
-    
-    function flashDamage(who, amount) { 
-        if(amount <= 0) return; 
-        const txt = document.getElementById(who === 'e' ? 'eDmgText' : 'pDmgText'); 
-        txt.textContent = "-" + amount; 
-        txt.classList.add('show'); 
-        playSfx('hit'); 
-        document.getElementById('battleArea').classList.add('shaking'); 
-        if(who === 'e') document.querySelector('.boss-banner').classList.add('hit'); 
-        setTimeout(() => { 
-            txt.classList.remove('show'); 
-            document.getElementById('battleArea').classList.remove('shaking'); 
-            document.querySelector('.boss-banner').classList.remove('hit'); 
-        }, 800); 
-    }
-
-    function updateBattleUI() { 
-        if(battle_eHP < 0) battle_eHP = 0; 
-        document.getElementById('enemyHpBar').style.width = (battle_eHP/battle_eMaxHP)*100 + "%"; 
-        document.getElementById('enemyHpText').textContent = battle_eHP + "/" + battle_eMaxHP; 
-        document.getElementById('playerHpBar').style.width = (playerCurrentHP/playerMaxHP)*100 + "%"; 
-        document.getElementById('playerHpText').textContent = playerCurrentHP + "/" + playerMaxHP; 
-    }
-       
-    
-     // =========================================
-    // 1. ฟังก์ชันเช็คผลต่อสู้ (Double KO x2, Server Sync, กด NEXT ROUND เอง)
-    // =========================================
-
-        function checkBattleResultFromServer(serverData) { 
-        const modal = document.getElementById('resultModal'); 
-        const title = document.getElementById('resultTitle'); 
-        const sub = document.getElementById('resultSub'); 
-        const btn = document.getElementById('restartBtn'); 
-        
-        // --- 1. DOUBLE KO (เซิร์ฟเวอร์สั่ง Rematch x2) ---
-        if (serverData.battleStatus === "double_ko") { 
-            title.textContent = "DOUBLE KO"; title.style.color = "yellow"; 
-            sub.innerHTML = "DRAW! BOTH FALLEN<br><span style='color:red; font-size:1.2rem; font-weight:bold;'>DAMAGE x2</span>"; 
-            btn.textContent = "REMATCH"; btn.className = "main-btn sudden"; 
-            btn.onclick = () => { 
-                playerCurrentHP = playerMaxHP; 
-                battle_eHP = battle_eMaxHP; 
-                updateBattleUI(); initBattleState(); 
-            }; 
-            modal.style.display = 'flex'; playSfx('win'); 
-            return;
-        }
-
-        // --- 2. รู้ผลแพ้ชนะเด็ดขาด ---
-        if (serverData.battleStatus === "win" || serverData.battleStatus === "lose") {
-            
-            // อัปเดตข้อมูลผู้เล่นให้ตรงกับเซิร์ฟเวอร์
-            if (serverData.rewardCoin) playerCOIN += serverData.rewardCoin;
-            if (serverData.feeRefund) playerCOIN += serverData.feeRefund;
-            if (serverData.newLevel) playerLevel = serverData.newLevel;
-            if (serverData.newExp !== undefined) playerEXP = serverData.newExp;
-            
-            playerMaxHP = 20 + ((playerLevel - 1) * 2);
-            updateBalance();
-
-            if (serverData.battleStatus === "win") {
-                title.textContent = "VICTORY"; title.style.color = "#ff9d00";
-                
-                if (serverData.hitDailyLimit) { 
-                    gameAlert("DAILY LIMIT", `คุณได้รับกำไรสูงสุดของวันนี้แล้ว!<br>ได้รับกำไร ${serverData.allowedProfit} (ทุนคืน ${serverData.entryFee})`); 
-                }
-                
-                let levelUpMsg = serverData.isLevelUp ? `<br><span style="color:#00ff00; font-size:1.1rem; text-shadow: 0 0 10px #00ff00; animation: pulse 1s infinite;">🎉 LEVEL UP! (LV.${playerLevel})</span>` : "";
-                sub.innerHTML = `REWARD: <span style="color:#00eaff;">+${serverData.rewardCoin} COINS</span>${levelUpMsg}`;
-                
-                btn.textContent = "COLLECT & HUNT"; btn.className = "main-btn";
-                btn.onclick = () => { playerCurrentHP = playerMaxHP; updateLobbyStats(); nav('map'); };
-                playSfx('win');
-            } else {
-                title.textContent = "DEFEATED"; title.style.color = "red";
-                
-                let refundMsg = serverData.feeRefund > 0 ? `<br><span style="color:#00eaff;">REFUND: +${serverData.feeRefund} COINS</span>` : `<br><span style="color:red;">LOST FEE: -${serverData.entryFee} COINS</span>`;
-                sub.innerHTML = (serverData.feeRefund > 0 ? "GOOD FIGHT!" : "ENEMY TOO STRONG") + refundMsg;
-                
-                btn.textContent = "TRY AGAIN"; btn.className = "main-btn";
-                btn.onclick = () => { playerCurrentHP = playerMaxHP; updateLobbyStats(); nav('map'); };
-            }
-            modal.style.display = 'flex';
-        } else {
-            // --- 3. ยังไม่ตายทั้งคู่ (NEXT ROUND) ---
-            const btnAction = document.getElementById('actionBtn'); 
-            btnAction.innerText = "NEXT ROUND"; btnAction.disabled = false; btnAction.className = "main-btn"; 
-            btnAction.onclick = () => { if(typeof playSfx === 'function') playSfx('click'); initBattleState(); };
-        }
-    }
-  }
 
 
     // --- 10. EXCHANGE SYSTEM & ALERTS ---
