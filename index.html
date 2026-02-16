@@ -753,7 +753,7 @@ setInterval(refreshPoolDisplay, 30000);
         } 
     }
     
-        async function runBattleSequence() { 
+            async function runBattleSequence() { 
         battle_isPlaying = true; 
         const btnAction = document.getElementById('actionBtn');
         btnAction.disabled = true; 
@@ -812,8 +812,9 @@ setInterval(refreshPoolDisplay, 30000);
             battle_eHP = serverData.eHp; 
             playerCurrentHP = serverData.pHp;
 
-            if(serverData.eDmg > 0) flashDamage('e', serverData.eDmg); 
-            if(serverData.pDmg > 0) flashDamage('p', serverData.pDmg); 
+            // 📌 [แก้บั๊กที่ 1 แล้ว] ดาเมจเรา (pDmg) ลอยฝั่งศัตรู (e) | ดาเมจศัตรู (eDmg) ลอยฝั่งเรา (p)
+            if(serverData.pDmg > 0) flashDamage('e', serverData.pDmg); 
+            if(serverData.eDmg > 0) flashDamage('p', serverData.eDmg); 
             
             updateBattleUI(); 
             await new Promise(r => setTimeout(r, 1500)); 
@@ -830,6 +831,67 @@ setInterval(refreshPoolDisplay, 30000);
         }
     }
 
+    function checkBattleResultFromServer(serverData) { 
+        const modal = document.getElementById('resultModal'); 
+        const title = document.getElementById('resultTitle'); 
+        const sub = document.getElementById('resultSub'); 
+        const btn = document.getElementById('restartBtn'); 
+        
+        // --- 1. DOUBLE KO (เซิร์ฟเวอร์สั่ง Rematch x2) ---
+        if (serverData.battleStatus === "double_ko") { 
+            title.textContent = "DOUBLE KO"; title.style.color = "yellow"; 
+            sub.innerHTML = "DRAW! BOTH FALLEN<br><span style='color:red; font-size:1.2rem; font-weight:bold;'>DAMAGE x2</span>"; 
+            btn.textContent = "REMATCH"; btn.className = "main-btn sudden"; 
+            btn.onclick = () => { 
+                playerCurrentHP = playerMaxHP; 
+                battle_eHP = battle_eMaxHP; 
+                updateBattleUI(); initBattleState(); 
+            }; 
+            modal.style.display = 'flex'; playSfx('win'); 
+            return;
+        }
+
+        // --- 2. รู้ผลแพ้ชนะเด็ดขาด ---
+        if (serverData.battleStatus === "win" || serverData.battleStatus === "lose") {
+            
+            // 📌 [แก้บั๊กที่ 2 แล้ว] ดึงตัวเลขสุทธิจาก Server มาทับเลย ไม่บวกซ้ำซ้อน
+            playerCOIN = serverData.coin;
+            playerLevel = serverData.level;
+            playerEXP = serverData.exp;
+            playerMaxHP = serverData.hp; 
+
+            updateBalance();
+
+            if (serverData.battleStatus === "win") {
+                title.textContent = "VICTORY"; title.style.color = "#ff9d00";
+                
+                if (serverData.hitDailyLimit) { 
+                    gameAlert("DAILY LIMIT", `คุณได้รับกำไรสูงสุดของวันนี้แล้ว!<br>ได้รับกำไร ${serverData.allowedProfit} (ทุนคืน ${serverData.entryFee})`); 
+                }
+                
+                let levelUpMsg = serverData.isLevelUp ? `<br><span style="color:#00ff00; font-size:1.1rem; text-shadow: 0 0 10px #00ff00; animation: pulse 1s infinite;">🎉 LEVEL UP! (LV.${playerLevel})</span>` : "";
+                sub.innerHTML = `REWARD: <span style="color:#00eaff;">+${serverData.rewardCoin} COINS</span>${levelUpMsg}`;
+                
+                btn.textContent = "COLLECT & HUNT"; btn.className = "main-btn";
+                btn.onclick = () => { playerCurrentHP = playerMaxHP; updateLobbyStats(); nav('map'); };
+                playSfx('win');
+            } else {
+                title.textContent = "DEFEATED"; title.style.color = "red";
+                
+                let refundMsg = serverData.feeRefund > 0 ? `<br><span style="color:#00eaff;">REFUND: +${serverData.feeRefund} COINS</span>` : `<br><span style="color:red;">LOST FEE: -${serverData.entryFee} COINS</span>`;
+                sub.innerHTML = (serverData.feeRefund > 0 ? "GOOD FIGHT!" : "ENEMY TOO STRONG") + refundMsg;
+                
+                btn.textContent = "TRY AGAIN"; btn.className = "main-btn";
+                btn.onclick = () => { playerCurrentHP = playerMaxHP; updateLobbyStats(); nav('map'); };
+            }
+            modal.style.display = 'flex';
+        } else {
+            // --- 3. ยังไม่ตายทั้งคู่ (NEXT ROUND) ---
+            const btnAction = document.getElementById('actionBtn'); 
+            btnAction.innerText = "NEXT ROUND"; btnAction.disabled = false; btnAction.className = "main-btn"; 
+            btnAction.onclick = () => { if(typeof playSfx === 'function') playSfx('click'); initBattleState(); };
+        }
+    }
     
     function flashDamage(who, amount) { 
         if(amount <= 0) return; 
