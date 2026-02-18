@@ -337,7 +337,7 @@ document.getElementById('btnWorldID').onclick = async function() {
                 }
             } catch (apiError) {
                 console.warn("ไม่สามารถดึงข้อมูลจาก Server ได้ (Fallback)", apiError);
-                status.innerText = SERVER ERROR (NEW PLAYER)";
+                status.innerText = "SERVER ERROR (NEW PLAYER)";
                 status.style.color = "yellow";
                 window.applyGameData(null);
             }
@@ -351,7 +351,7 @@ document.getElementById('btnWorldID').onclick = async function() {
 
     } catch (error) {
         console.error(error);
-        gameAlert("SYSTEM ERROR","❌ เกิดข้อผิดพลาด:<br>" + error.message);
+        gameAlert("SYSTEM ERROR","❌ SYSTEM ERROR:<br>" + error.message);
     }
 };
 
@@ -517,8 +517,7 @@ document.getElementById('btnWorldID').onclick = async function() {
     // --- 8. UI HELPERS & NAVIGATION ---
     document.getElementById('btnWallet').onclick = function() {
         gameAlert(
-            "เตรียมชำระเงิน",
-            "การซื้อ/ขาย COINS จะใช้ WLD จริงผ่าน World App\nจะมีหน้าต่างยืนยันจาก World App ปรากฏขึ้น\nกด ACKNOWLEDGE เพื่อดำเนินการต่อ",
+            "PAYMENT PREPARATION", "BUY/SELL COINS uses real WLD via World App.\nA confirmation window will appear.\nPress ACKNOWLEDGE to proceed.", ...",
             function() { openExchangeModal(); }
         );
     };
@@ -578,7 +577,7 @@ async function refreshPoolDisplay() {
             uiBalance.style.color = "#ffaa00";
         }
     } catch (error) {
-        console.error("โชว์ยอด Pool ไม่สำเร็จ:", error);
+        console.error("wait.. Pool data:", error);
         const uiBalance = document.getElementById('uiVaultBalance');
         if(uiBalance) {
             uiBalance.innerText = "❌ OFFLINE";
@@ -624,7 +623,7 @@ setInterval(refreshPoolDisplay, 30000);
         
         const dailyGameLimit = 10000;
         if (earnedFromGameToday >= dailyGameLimit) {
-            gameAlert(DAILY LIMIT", "YOU HAVE REACHED THE 10,000 COINS DAILY LIMIT!<br><span style='color:#00eaff;'>PLEASE COME BACK TOMORROW</span>");
+            gameAlert("DAILY LIMIT", "YOU HAVE REACHED THE 10,000 COINS DAILY LIMIT!<br><span style='color:#00eaff;'>PLEASE COME BACK TOMORROW</span>");
             playSfx('click');
             return; 
         }
@@ -1145,7 +1144,7 @@ setInterval(refreshPoolDisplay, 30000);
                 RATE: ${SELL_RATE} COINS = 1 WLD
             </p>
             <div style="background:rgba(235,100,0,0.7); padding:15px; border-radius:8px; margin:10px 0;">
-                <label style="color:#fff; display:block; margin-bottom:5px;">ขาย COINS</label>
+                <label style="color:#fff; display:block; margin-bottom:5px;">SELL COINS</label>
                 <input type="number" id="inpSellCoin" value="${MIN_SELL}" step="100"
                        style="width:100%; background:#000; border:1px solid #444; color:#fff;
                               padding:10px; font-size:1.2rem; font-family:'Orbitron'; text-align:center;">
@@ -1154,7 +1153,7 @@ setInterval(refreshPoolDisplay, 30000);
                 </p>
             </div>
             <div style="text-align:center; color:#fff; margin-bottom:15px;">
-                ⬇ ได้รับ (ประมาณ) ⬇ <br>
+                ⬇ RECEIVE (EST.) ⬇ <br>
                 <span id="txtGetWLD" style="color:#00eaff; font-size:1.5rem; font-family:'Orbitron';">
                     ${parseFloat((MIN_SELL / SELL_RATE).toFixed(4))}
                 </span> WLD
@@ -1239,7 +1238,7 @@ setInterval(refreshPoolDisplay, 30000);
             });
 
             if (result?.finalPayload?.status !== "success") {
-                throw new Error("รายการถูกยกเลิก");
+                throw new Error("TRANSACTION CANCELLED");
             }
 
             // 🌟 เมื่อจ่ายผ่าน World App แล้ว ยิงบอก Server ให้เพิ่มเหรียญ
@@ -1273,12 +1272,12 @@ setInterval(refreshPoolDisplay, 30000);
             overlay.remove();
             
             // ✅ ใช้ gameAlert แจ้งเตือนซื้อสำเร็จ
-            gameAlert("WITHDRAW SUCCESS", "✅ TRANSACTION SUCCESSFUL!<br><span style='color:#00eaff; font-size:0.9rem;'>REWARD TRANSFERRED TO YOUR WALLET</span>");
+            gameAlert("PURCHASE SUCCESS", \SUCCESSFULLY RECEIVED <span style="color:#ffd700; font-size:1.2rem;">${coinsToReceive} COINS</span>!`");
 
         } catch (err) {
             console.error("Buy Error:", err);
             if (!err.message?.includes("ยกเลิก"))
-                gameAlert("ERROR", "❌ เกิดข้อผิดพลาด: " + (err.message || err));
+                gameAlert("ERROR", "❌ ERROR OCCURRED: " + (err.message || err));
         } finally {
             btn.disabled = false;
             btn.innerText = "CONFIRM BUY";
@@ -1355,7 +1354,7 @@ setInterval(refreshPoolDisplay, 30000);
             const txResult = await window.MiniKit.commandsAsync.sendTransaction(txPayload);
 
             if (txResult?.finalPayload?.status !== "success")
-                throw new Error("รายการถูกยกเลิก");
+                throw new Error("TRANSACTION CANCELLED");
 
             // Step 3: โอนบน Blockchain ผ่านแล้ว -> ยิงบอก Server (ปุ่มจะยังคงขึ้น WAIT...)
             const syncRes = await fetch("https://game-server-vs0h.onrender.com/api/withdraw-success", {
@@ -1385,7 +1384,7 @@ setInterval(refreshPoolDisplay, 30000);
         } catch (e) {
             console.error("Sell Error:", e);
             if (!e.message?.includes("ยกเลิก"))
-                gameAlert("ERROR", "❌ เกิดข้อผิดพลาด: " + (e.message || "Unknown error"));
+                gameAlert("ERROR", "❌ ERROR OCCURRED: " + (e.message || "Unknown error"));
         } finally {
             // เมื่อจบกระบวนการ (ทั้งสำเร็จและถูกยกเลิก) ปุ่มจะกลับมาเป็น CONFIRM SELL
             btn.disabled = false;
