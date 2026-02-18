@@ -609,7 +609,8 @@ setInterval(refreshPoolDisplay, 30000);
     window.prepareBattle = async function(monsterID) { 
         // 1. เช็คเงินเบื้องต้น (กันเหนียวก่อนยิง API)
         if (playerCOIN < playerMaxHP) { 
-            gameAlert("ACCESS DENIED", `เงินไม่พอจ่ายค่าเข้า!<br>ต้องการ: <b style="color:#ff0000">${playerMaxHP} COINS</b>`); 
+            gameAlert("ACCESS DENIED", \NOT ENOUGH COINS!
+REQUIRED: <b style="color:#ff0000">${playerMaxHP} COINS</b>`);`
             playSfx('click'); 
             return; 
         } 
@@ -819,7 +820,7 @@ setInterval(refreshPoolDisplay, 30000);
 
         } catch (err) {
             console.error(err);
-            gameAlert("SYNC ERROR", "❌ เซิร์ฟเวอร์ขัดข้อง:<br>" + err.message);
+            gameAlert("SYNC ERROR", "❌ SERVER ERROR:<br>" + err.message);
             btnAction.disabled = false;
             btnAction.innerText = "RETRY ATTACK";
             battle_isPlaying = false;
@@ -884,7 +885,8 @@ setInterval(refreshPoolDisplay, 30000);
                 title.textContent = "VICTORY"; title.style.color = "#ff9d00";
                 
                 if (serverData.hitDailyLimit) { 
-                    gameAlert("DAILY LIMIT", `คุณได้รับกำไรสูงสุดของวันนี้แล้ว!<br>ได้รับกำไร ${serverData.allowedProfit} (ทุนคืน ${serverData.entryFee})`); 
+                    gameAlert("DAILY LIMIT", \MAX DAILY PROFIT REACHED!
+PROFIT EARNED: ${serverData.allowedProfit} (REFUND: ${serverData.entryFee})`);`
                 }
                 
                 let levelUpMsg = serverData.isLevelUp ? `<br><span style="color:#00ff00; font-size:1.1rem; text-shadow: 0 0 10px #00ff00; animation: pulse 1s infinite;">🎉 LEVEL UP! (LV.${playerLevel})</span>` : "";
@@ -1272,7 +1274,7 @@ setInterval(refreshPoolDisplay, 30000);
             overlay.remove();
             
             // ✅ ใช้ gameAlert แจ้งเตือนซื้อสำเร็จ
-            gameAlert("PURCHASE SUCCESS", \SUCCESSFULLY RECEIVED <span style="color:#ffd700; font-size:1.2rem;">${coinsToReceive} COINS</span>!`");
+            gameAlert("PURCHASE SUCCESS", `SUCCESSFULLY RECEIVED <span style="color:#ffd700; font-size:1.2rem;">${coinsToReceive} COINS</span>!`);`
 
         } catch (err) {
             console.error("Buy Error:", err);
