@@ -624,7 +624,7 @@ setInterval(refreshPoolDisplay, 30000);
         
         const dailyGameLimit = 10000;
         if (earnedFromGameToday >= dailyGameLimit) {
-            gameAlert("DAILY LIMIT", "คุณได้รับรางวัลครบ 10,000 COINS สำหรับวันนี้แล้ว!<br><span style='color:#00eaff;'>กรุณากลับมาท้าทายใหม่พรุ่งนี้</span>");
+            gameAlert(DAILY LIMIT", "YOU HAVE REACHED THE 10,000 COINS DAILY LIMIT!<br><span style='color:#00eaff;'>PLEASE COME BACK TOMORROW</span>");
             playSfx('click');
             return; 
         }
@@ -675,7 +675,7 @@ setInterval(refreshPoolDisplay, 30000);
 
         } catch (err) {
             console.error("Battle Start Error:", err);
-            gameAlert("SYSTEM ERROR", err.message || "เชื่อมต่อเซิร์ฟเวอร์ล้มเหลว");
+            gameAlert("SYSTEM ERROR", err.message || "CONNECTION FAILED");
         }
     }
     
@@ -1120,7 +1120,7 @@ setInterval(refreshPoolDisplay, 30000);
                 RATE: 1 WLD = ${BUY_RATE} COINS
             </p>
             <div style="background:rgba( 0,234,255,0.8);padding:15px; border-radius:8px; margin:10px 0;">
-                <label style="color:#fff; display:block; margin-bottom:5px;">จ่าย WLD</label>
+                <label style="color:#fff; display:block; margin-bottom:5px;">PAY WLD</label>
                 <input type="number" id="inpBuyWLD" value="${MIN_BUY_WLD}" step="0.1"
                        style="width:100%; background:#000; border:1px solid #444; color:#fff;
                               padding:10px; font-size:1.2rem; font-family:'Orbitron'; text-align:center;">
@@ -1215,10 +1215,10 @@ setInterval(refreshPoolDisplay, 30000);
 
         let amountWLD = parseFloat(inpBuy.value) || 0;
         if (amountWLD < MIN_BUY_WLD)
-            return gameAlert("ERROR", `⛔ ยอดขั้นต่ำคือ ${MIN_BUY_WLD} WLD`);
+            return gameAlert("ERROR", `⛔ MINIMUM AMOUNT IS ${MIN_BUY_WLD} WLD`);
 
         if (!window.MiniKit?.isInstalled())
-            return gameAlert("ERROR", "⛔ กรุณาเปิดใน World App");
+            return gameAlert("ERROR", "⛔ PLEASE OPEN IN WORLD APP");
 
         btn.disabled = true;
         btn.innerText = "PROCESSING PAY...";
@@ -1273,7 +1273,7 @@ setInterval(refreshPoolDisplay, 30000);
             overlay.remove();
             
             // ✅ ใช้ gameAlert แจ้งเตือนซื้อสำเร็จ
-            gameAlert("PURCHASE SUCCESS", `ได้รับ <span style="color:#ffd700; font-size:1.2rem;">${coinsToReceive} COINS</span> เรียบร้อยแล้ว!`);
+            gameAlert("WITHDRAW SUCCESS", "✅ TRANSACTION SUCCESSFUL!<br><span style='color:#00eaff; font-size:0.9rem;'>REWARD TRANSFERRED TO YOUR WALLET</span>");
 
         } catch (err) {
             console.error("Buy Error:", err);
@@ -1297,16 +1297,16 @@ setInterval(refreshPoolDisplay, 30000);
         const amountCoin = parseInt(inpSell.value) || 0;
 
         if (amountCoin < MIN_SELL)
-            return gameAlert("ERROR", `⛔ ขั้นต่ำ ${MIN_SELL} Coins`);
+            return gameAlert("ERROR", `⛔ MINIMUM ${MIN_SELL} COINS`);
 
         if (typeof playerCOIN === "undefined" || playerCOIN < amountCoin)
-            return gameAlert("ERROR", "⛔ Coin ของคุณไม่พอ!");
+            return gameAlert("ERROR", "⛔ NOT ENOUGH COINS!");
 
         if (!window.MiniKit?.isInstalled())
-            return gameAlert("ERROR", "กรุณาเปิดใน World App");
+            return gameAlert("ERROR", "PLEASE OPEN IN WORLD APP");
 
         if (!window.REAL_USER_ID)
-            return gameAlert("ERROR", "ไม่พบข้อมูลผู้ใช้");
+            return gameAlert("ERROR", "USER DATA NOT FOUND");
 
         btn.disabled = true;
         // ✅ เปลี่ยนเป็นข้อความเดียวค้างไว้จนจบกระบวนการ
@@ -1380,7 +1380,7 @@ setInterval(refreshPoolDisplay, 30000);
 
             overlay.remove();
             
-            gameAlert("WITHDRAW SUCCESS", "✅ ทำรายการสำเร็จ!<br><span style='color:#00eaff; font-size:0.9rem;'>เงินรางวัลโอนเข้ากระเป๋าของคุณแล้ว</span>");
+            gameAlert("WITHDRAW SUCCESS", "✅ TRANSACTION SUCCESSFUL!<br><span style='color:#00eaff; font-size:0.9rem;'>REWARD TRANSFERRED TO YOUR WALLET</span>");
 
         } catch (e) {
             console.error("Sell Error:", e);
@@ -1412,8 +1412,8 @@ setInterval(refreshPoolDisplay, 30000);
                     combinedText += `
                         <span style="color:#ff2a2a;">🔥</span> 
                         [<span style="color:#00eaff;">${item.playerName}</span>] LV.${item.level} 
-                        กำจัด <span style="color:#ff9d00;">${item.monsterName}</span> 
-                        คว้า <span style="color:#ffd700; font-weight:bold;">${item.reward} COINS!</span> 
+                        DEFEATED <span style="color:#ff9d00;">${item.monsterName}</span> 
+EARNING <span style="color:#ffd700; font-weight:bold;">${item.reward} COINS!</span> 
                         &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
                     `;
                 });
