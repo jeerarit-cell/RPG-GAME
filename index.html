@@ -336,7 +336,7 @@ document.getElementById('btnWorldID').onclick = async function() {
                     window.applyGameData(null);
                 }
             } catch (apiError) {
-                console.warn("ไม่สามารถดึงข้อมูลจาก Server ได้ (Fallback)", apiError);
+                console.warn("Failed to fetch from Server (Fallback)", apiError", apiError);
                 status.innerText = "SERVER ERROR (NEW PLAYER)";
                 status.style.color = "yellow";
                 window.applyGameData(null);
