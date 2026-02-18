@@ -336,7 +336,7 @@ document.getElementById('btnWorldID').onclick = async function() {
                     window.applyGameData(null);
                 }
             } catch (apiError) {
-                console.warn("Failed to fetch from Server (Fallback)", apiError", apiError);
+                console.warn("Failed to fetch from Server (Fallback)", apiError);
                 status.innerText = "SERVER ERROR (NEW PLAYER)";
                 status.style.color = "yellow";
                 window.applyGameData(null);
@@ -609,11 +609,10 @@ setInterval(refreshPoolDisplay, 30000);
     window.prepareBattle = async function(monsterID) { 
         // 1. เช็คเงินเบื้องต้น (กันเหนียวก่อนยิง API)
         if (playerCOIN < playerMaxHP) { 
-            gameAlert("ACCESS DENIED", \NOT ENOUGH COINS!
-REQUIRED: <b style="color:#ff0000">${playerMaxHP} COINS</b>`);`
-            playSfx('click'); 
-            return; 
-        } 
+    gameAlert("ACCESS DENIED", `NOT ENOUGH COINS!<br>REQUIRED: <b style="color:#ff0000">${playerMaxHP} COINS</b>`);
+    playSfx('click'); 
+    return; 
+} 
         
         // 2. ดักเรื่อง Daily Limit
         const today = new Date().toDateString();
@@ -885,9 +884,8 @@ REQUIRED: <b style="color:#ff0000">${playerMaxHP} COINS</b>`);`
                 title.textContent = "VICTORY"; title.style.color = "#ff9d00";
                 
                 if (serverData.hitDailyLimit) { 
-                    gameAlert("DAILY LIMIT", \MAX DAILY PROFIT REACHED!
-PROFIT EARNED: ${serverData.allowedProfit} (REFUND: ${serverData.entryFee})`);`
-                }
+    gameAlert("DAILY LIMIT", `MAX DAILY PROFIT REACHED!<br>PROFIT EARNED: ${serverData.allowedProfit} (REFUND: ${serverData.entryFee})`);
+}
                 
                 let levelUpMsg = serverData.isLevelUp ? `<br><span style="color:#00ff00; font-size:1.1rem; text-shadow: 0 0 10px #00ff00; animation: pulse 1s infinite;">🎉 LEVEL UP! (LV.${playerLevel})</span>` : "";
                 sub.innerHTML = `REWARD: <span style="color:#00eaff;">+${serverData.rewardCoin} COINS</span>${levelUpMsg}`;
@@ -1019,9 +1017,9 @@ PROFIT EARNED: ${serverData.allowedProfit} (REFUND: ${serverData.entryFee})`);`
             const data = await response.json();
             
             // เช็คว่า Server ยอมให้สมัครไหม (เผื่อสมัครซ้ำ)
-            if (!data.success) {
-                Error(data.message || "SERVER REJECTED REGISTRATION");
-            }
+if (!data.success) {
+    throw new Error(data.message || "SERVER REJECTED REGISTRATION");
+}
 
             // --- สำเร็จ! ---
             console.log("✅ Registration Complete by Server:", newName, walletAddress);
@@ -1274,7 +1272,7 @@ PROFIT EARNED: ${serverData.allowedProfit} (REFUND: ${serverData.entryFee})`);`
             overlay.remove();
             
             // ✅ ใช้ gameAlert แจ้งเตือนซื้อสำเร็จ
-            gameAlert("PURCHASE SUCCESS", `SUCCESSFULLY RECEIVED <span style="color:#ffd700; font-size:1.2rem;">${coinsToReceive} COINS</span>!`);`
+            gameAlert("PURCHASE SUCCESS", `SUCCESSFULLY RECEIVED <span style="color:#ffd700; font-size:1.2rem;">${coinsToReceive} COINS</span>!`);
 
         } catch (err) {
             console.error("Buy Error:", err);
