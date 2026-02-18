@@ -291,11 +291,11 @@
    // --- 6. AUTHENTICATION & LOGIN ---
 document.getElementById('btnWorldID').onclick = async function() {
     const status = document.getElementById('loginStatus');
-    status.innerText = "กำลังเชื่อมต่อ...";
+    status.innerText = "CONNECTING...";
     status.style.color = "#ff9d00";
 
     if (!window.MiniKit || !window.MiniKit.isInstalled()) {
-        alert("⚠️ กรุณาเปิดใน World App");
+        alert("⚠️ PLEASE OPEN IN WORLD APP");
         return;
     }
 
@@ -314,7 +314,7 @@ document.getElementById('btnWorldID').onclick = async function() {
             window.REAL_USER_ID = finalPayload.nullifier_hash;
             console.log("✅ REAL_USER_ID =", window.REAL_USER_ID);
 
-            status.innerText = "กำลังดึงข้อมูลนักล่า...";
+            status.innerText = "FETCHING HUNTER DATA...";
             status.style.color = "#00eaff";
 
             // ✅ เรียกหาข้อมูลผู้เล่นจาก Server แทนการโหลด Local/Firebase
@@ -327,24 +327,24 @@ document.getElementById('btnWorldID').onclick = async function() {
                 
                 const userData = await res.json();
                 if (userData.success && userData.data) {
-                    status.innerText = "สำเร็จ! ยินดีต้อนรับกลับ";
+                    status.innerText = "SUCCESS! WELCOME BACK";
                     status.style.color = "#00ff00";
                     window.applyGameData(userData.data);
                 } else {
-                    status.innerText = "ลงทะเบียนผู้เล่นใหม่";
+                    status.innerText = "REGISTERING NEW PLAYER";
                     status.style.color = "#00ff00";
                     window.applyGameData(null);
                 }
             } catch (apiError) {
                 console.warn("ไม่สามารถดึงข้อมูลจาก Server ได้ (Fallback)", apiError);
-                status.innerText = "เซิร์ฟเวอร์ขัดข้อง (ผู้เล่นใหม่)";
+                status.innerText = SERVER ERROR (NEW PLAYER)";
                 status.style.color = "yellow";
                 window.applyGameData(null);
             }
 
         } else {
             console.error("Verify Failed:", finalPayload);
-            status.innerText = "ยืนยันตัวตนไม่ผ่าน";
+            status.innerText = "VERIFICATION FAILED";
             status.style.color = "red";
             gameAlert("❌ Verify Error: " + (finalPayload?.error_code || "Unknown"));
         }
@@ -465,8 +465,7 @@ document.getElementById('btnWorldID').onclick = async function() {
             margin-bottom: 20px;
         ">
             <p style="color:#cfefff; font-size:0.9rem; line-height:1.6; margin:0;">
-                ยินดีต้อนรับ Hunter!<br>
-                โลกใบใหม่กำลังรอคุณอยู่<br>
+                 WELCOME HUNTER!<br>A NEW WORLD AWAITS YOU<br>
                 <span style="color:#ffd700; font-size:0.8rem;">(Beta Version 1.0)</span>
             </p>
         </div>
@@ -971,9 +970,9 @@ setInterval(refreshPoolDisplay, 30000);
         
         // --- Validation เช็คชื่อ ---
         if (!newName) return; 
-        if (newName.length > 8) { alert("⛔ ชื่อยาวเกินไป! (สูงสุด 8 ตัวอักษร)"); return; } 
+        if (newName.length > 8) { alert("⛔ NAME TOO LONG! (MAX 8 CHARS)"); return; } 
         const regex = /^[A-Z0-9]+$/; // อนุญาตแค่ A-Z และ 0-9
-        if (!regex.test(newName)) { alert("⛔ ใช้ภาษาอังกฤษ A-Z หรือตัวเลข 0-9 เท่านั้น"); return; } 
+        if (!regex.test(newName)) { alert("⛔ ALPHANUMERIC ONLY (A-Z, 0-9)"); return; } 
 
         // --- เริ่มกระบวนการผูกกระเป๋า ---
         try {
@@ -985,7 +984,7 @@ setInterval(refreshPoolDisplay, 30000);
 
             // 1. เช็ค MiniKit
             if (!window.MiniKit || !window.MiniKit.isInstalled()) {
-                throw new Error("กรุณาเปิดใน World App เท่านั้น");
+                throw new Error("PLEASE OPEN IN WORLD APP");
             }
 
             // 2. สั่ง Sign Message
@@ -1020,7 +1019,7 @@ setInterval(refreshPoolDisplay, 30000);
             
             // เช็คว่า Server ยอมให้สมัครไหม (เผื่อสมัครซ้ำ)
             if (!data.success) {
-                throw new Error(data.message || "เซิร์ฟเวอร์ปฏิเสธการลงทะเบียน");
+                Error(data.message || "SERVER REJECTED REGISTRATION");
             }
 
             // --- สำเร็จ! ---
@@ -1043,7 +1042,7 @@ setInterval(refreshPoolDisplay, 30000);
             
             // เล่นเสียง & แจ้งเตือน
             if(typeof playSfx === 'function') playSfx('win');
-            gameAlert("WELCOME", `ยินดีต้อนรับ Hunter ${newName}!\nได้รับ 40 COINS พร้อมเริ่มงาน\n...GO>>>>...`);
+            gameAlert("WELCOME", `WELCOME HUNTER ${newName}!\nYOU RECEIVED 40 COINS.\n...GO>>>>...`);
 
         } catch (e) {
             console.error("Registration Error:", e);
@@ -1055,7 +1054,7 @@ setInterval(refreshPoolDisplay, 30000);
             btn.style.color = "#fff";
 
             if (!e.message.includes("User Cancelled")) {
-                gameAlert("Error","❌ ไม่สามารถลงทะเบียนได้:<br>"+ e.message);
+                gameAlert("Error","❌ REGISTRATION FAILED:<br>"+ e.message);
             }
         }
     }; 
