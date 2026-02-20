@@ -7,6 +7,7 @@
     
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Kanit:wght@300;500;600&family=Orbitron:wght@700;900&display=swap');
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
 
         /* --- Global Variables --- */
         :root {
@@ -749,89 +750,140 @@ setInterval(refreshPoolDisplay, 30000);
     }
     
     async function runBattleSequence() { 
-        battle_isPlaying = true; 
-        const btnAction = document.getElementById('actionBtn');
-        btnAction.disabled = true; 
-        btnAction.innerText = "⚔️⚔️⚔️⚔️⚔️ ";
+    battle_isPlaying = true; 
+    const btnAction = document.getElementById('actionBtn');
+    btnAction.disabled = true; 
+    btnAction.innerText = "⚔️ COMBAT IN PROGRESS...";
 
-        try {
-            // 🌟 ยิง API เอาไพ่เราไปดวลกับ Server
-            const response = await fetch("https://game-server-vs0h.onrender.com/api/battle-action", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    userId: window.REAL_USER_ID,
-                    playerDeck: battle_placedCards // ส่งไพ่ฝั่งเราไป
-                })
+    try {
+        // 1. ดึงข้อมูลจาก Server (เหมือนเดิม)
+        const response = await fetch("https://game-server-vs0h.onrender.com/api/battle-action", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                userId: window.REAL_USER_ID,
+                playerDeck: battle_placedCards 
+            })
+        });
+        const resData = await response.json();
+        if (!resData.success) throw new Error(resData.message);
+        const serverData = resData.data;
+        battle_eDeck = serverData.enemyDeck; 
+
+        // 2. เริ่มสร้าง GSAP Timeline สำหรับการต่อสู้
+        const tl = gsap.timeline();
+
+        // วนลูปการปะทะของไพ่ 5 ใบ
+        for(let i=0; i<5; i++) { 
+            const eVal = battle_eDeck[i]; 
+            const pVal = battle_placedCards[i]; 
+            const eWrap = document.getElementById(`eWrap${i}`); 
+            const eBack = document.getElementById(`eCard${i}`); 
+            const pSlot = document.querySelector(`.clash-slot[data-id="${i}"]`);
+            const pCardDiv = pSlot.querySelector('div');
+
+            eBack.textContent = eVal; 
+
+            // -- จังหวะที่ 1: หงายไพ่ศัตรูแบบมีมิติ --
+            tl.to(eWrap, {
+                duration: 0.5,
+                rotationY: 180,
+                scale: 1.1,
+                ease: "back.out(1.7)",
+                onStart: () => playSfx('place')
             });
 
-            const resData = await response.json();
-            if (!resData.success) throw new Error(resData.message);
+            // -- จังหวะที่ 2: ไพ่ปะทะกัน (เด้งเข้าหากันเล็กน้อย) --
+            tl.to([eWrap, pSlot], {
+                duration: 0.1,
+                y: (index) => index === 0 ? 10 : -10, // ศัตรูลงล่าง ผู้เล่นขึ้นบน
+                repeat: 1,
+                yoyo: true
+            }, "-=0.2"); // เริ่มก่อนหงายเสร็จนิดนึง
 
-            const serverData = resData.data;
-
-            // 🌟 เซิร์ฟเวอร์ส่งไพ่บอสกลับมาแล้ว เอามาใส่รอเลย
-            battle_eDeck = serverData.enemyDeck; 
-
-            // --- เริ่มเล่นแอนิเมชันพลิกไพ่ ---
-            let pSurvivors = []; let eSurvivors = []; 
-            
-            for(let i=0; i<5; i++) { 
-                const eVal = battle_eDeck[i]; 
-                const pVal = battle_placedCards[i]; 
-                const eWrap = document.getElementById(`eWrap${i}`); 
-                const eBack = document.getElementById(`eCard${i}`); 
-                eBack.textContent = eVal; 
-                eWrap.classList.add('flipped'); 
-                playSfx('place'); 
-                
-                await new Promise(r => setTimeout(r, 600)); 
-                
-                const pSlot = document.querySelector(`.clash-slot[data-id="${i}"]`); 
-                const pCard = pSlot.querySelector('div'); 
-                
+            // -- จังหวะที่ 3: ตัดสินผล --
+            tl.add(() => {
                 if (pVal > eVal) { 
-                    eBack.classList.add('dead-content'); pCard.parentElement.classList.add('win-pulse'); pSurvivors.push({val: pVal}); 
+                    gsap.to(eBack, { filter: "brightness(0.3) grayscale(1)", duration: 0.3 });
+                    pSlot.classList.add('win-pulse');
+                    playSfx('click');
                 } else if (eVal > pVal) { 
-                    pCard.classList.add('dead-content'); eBack.classList.add('win-pulse'); eSurvivors.push({val: eVal}); 
+                    gsap.to(pCardDiv, { filter: "brightness(0.3) grayscale(1)", duration: 0.3 });
+                    eBack.classList.add('win-pulse');
+                    playSfx('click');
                 } else { 
-                    eBack.classList.add('dead-content'); pCard.classList.add('dead-content'); 
-                } 
-                playSfx('click'); 
-                await new Promise(r => setTimeout(r, 400)); 
-            } 
-            
-            await new Promise(r => setTimeout(r, 500)); 
-            
-            // --- โชว์ดาเมจและการลดเลือด (เซิร์ฟเวอร์คิดมาให้แล้ว) ---
+                    gsap.to([eBack, pCardDiv], { filter: "brightness(0.2)", duration: 0.3 });
+                }
+            });
+
+            tl.to(eWrap, { scale: 1, duration: 0.2 }); // คืนค่า Scale
+            tl.delay(0.2); // เว้นจังหวะก่อนใบถัดไป
+        } 
+
+        // 3. จังหวะโชว์ Damage รวมหลังจากไพ่ทุกลูกปะทะเสร็จ
+        tl.add(() => {
             battle_eHP = serverData.eHp; 
             playerCurrentHP = serverData.pHp;
 
-            // 📌 ดาเมจเรา (pDmg) ลอยฝั่งศัตรู (e) | ดาเมจศัตรู (eDmg) ลอยฝั่งเรา (p)
-            if(serverData.pDmg > 0) flashDamage('e', serverData.pDmg); 
-            if(serverData.eDmg > 0) flashDamage('p', serverData.eDmg); 
+            if(serverData.pDmg > 0) flashDamageGSAP('e', serverData.pDmg); 
+            if(serverData.eDmg > 0) flashDamageGSAP('p', serverData.eDmg); 
             
             updateBattleUI(); 
-            await new Promise(r => setTimeout(r, 1500)); 
-            
-            // 🌟 โยนข้อมูลให้ฟังก์ชันสรุปผลทำงานต่อ
+        }, "+=0.5");
+
+        // 4. สรุปผลการต่อสู้
+        tl.delay(1.2);
+        tl.add(() => {
             checkBattleResultFromServer(serverData);
-
-        } catch (err) {
-            console.error(err);
-            gameAlert("SYNC ERROR", "❌ SERVER ERROR:<br>" + err.message);
-            btnAction.disabled = false;
-            btnAction.innerText = "RETRY ATTACK";
             battle_isPlaying = false;
-        }
-    }
+        });
 
-    function flashDamage(who, amount) { 
-        if(amount <= 0) return; 
-        const txt = document.getElementById(who === 'e' ? 'eDmgText' : 'pDmgText'); 
-        txt.textContent = "-" + amount; 
-        txt.classList.add('show'); 
-        playSfx('hit'); 
+    } catch (err) {
+        console.error(err);
+        gameAlert("SYNC ERROR", "❌ SERVER ERROR:<br>" + err.message);
+        btnAction.disabled = false;
+        btnAction.innerText = "RETRY ATTACK";
+        battle_isPlaying = false;
+    }
+}
+
+
+    function flashDamageGSAP(who, amount) {
+    if(amount <= 0) return;
+    const txt = document.getElementById(who === 'e' ? 'eDmgText' : 'pDmgText');
+    const target = who === 'e' ? '#bossBanner' : '.player-zone';
+
+    txt.textContent = "-" + amount;
+    
+    // รีเซ็ตค่าตัวเลข
+    gsap.set(txt, { opacity: 0, scale: 0, y: 0 });
+
+    // 1. ตัวเลขเด้งกระแทกตา
+    gsap.to(txt, {
+        duration: 0.6,
+        opacity: 1,
+        scale: 2,
+        y: -100,
+        ease: "elastic.out(1, 0.5)",
+        onComplete: () => {
+            gsap.to(txt, { opacity: 0, duration: 0.5, delay: 0.5 });
+        }
+    });
+
+    // 2. จอเขย่า (Screen Shake) ตามแรงกระแทก
+    gsap.to(target, {
+        duration: 0.05,
+        x: "random(-15, 15)",
+        y: "random(-10, 10)",
+        repeat: 6,
+        yoyo: true,
+        onComplete: () => gsap.set(target, { x: 0, y: 0 })
+    });
+
+    playSfx('hit');
+}
+
+ 
         document.getElementById('battleArea').classList.add('shaking'); 
         if(who === 'e') document.querySelector('.boss-banner').classList.add('hit'); 
         setTimeout(() => { 
