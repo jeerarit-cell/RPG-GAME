@@ -947,7 +947,7 @@ if (serverData.eDmg > 0) {
         background: #fff;
         box-shadow: 0 0 10px #00eaff;
         z-index: 20000;
-        transform: rotate(-45deg) scaleX(0); /* เริ่มจากจุดศูนย์กลาง */
+        transform: rotate(90deg) scaleX(0); /* เริ่มจากจุดศูนย์กลาง */
         pointer-events: none;
         border-radius: 10px;
     `;
@@ -963,7 +963,7 @@ if (serverData.eDmg > 0) {
     })
     // 2. ระเบิดพลัง: ขยายความหนา (Height) และรัศมีแสง (Box-shadow)
     .to(slash, { 
-        height: 20, // ขยายใหญ่ขึ้นตามโจทย์
+        height: 100, // ขยายใหญ่ขึ้นตามโจทย์
         boxShadow: "0 0 30px #00eaff, 0 0 60px #fff",
         duration: 0.1,
         ease: "expo.out"
