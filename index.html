@@ -930,47 +930,54 @@ if (serverData.eDmg > 0) {
     }
 
          function slashEffect(who) {
-    // 1. หาตำแหน่งเป้าหมายที่จะโดนฟัน (บอส หรือ ตัวเรา)
-    const target = document.getElementById(who === 'e' ? 'bossImg' : 'playerHpText');
+    const targetId = who === 'e' ? 'bossImg' : 'playerHpText';
+    const target = document.getElementById(targetId);
     if (!target) return;
 
     const rect = target.getBoundingClientRect();
     
-    // 2. สร้างเส้นดาบ (Div ชั่วคราว)
+    // 1. สร้างรอยดาบ
     const slash = document.createElement('div');
+    
+    // สุ่มองศาให้เอียง (ระหว่าง -30 ถึง -60 องศา จะดูเป็นรอยฟันเฉียงที่สวย)
+    const randomRotation = Math.floor(Math.random() * 30) - 60; 
+
     slash.style.cssText = `
         position: fixed;
-        top: ${rect.top + (rect.height / 2)}px;
-        left: ${rect.left - 50}px;
-        width: ${rect.width + 100}px;
-        height: 8px;
-        background: white;
-        box-shadow: 0 0 20px #00eaff, 0 0 40px #ffffff;
+        top: ${rect.top + (rect.height / 2) - 20}px;
+        left: ${rect.left + (rect.width / 2) - 50}px; 
+        width: 120px; /* ปรับให้สั้นลงตามสั่ง */
+        height: 6px;
+        background: #fff;
+        box-shadow: 0 0 15px #00eaff, 0 0 30px #fff;
         z-index: 20000;
-        transform: rotate(-30deg) scaleX(0);
+        transform: rotate(${randomRotation}deg) scaleX(0);
         pointer-events: none;
-        border-radius: 10px;
+        border-radius: 4px;
+        filter: blur(0.5px);
     `;
     document.body.appendChild(slash);
 
-    // 3. GSAP Animation: ฟันฉับเดียวแล้วหายไป
+    // 2. แอนิเมชัน GSAP (เน้นความไว)
     const tl = gsap.timeline({ onComplete: () => slash.remove() });
     
     tl.to(slash, { 
-        scaleX: 1, 
-        duration: 0.15, 
-        ease: "power4.out" 
+        scaleX: 1.2, 
+        duration: 0.1, 
+        ease: "expo.out" 
     })
     .to(slash, { 
         opacity: 0, 
-        scaleY: 0, 
-        duration: 0.2, 
-        ease: "power2.in" 
+        x: 20, // ให้รอยดาบไถลไปข้างหน้าเล็กน้อยตอนฟันเสร็จ
+        y: 20, 
+        duration: 0.2,
+        ease: "power2.in"
     });
 
-    // 4. เอฟเฟกต์หน้าจอสั่นเมื่อโดนฟัน
-    gsap.to('#battleArea', { x: 10, duration: 0.05, repeat: 5, yoyo: true });
+    // 3. แรงกระแทก (สั่นหน้าจอ)
+    gsap.to('#battleArea', { x: 8, duration: 0.05, repeat: 4, yoyo: true });
 }
+
 
 
 
