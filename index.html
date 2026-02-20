@@ -937,48 +937,58 @@ if (serverData.eDmg > 0) {
     const rect = target.getBoundingClientRect();
     const slash = document.createElement('div');
     
-    // ตั้งค่าเริ่มต้น: เป็นเส้นเล็กๆ และเอียง
+    // --- [ จุดปรับแต่งที่นี่เลยครับ ] ---
+    const length = 250;     // 1. ความยาว (บนลงล่าง)
+    const thickness = 4;    // 2. ความหนาเริ่มต้น (ซ้ายไปขวา)
+    const burstSize = 40;   // 3. ขนาดตอนระเบิดวาบ
+    transform: rotate(15deg) scaleY(0);
+    // -------------------------------
+
     slash.style.cssText = `
         position: fixed;
-        top: ${rect.top + (rect.height / 2)}px;
-        left: ${rect.left + (rect.width / 2) - 50}px;
-        width: 100px;
-        height: 20px; /* เริ่มต้นด้วยเส้นบางๆ */
+        /* วางกึ่งกลางเป้าหมาย */
+        top: ${rect.top + (rect.height / 2) - (length / 2)}px;
+        left: ${rect.left + (rect.width / 2)}px;
+        
+        width: ${thickness}px;
+        height: ${length}px;
         background: #fff;
-        box-shadow: 0 0 10px #00eaff;
+        box-shadow: 0 0 15px #00eaff, 0 0 30px #fff;
         z-index: 20000;
-        transform: rotate(90deg) scaleX(0); /* เริ่มจากจุดศูนย์กลาง */
+        
+        /* เริ่มต้นจากความสูงเป็น 0 (หดอยู่ในแนวดิ่ง) */
+        transform: scaleY(0); 
+        transform-origin: center; /* ยืดออกจากตรงกลาง */
         pointer-events: none;
-        border-radius: 10px;
+        border-radius: 50px;
     `;
     document.body.appendChild(slash);
 
     const tl = gsap.timeline({ onComplete: () => slash.remove() });
     
-    // 1. ฟันฉับ: ยืดความยาวออกไปก่อน (ScaleX)
+    // Step 1: ยืดความยาว (บนลงล่าง)
     tl.to(slash, { 
-        scaleX: 3, 
+        scaleY: 1, 
         duration: 0.1, 
-        ease: "power2.out" 
+        ease: "expo.out" 
     })
-    // 2. ระเบิดพลัง: ขยายความหนา (Height) และรัศมีแสง (Box-shadow)
+    // Step 2: ระเบิดความหนาออกด้านข้าง
     .to(slash, { 
-        height: 50, // ขยายใหญ่ขึ้นตามโจทย์
-        boxShadow: "0 0 30px #00eaff, 0 0 60px #fff",
+        width: burstSize, 
+        boxShadow: "0 0 50px #00eaff, 0 0 100px #fff",
         duration: 0.1,
-        ease: "expo.out"
+        ease: "power4.out"
     })
-    // 3. จางหาย: จางไปพร้อมกับหดตัว
+    // Step 3: จางหายไป
     .to(slash, { 
         opacity: 0, 
-        scaleY: 0, 
-        duration: 0.3,
-        ease: "power2.in"
+        scaleX: 0, 
+        duration: 0.2 
     });
 
-    // สั่นหน้าจอแรงๆ ตอนที่มันขยายใหญ่
     gsap.to('#battleArea', { x: 10, duration: 0.05, repeat: 4, yoyo: true });
 }
+
 
     // --- 10. EXCHANGE SYSTEM & ALERTS ---
     function gameAlert(title, message, callback = null) {
