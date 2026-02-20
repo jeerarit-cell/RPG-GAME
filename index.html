@@ -812,8 +812,19 @@ setInterval(refreshPoolDisplay, 30000);
         battle_eHP = serverData.eHp; 
         playerCurrentHP = serverData.pHp;
 
-        if(serverData.pDmg > 0) flashDamage('e', serverData.pDmg); 
-        if(serverData.eDmg > 0) flashDamage('p', serverData.eDmg); 
+// --- จังหวะโจมตี ---
+if (serverData.pDmg > 0) {
+    slashEffect('e'); // ฟันมอนสเตอร์
+    playSfx('hit');   // หรือใส่เสียงฟันถ้ามี
+    await new Promise(r => setTimeout(r, 200)); 
+    flashDamage('e', serverData.pDmg); 
+}
+
+if (serverData.eDmg > 0) {
+    slashEffect('p'); // มอนสเตอร์ฟันเรา
+    await new Promise(r => setTimeout(r, 200)); 
+    flashDamage('p', serverData.eDmg);
+}
         
         updateBattleUI(); 
         await new Promise(r => setTimeout(r, 1500)); 
@@ -917,6 +928,50 @@ setInterval(refreshPoolDisplay, 30000);
             btnAction.onclick = () => { if(typeof playSfx === 'function') playSfx('click'); initBattleState(); };
         }
     }
+
+         function slashEffect(who) {
+    // 1. หาตำแหน่งเป้าหมายที่จะโดนฟัน (บอส หรือ ตัวเรา)
+    const target = document.getElementById(who === 'e' ? 'bossImg' : 'playerHpText');
+    if (!target) return;
+
+    const rect = target.getBoundingClientRect();
+    
+    // 2. สร้างเส้นดาบ (Div ชั่วคราว)
+    const slash = document.createElement('div');
+    slash.style.cssText = `
+        position: fixed;
+        top: ${rect.top + (rect.height / 2)}px;
+        left: ${rect.left - 50}px;
+        width: ${rect.width + 100}px;
+        height: 8px;
+        background: white;
+        box-shadow: 0 0 20px #00eaff, 0 0 40px #ffffff;
+        z-index: 10000;
+        transform: rotate(-30deg) scaleX(0);
+        pointer-events: none;
+        border-radius: 10px;
+    `;
+    document.body.appendChild(slash);
+
+    // 3. GSAP Animation: ฟันฉับเดียวแล้วหายไป
+    const tl = gsap.timeline({ onComplete: () => slash.remove() });
+    
+    tl.to(slash, { 
+        scaleX: 1, 
+        duration: 0.15, 
+        ease: "power4.out" 
+    })
+    .to(slash, { 
+        opacity: 0, 
+        scaleY: 0, 
+        duration: 0.2, 
+        ease: "power2.in" 
+    });
+
+    // 4. เอฟเฟกต์หน้าจอสั่นเมื่อโดนฟัน
+    gsap.to('#battleArea', { x: 10, duration: 0.05, repeat: 5, yoyo: true });
+}
+
 
 
     // --- 10. EXCHANGE SYSTEM & ALERTS ---
