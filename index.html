@@ -942,8 +942,8 @@ if (serverData.eDmg > 0) {
         position: fixed;
         top: ${rect.top + (rect.height / 2)}px;
         left: ${rect.left + (rect.width / 2) - 50}px;
-        width: 100px;
-        height: 2px; /* เริ่มต้นด้วยเส้นบางๆ */
+        width: 2px;
+        height: 200px; /* เริ่มต้นด้วยเส้นบางๆ */
         background: #fff;
         box-shadow: 0 0 10px #00eaff;
         z-index: 20000;
@@ -957,13 +957,13 @@ if (serverData.eDmg > 0) {
     
     // 1. ฟันฉับ: ยืดความยาวออกไปก่อน (ScaleX)
     tl.to(slash, { 
-        scaleX: 1.2, 
+        scaleY: 1.2, 
         duration: 0.1, 
         ease: "power2.out" 
     })
     // 2. ระเบิดพลัง: ขยายความหนา (Height) และรัศมีแสง (Box-shadow)
     .to(slash, { 
-        height: 100, // ขยายใหญ่ขึ้นตามโจทย์
+        height: 30, // ขยายใหญ่ขึ้นตามโจทย์
         boxShadow: "0 0 30px #00eaff, 0 0 60px #fff",
         duration: 0.1,
         ease: "expo.out"
