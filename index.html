@@ -941,7 +941,7 @@ if (serverData.eDmg > 0) {
     const length = 250;     // 1. ความยาว (บนลงล่าง)
     const thickness = 4;    // 2. ความหนาเริ่มต้น (ซ้ายไปขวา)
     const burstSize = 40;   // 3. ขนาดตอนระเบิดวาบ
-    transform: rotate(15deg) scaleY(0);
+   
     // -------------------------------
 
     slash.style.cssText = `
@@ -957,7 +957,7 @@ if (serverData.eDmg > 0) {
         z-index: 20000;
         
         /* เริ่มต้นจากความสูงเป็น 0 (หดอยู่ในแนวดิ่ง) */
-        transform: scaleY(0); 
+        transform: rotate(15deg) scaleY(0); 
         transform-origin: center; /* ยืดออกจากตรงกลาง */
         pointer-events: none;
         border-radius: 50px;
