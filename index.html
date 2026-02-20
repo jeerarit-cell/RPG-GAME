@@ -830,21 +830,12 @@ setInterval(refreshPoolDisplay, 30000);
 
 
     function flashDamage(who, amount) { 
-    if(amount <= 0) return; 
-    const txt = document.getElementById(who === 'e' ? 'eDmgText' : 'pDmgText'); 
-    txt.textContent = "-" + amount; 
-    
-    // ใช้ GSAP แทนการ add class ทื่อๆ
-    const tl = gsap.timeline();
-    tl.set(txt, { y: 0, scale: 0.5, opacity: 0, display: 'block' });
-    tl.to(txt, { duration: 0.5, y: -40, scale: 1.8, opacity: 1, ease: "back.out(2)" });
-    tl.to(txt, { duration: 0.3, opacity: 0, delay: 0.5 });
-    
-    playSfx('hit'); 
-    gsap.to('#battleArea', { duration: 0.05, x: 10, repeat: 5, yoyo: true }); // สั่นหน้าจอ
-}
-
-        document.getElementById('battleArea').classList.add('shaking'); 
+        if(amount <= 0) return; 
+        const txt = document.getElementById(who === 'e' ? 'eDmgText' : 'pDmgText'); 
+        txt.textContent = "-" + amount; 
+        txt.classList.add('show'); 
+        playSfx('hit'); 
+      document.getElementById('battleArea').classList.add('shaking'); 
         if(who === 'e') document.querySelector('.boss-banner').classList.add('hit'); 
         setTimeout(() => { 
             txt.classList.remove('show'); 
