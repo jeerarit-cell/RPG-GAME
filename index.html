@@ -832,19 +832,42 @@ setInterval(refreshPoolDisplay, 30000);
 
 
     function flashDamage(who, amount) { 
-        if(amount <= 0) return; 
-        const txt = document.getElementById(who === 'e' ? 'eDmgText' : 'pDmgText'); 
-        txt.textContent = "-" + amount; 
-        txt.classList.add('show'); 
-        playSfx('hit'); 
-      document.getElementById('battleArea').classList.add('shaking'); 
-        if(who === 'e') document.querySelector('.boss-banner').classList.add('hit'); 
-        setTimeout(() => { 
-            txt.classList.remove('show'); 
-            document.getElementById('battleArea').classList.remove('shaking'); 
-            document.querySelector('.boss-banner').classList.remove('hit'); 
-        }, 800); 
+    if (amount <= 0) return; 
+
+    // 1. หา Element (ต้องแน่ใจว่าใน HTML มี ID เหล่านี้)
+    const txt = document.getElementById(who === 'e' ? 'eDmgText' : 'pDmgText'); 
+    const battleArea = document.getElementById('battleArea');
+    const bossBanner = document.querySelector('.boss-banner');
+
+    if (!txt) return; // กันพังถ้าหา Text ไม่เจอ
+
+    // 2. ตั้งค่าเริ่มต้น
+    txt.textContent = "-" + amount; 
+    playSfx('hit'); 
+
+    // 3. ใช้ GSAP Timeline (ลดปีกกาซ้อน และจัดการทุกอย่างในชุดเดียว)
+    const tl = gsap.timeline();
+
+    // -- แอนิเมชันตัวเลขเด้ง --
+    tl.fromTo(txt, 
+        { opacity: 0, scale: 0.5, y: 0 }, 
+        { opacity: 1, scale: 1.8, y: -40, duration: 0.4, ease: "back.out(2)" }
+    );
+
+    // -- จังหวะสั่นหน้าจอ (แทนการ add class 'shaking') --
+    if (battleArea) {
+        tl.to(battleArea, { x: 6, duration: 0.05, repeat: 5, yoyo: true }, "<");
     }
+
+    // -- เอฟเฟกต์สีแดงที่ Banner บอส (ถ้าเป็นศัตรูที่โดน) --
+    if (who === 'e' && bossBanner) {
+        gsap.fromTo(bossBanner, { filter: "brightness(2) sepia(1) hue-rotate(-50deg)" }, { filter: "brightness(1) sepia(0)", duration: 0.4 });
+    }
+
+    // -- สั่งจางหายไปอัตโนมัติ --
+    tl.to(txt, { opacity: 0, duration: 0.3, delay: 0.5 });
+}
+
 
     function updateBattleUI() { 
         if(battle_eHP < 0) battle_eHP = 0; 
