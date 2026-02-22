@@ -194,16 +194,81 @@
             </div>
 
             <div class="marquee-container"><div class="marquee-text">🎉 SYSTEM: VERIFIED HUMAN DETECTED! - WELCOME TO PROJECT CHASER 👁️</div></div>
-            <div class="ad-banner" onclick="window.open('https://www.youtube.com/watch?v=7YtWwxA9sC4')" style="cursor: pointer;">
-                <img src="https://github.com/user-attachments/assets/95431a34-e841-4114-967c-797641a63055">
-                <div class="ad-tag">AD</div>
-            </div>
+           <div class="ad-banner" onclick="openExchange()" style="cursor: pointer;">
+    <img src="https://github.com/user-attachments/assets/95431a34-e841-4114-967c-797641a63055">
+    <div class="ad-tag">EXCHANGE</div>
+</div>
+
             <div class="lobby-content">
                 <div class="video-box">
                     <div class="video-label">LIVE FEED</div>
                     <iframe width="100%" height="100%" src="https://www.youtube.com/embed/2ohNHqSTu0w?autoplay=1&loop=1&playlist=2ohNHqSTu0w&mute=1&controls=1&showinfo=0&modestbranding=1" frameborder="0" allowfullscreen></iframe>
                 </div>
             </div>
+            <div id="exchangePopup" class="modal" style="display: none; align-items: center; justify-content: center; z-index: 10001;">
+    <div class="exchange-box" style="width: 92%; max-width: 420px; height: 88vh; background: #05080a; border: 2px solid var(--neon-orange); border-radius: 20px; padding: 25px; position: relative; display: flex; flex-direction: column; box-shadow: 0 0 50px rgba(255, 157, 0, 0.2); overflow: hidden;">
+        
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <div>
+                <h2 style="font-family: 'Orbitron'; color: var(--neon-orange); margin: 0; font-size: 1.2rem; letter-spacing: 2px;">CHASER HUB</h2>
+                <div style="font-size: 0.6rem; color: #555; font-family: 'Orbitron';">CENTRAL LIQUIDITY POOL</div>
+            </div>
+            <div class="close-btn" onclick="closeExchange()">✕</div>
+        </div>
+
+        <div style="background: rgba(0, 234, 255, 0.05); padding: 15px; border-radius: 12px; margin-bottom: 10px; border: 1px solid rgba(0, 234, 255, 0.2);">
+            <div style="font-size: 0.65rem; color: #00eaff; font-family: 'Orbitron'; margin-bottom: 5px;">GAME POOL: WLD BALANCE</div>
+            <div style="display: flex; justify-content: space-between; align-items: baseline;">
+                <span id="poolWldDisplay" style="font-size: 1.6rem; color: #fff; font-family: 'Orbitron'; font-weight: 900;">1,250.00</span>
+                <span style="color: #00eaff; font-weight: bold; font-size: 0.8rem;">WLD</span>
+            </div>
+        </div>
+
+        <div style="background: rgba(255, 157, 0, 0.05); padding: 15px; border-radius: 12px; margin-bottom: 20px; border: 1px solid rgba(255, 157, 0, 0.2);">
+            <div style="font-size: 0.65rem; color: var(--neon-orange); font-family: 'Orbitron'; margin-bottom: 5px;">GAME POOL: CHASER SUPPLY</div>
+            <div style="display: flex; justify-content: space-between; align-items: baseline;">
+                <span id="poolChaserDisplay" style="font-size: 1.6rem; color: #fff; font-family: 'Orbitron'; font-weight: 900;">10,000,000</span>
+                <span style="color: var(--neon-orange); font-weight: bold; font-size: 0.8rem;">CHASER</span>
+            </div>
+        </div>
+
+        <div style="flex: 1; overflow-y: auto; padding-right: 5px;">
+            
+            <div style="margin-bottom: 15px; background: #0f1215; padding: 15px; border-radius: 12px; border: 1px solid #222;">
+                <label style="font-size: 0.8rem; color: #00eaff; font-family: 'Orbitron';">EXCHANGE: WLD ➔ CHASER</label>
+                <div style="display: flex; gap: 8px; margin-top: 8px;">
+                    <input type="number" id="inpWldToChaser" placeholder="Amount WLD" 
+                        style="flex: 1; background: #000; border: 1px solid #333; color: #fff; padding: 12px; border-radius: 6px; font-family: 'Orbitron'; outline: none;">
+                    <button onclick="swapWld()" style="background: var(--neon-blue); color: #000; border: none; padding: 0 15px; border-radius: 6px; font-weight: 900; cursor: pointer; font-family: 'Orbitron';">CONVERT</button>
+                </div>
+            </div>
+
+            <div style="margin-bottom: 20px; background: #0f1215; padding: 15px; border-radius: 12px; border: 1px solid #222;">
+                <label style="font-size: 0.8rem; color: var(--neon-orange); font-family: 'Orbitron';">EXCHANGE: COIN ➔ CHASER</label>
+                <div style="display: flex; gap: 8px; margin-top: 8px;">
+                    <input type="number" id="inpCoinToChaser" placeholder="Amount Coin" 
+                        style="flex: 1; background: #000; border: 1px solid #333; color: #fff; padding: 12px; border-radius: 6px; font-family: 'Orbitron'; outline: none;">
+                    <button onclick="swapCoin()" style="background: var(--neon-orange); color: #000; border: none; padding: 0 15px; border-radius: 6px; font-weight: 900; cursor: pointer; font-family: 'Orbitron';">CONVERT</button>
+                </div>
+            </div>
+
+        </div>
+
+        <div style="background: #000; border-top: 1px solid var(--neon-orange); padding: 15px; border-radius: 0 0 15px 15px; margin: 0 -25px -25px -25px;">
+            <div style="font-family: 'Orbitron'; font-size: 0.75rem; color: var(--neon-orange); margin-bottom: 8px; display: flex; align-items: center; gap: 5px;">
+                <span style="animation: pulse 1s infinite;">●</span> PROTOCOL DETAILS
+            </div>
+            <div style="font-size: 0.7rem; color: #bbb; line-height: 1.6; font-family: 'Kanit';">
+                • 1 WLD = 10,000 CHASER <span style="color:#00ff00;">(+2% BONUS)</span><br>
+                • 1,000 COINS = 10,000 CHASER <span style="color:#00ff00;">(+2% BONUS)</span><br>
+                • <span style="color: #ff2a2a; font-weight: bold;">EXCHANGE TAX: 1%</span> (Deducted from final amount)<br>
+                • <span style="color: #666;">Note: แลกเปลี่ยนผ่าน Smart Contract ความปลอดภัยสูง</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+
             <div class="bottom-nav" id="btnStartGame">
                 <div class="nav-item">START GAME</div>
             </div>
@@ -1509,6 +1574,57 @@ EARNING <span style="color:#ffd700; font-weight:bold;">${item.reward} COINS!</sp
 
     // 📌 ดึงข้อมูลใหม่เงียบๆ (Background Sync) ทุกๆ 20 วินาที
     setInterval(fetchGlobalKillFeed, 20000);
+
+    // ฟังก์ชันเปิด Terminal
+function openExchange() {
+    if(typeof playSfx === 'function') playSfx('click');
+    document.getElementById('exchangePopup').style.display = 'flex';
+    
+    // อัปเดตยอด WLD ในพูล (ดึงจากยอดที่เรา Fetch ไว้ก่อนหน้า)
+    const poolWld = document.getElementById('uiVaultBalance').innerText;
+    document.getElementById('poolWldDisplay').innerText = poolWld;
+    
+    // ยอด Chaser ในพูล (ตัวอย่างตั้งค่าเริ่มต้นไว้)
+    document.getElementById('poolChaserDisplay').innerText = "10,000,000";
+}
+
+// ฟังก์ชันปิด Terminal
+function closeExchange() {
+    document.getElementById('exchangePopup').style.display = 'none';
+}
+
+         // ระบบแลก WLD -> Chaser
+function swapWld() {
+    let wld = parseFloat(document.getElementById('inpWldToChaser').value) || 0;
+    if(wld <= 0) return alert("ระบุจำนวน WLD");
+    
+    let base = wld * 10000;
+    let bonus = base * 0.02;
+    let tax = (base + bonus) * 0.01;
+    let final = (base + bonus) - tax;
+    
+    if(confirm(`ยืนยันการแลก:\nรับ ${final.toLocaleString()} CHASER\n(รวมโบนัส 2% และหักภาษี 1% แล้ว)`)) {
+        // เชื่อมต่อระบบ Payment ตรงนี้
+        console.log("Processing WLD Swap...");
+    }
+}
+
+// ระบบแลก Coin -> Chaser
+function swapCoin() {
+    let coin = parseFloat(document.getElementById('inpCoinToChaser').value) || 0;
+    if(coin < 1000) return alert("ขั้นต่ำในการแลกคือ 1,000 COIN");
+    if(playerCOIN < coin) return alert("เหรียญ Coin ในเกมไม่พอ");
+    
+    let base = (coin / 1000) * 10000;
+    let bonus = base * 0.02;
+    let tax = (base + bonus) * 0.01;
+    let final = (base + bonus) - tax;
+
+    if(confirm(`ยืนยันการแลก:\nใช้ ${coin} COINS แลกเป็น ${final.toLocaleString()} CHASER\n(รวมโบนัส 2% และหักภาษี 1% แล้ว)`)) {
+        // หักลบเหรียญในเกมและเพิ่ม Chaser
+        console.log("Processing Coin Swap...");
+    }
+}
 
 
     </script>
