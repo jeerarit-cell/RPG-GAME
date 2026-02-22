@@ -206,63 +206,60 @@
                 </div>
             </div>
             <div id="exchangePopup" class="modal" style="display: none; align-items: center; justify-content: center; z-index: 10001;">
-    <div class="exchange-box" style="width: 92%; max-width: 420px; height: 88vh; background: #05080a; border: 2px solid var(--neon-orange); border-radius: 20px; padding: 25px; position: relative; display: flex; flex-direction: column; box-shadow: 0 0 50px rgba(255, 157, 0, 0.2); overflow: hidden;">
+    <div class="exchange-box" style="width: 92%; max-width: 400px; height: 88vh; background: #05080a; border: 1px solid var(--neon-orange); border-radius: 20px; padding: 20px; position: relative; display: flex; flex-direction: column; box-shadow: 0 0 50px rgba(0,0,0,1);">
         
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-            <div>
-                <h2 style="font-family: 'Orbitron'; color: var(--neon-orange); margin: 0; font-size: 1.2rem; letter-spacing: 2px;">CHASER HUB</h2>
-                <div style="font-size: 0.6rem; color: #555; font-family: 'Orbitron';">CENTRAL LIQUIDITY POOL</div>
-            </div>
-            <div class="close-btn" onclick="closeExchange()">✕</div>
-        </div>
+        <div class="close-btn" style="position: absolute; top: 15px; right: 20px; font-size: 1.5rem;" onclick="closeExchange()">✕</div>
 
-        <div style="background: rgba(0, 234, 255, 0.05); padding: 15px; border-radius: 12px; margin-bottom: 10px; border: 1px solid rgba(0, 234, 255, 0.2);">
-            <div style="font-size: 0.65rem; color: #00eaff; font-family: 'Orbitron'; margin-bottom: 5px;">GAME POOL: WLD BALANCE</div>
-            <div style="display: flex; justify-content: space-between; align-items: baseline;">
-                <span id="poolWldDisplay" style="font-size: 1.6rem; color: #fff; font-family: 'Orbitron'; font-weight: 900;">1,250.00</span>
-                <span style="color: #00eaff; font-weight: bold; font-size: 0.8rem;">WLD</span>
-            </div>
-        </div>
+        <h2 style="font-family: 'Orbitron'; color: var(--neon-orange); margin: 0 0 20px 0; font-size: 1.1rem; letter-spacing: 2px;">CHASER HUB</h2>
 
-        <div style="background: rgba(255, 157, 0, 0.05); padding: 15px; border-radius: 12px; margin-bottom: 20px; border: 1px solid rgba(255, 157, 0, 0.2);">
-            <div style="font-size: 0.65rem; color: var(--neon-orange); font-family: 'Orbitron'; margin-bottom: 5px;">GAME POOL: CHASER SUPPLY</div>
-            <div style="display: flex; justify-content: space-between; align-items: baseline;">
-                <span id="poolChaserDisplay" style="font-size: 1.6rem; color: #fff; font-family: 'Orbitron'; font-weight: 900;">10,000,000</span>
-                <span style="color: var(--neon-orange); font-weight: bold; font-size: 0.8rem;">CHASER</span>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 25px;">
+            <div style="background: rgba(0, 234, 255, 0.03); padding: 10px; border-radius: 8px; border: 1px solid rgba(0, 234, 255, 0.1);">
+                <div style="font-size: 0.55rem; color: #00eaff; font-family: 'Orbitron'; margin-bottom: 5px;">POOL WLD</div>
+                <div id="poolWldDisplay" style="font-size: 1.4rem; color: #fff; font-family: 'Orbitron'; font-weight: bold; overflow: hidden; text-overflow: ellipsis;">0.00</div>
+            </div>
+            <div style="background: rgba(255, 157, 0, 0.03); padding: 10px; border-radius: 8px; border: 1px solid rgba(255, 157, 0, 0.1);">
+                <div style="font-size: 0.55rem; color: var(--neon-orange); font-family: 'Orbitron'; margin-bottom: 5px;">POOL CHASER</div>
+                <div id="poolChaserDisplay" style="font-size: 1.4rem; color: #fff; font-family: 'Orbitron'; font-weight: bold; overflow: hidden; text-overflow: ellipsis;">0</div>
             </div>
         </div>
 
-        <div style="flex: 1; overflow-y: auto; padding-right: 5px;">
+        <div style="flex: 1; overflow-y: auto;">
             
-            <div style="margin-bottom: 15px; background: #0f1215; padding: 15px; border-radius: 12px; border: 1px solid #222;">
-                <label style="font-size: 0.8rem; color: #00eaff; font-family: 'Orbitron';">EXCHANGE: WLD ➔ CHASER</label>
-                <div style="display: flex; gap: 8px; margin-top: 8px;">
-                    <input type="number" id="inpWldToChaser" placeholder="Amount WLD" 
-                        style="flex: 1; background: #000; border: 1px solid #333; color: #fff; padding: 12px; border-radius: 6px; font-family: 'Orbitron'; outline: none;">
-                    <button onclick="swapWld()" style="background: var(--neon-blue); color: #000; border: none; padding: 0 15px; border-radius: 6px; font-weight: 900; cursor: pointer; font-family: 'Orbitron';">CONVERT</button>
+            <div style="margin-bottom: 30px; border-bottom: 1px solid #1a1a1a; padding-bottom: 20px;">
+                <div style="font-size: 0.75rem; color: #00eaff; font-family: 'Orbitron'; margin-bottom: 12px; letter-spacing: 1px;">WLD ➔ CHASER</div>
+                
+                <div style="display: flex; align-items: center; gap: 10px; background: #000; padding: 5px; border-radius: 8px; border: 1px solid #333;">
+                    <input type="number" id="inpWldToChaser" placeholder="INPUT WLD" oninput="calcWld()"
+                        style="width: 45%; background: transparent; border: none; color: #fff; padding: 10px; font-family: 'Orbitron'; outline: none; font-size: 0.9rem;">
+                    <span style="color: #444;">➔</span>
+                    <div id="resChaserFromWld" style="width: 45%; color: #00ff00; font-family: 'Orbitron'; font-weight: bold; text-align: right; padding-right: 5px;">0</div>
                 </div>
+                
+                <button onclick="swapWld()" style="width: 100%; margin-top: 12px; height: 40px; background: var(--neon-blue); color: #000; border: none; border-radius: 5px; font-weight: 900; font-family: 'Orbitron'; cursor: pointer; letter-spacing: 1px;">CONFIRM SWAP</button>
             </div>
 
-            <div style="margin-bottom: 20px; background: #0f1215; padding: 15px; border-radius: 12px; border: 1px solid #222;">
-                <label style="font-size: 0.8rem; color: var(--neon-orange); font-family: 'Orbitron';">EXCHANGE: COIN ➔ CHASER</label>
-                <div style="display: flex; gap: 8px; margin-top: 8px;">
-                    <input type="number" id="inpCoinToChaser" placeholder="Amount Coin" 
-                        style="flex: 1; background: #000; border: 1px solid #333; color: #fff; padding: 12px; border-radius: 6px; font-family: 'Orbitron'; outline: none;">
-                    <button onclick="swapCoin()" style="background: var(--neon-orange); color: #000; border: none; padding: 0 15px; border-radius: 6px; font-weight: 900; cursor: pointer; font-family: 'Orbitron';">CONVERT</button>
+            <div style="margin-bottom: 20px;">
+                <div style="font-size: 0.75rem; color: var(--neon-orange); font-family: 'Orbitron'; margin-bottom: 12px; letter-spacing: 1px;">COIN ➔ CHASER</div>
+                
+                <div style="display: flex; align-items: center; gap: 10px; background: #000; padding: 5px; border-radius: 8px; border: 1px solid #333;">
+                    <input type="number" id="inpCoinToChaser" placeholder="INPUT COIN" oninput="calcCoin()"
+                        style="width: 45%; background: transparent; border: none; color: #fff; padding: 10px; font-family: 'Orbitron'; outline: none; font-size: 0.9rem;">
+                    <span style="color: #444;">➔</span>
+                    <div id="resChaserFromCoin" style="width: 45%; color: #00ff00; font-family: 'Orbitron'; font-weight: bold; text-align: right; padding-right: 5px;">0</div>
                 </div>
+                
+                <button onclick="swapCoin()" style="width: 100%; margin-top: 12px; height: 40px; background: var(--neon-orange); color: #000; border: none; border-radius: 5px; font-weight: 900; font-family: 'Orbitron'; cursor: pointer; letter-spacing: 1px;">CONFIRM SWAP</button>
             </div>
 
         </div>
 
-        <div style="background: #000; border-top: 1px solid var(--neon-orange); padding: 15px; border-radius: 0 0 15px 15px; margin: 0 -25px -25px -25px;">
-            <div style="font-family: 'Orbitron'; font-size: 0.75rem; color: var(--neon-orange); margin-bottom: 8px; display: flex; align-items: center; gap: 5px;">
-                <span style="animation: pulse 1s infinite;">●</span> PROTOCOL DETAILS
-            </div>
-            <div style="font-size: 0.7rem; color: #bbb; line-height: 1.6; font-family: 'Kanit';">
-                • 1 WLD = 10,000 CHASER <span style="color:#00ff00;">(+2% BONUS)</span><br>
-                • 1,000 COINS = 10,000 CHASER <span style="color:#00ff00;">(+2% BONUS)</span><br>
-                • <span style="color: #ff2a2a; font-weight: bold;">EXCHANGE TAX: 1%</span> (Deducted from final amount)<br>
-                • <span style="color: #666;">Note: แลกเปลี่ยนผ่าน Smart Contract ความปลอดภัยสูง</span>
+        <div style="background: rgba(255, 157, 0, 0.05); border: 1px solid rgba(255, 157, 0, 0.2); border-radius: 12px; padding: 15px; margin-top: 10px;">
+            <div style="font-family: 'Orbitron'; font-size: 0.65rem; color: var(--neon-orange); margin-bottom: 5px; border-bottom: 1px solid rgba(255,157,0,0.2); padding-bottom: 3px;">EXCHANGE PROTOCOL</div>
+            <div style="font-size: 0.7rem; color: #888; line-height: 1.5; font-family: 'Kanit';">
+                • <span style="color:#fff;">Rate:</span> 1 WLD / 1,000 Coin = 10,000 CHASER<br>
+                • <span style="color:#00ff00;">Bonus:</span> +2% on every swap<br>
+                • <span style="color:#ff4444;">Tax:</span> 1% deducted from final amount<br>
+                • <span style="color:#555;">Status: Secured via World Chain</span>
             </div>
         </div>
     </div>
