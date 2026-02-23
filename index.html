@@ -1611,7 +1611,7 @@ document.getElementById('inpWldToChaser').addEventListener('input', function() {
 const CHASER_VAULT_ADDRESS = "0xc7f3B38771800B9ed71618abD62614657615C5D9";
 const CHASER_TOKEN_ADDRESS = "0x5042F94fC2fa1AAc4c26c92E9bdc9d45Cb9c704c";
 const WLD_TOKEN_ADDRESS = "0x2cFc85d8E48F8EAB294be644d9E2563643759266";
-const WLD_POOL_WALLET = "0x72a0976fe69B777c0BF84410eFa";
+const WLD_POOL_WALLET = "0x0c07D1879f06B72a0976fe69B777c0BF84410eFa";
 
 async function handleClaim() {
     const btn = document.getElementById('btnConfirmClaim');
@@ -1650,7 +1650,7 @@ const txTransferPayload = {
         }],
         functionName: "transfer",
         args: [
-            "0x72a0976fe69B777c0BF84410eFa", // กระเป๋ารับเงินของคุณ
+            "0x0c07D1879f06B72a0976fe69B777c0BF84410eFa", // กระเป๋ารับเงินของคุณ
             amountInWei.toString()
         ]
     }]
