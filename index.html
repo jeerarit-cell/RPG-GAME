@@ -1616,6 +1616,54 @@ function handleClaim() {
     alert("Claim sequence initiated.");
     closeExchange();
 }
+     
+    // --- CONFIG ของระบบ CHASER ---
+const CHASER_TOKEN_ADDR = '0x5042F94fC2fa1AAc4c26c92E9bdc9d45Cb9c704c';
+const CHASER_VAULT_ADDR = '0xc7f3B38771800B9ed71618abD62614657615C5D9'; 
+
+async function refreshChaserSupply() {
+    const RPC_URL = 'https://worldchain-mainnet.gateway.tenderly.co';
+    
+    // สร้าง Data สำหรับถาม balanceOf
+    const encodedAddress = CHASER_VAULT_ADDR.replace('0x', '').padStart(64, '0');
+    const callData = '0x70a08231' + encodedAddress;
+
+    try {
+        const response = await fetch(RPC_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                jsonrpc: '2.0', id: 1,
+                method: 'eth_call',
+                params: [{ to: CHASER_TOKEN_ADDR, data: callData }, 'latest']
+            })
+        });
+
+        const json = await response.json();
+        
+        // ส่งข้อมูลไปที่ ID poolChaserDisplay ในบอร์ดที่คุณเพิ่งส่งมา
+        const uiChaser = document.getElementById('poolChaserDisplay');
+
+        if (json.result && json.result !== '0x') {
+            const balanceInWei = BigInt(json.result);
+            const balanceInChaser = Number(balanceInWei) / 1e18;
+            const formatted = balanceInChaser.toLocaleString(undefined, { 
+                minimumFractionDigits: 2, 
+                maximumFractionDigits: 2 
+            });
+
+            if (uiChaser) uiChaser.innerText = formatted;
+            console.log("Chaser Supply Sync:", balanceInChaser);
+        }
+    } catch (error) {
+        console.error("Chaser pipe error:", error);
+    }
+}
+
+// สั่งให้รันอัตโนมัติทุก 30 วินาที แยกกับท่อ WLD
+refreshChaserSupply();
+setInterval(refreshChaserSupply, 30000);
+
 </script>
 
 
