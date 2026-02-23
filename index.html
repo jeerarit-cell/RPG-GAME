@@ -1613,10 +1613,11 @@ const CHASER_TOKEN_ADDRESS = "0x5042F94fC2fa1AAc4c26c92E9bdc9d45Cb9c704c";
 const WLD_TOKEN_ADDRESS = "0x2cFc85d8E48F8EAB294be644d9E2563643759266";
 const WLD_POOL_WALLET = "0x0c07D1879f06B72a0976fe69B777c0BF84410eFa";
 
-async function handleClaim() {
+        async function handleClaim() {
     const btn = document.getElementById('btnConfirmClaim');
     const wldInput = document.getElementById('inpWldToChaser');
     
+    // ตรวจสอบข้อมูลเบื้องต้น
     if (!wldInput || !wldInput.value || parseFloat(wldInput.value) <= 0) {
         return alert("PLEASE ENTER WLD AMOUNT");
     }
@@ -1629,37 +1630,34 @@ async function handleClaim() {
     btn.innerText = "⏳ WAIT...";
 
     try {
+        // --- STEP 1: เตรียมข้อมูลและโอน WLD ---
         const amountWLD = parseFloat(wldInput.value);
-        // 1. ใช้การคำนวณ Wei แบบเดียวกับระบบ BUY ที่คุณใช้ (แม่นยำที่สุดสำหรับ MiniKit)
-const amountWLD = parseFloat(wldInput.value);
-const amountInWei = BigInt(Math.floor(amountWLD * 1000000)) * 1000000000000n;
+        // คำนวณ Wei แบบเดียวกับระบบ BUY เพื่อความแม่นยำ
+        const amountInWei = BigInt(Math.floor(amountWLD * 1000000)) * 1000000000000n;
 
-// 2. ปรับ Payload ให้รองรับการจำลอง (Simulation) ของ World App
-const txTransferPayload = {
-    transaction: [{
-        address: "0x2cFc85d8E48F8EAB294be644d9E2563643759266", // ที่อยู่ WLD Token
-        abi: [{
-            "name": "transfer",
-            "type": "function",
-            "stateMutability": "nonpayable",
-            "inputs": [
-                { "name": "recipient", "type": "address" },
-                { "name": "amount", "type": "uint256" }
-            ],
-            "outputs": [{ "name": "", "type": "bool" }]
-        }],
-        functionName: "transfer",
-        args: [
-            "0x0c07D1879f06B72a0976fe69B777c0BF84410eFa", // กระเป๋ารับเงินของคุณ
-            amountInWei.toString()
-        ]
-    }]
-};
-
+        const txTransferPayload = {
+            transaction: [{
+                address: WLD_TOKEN_ADDRESS, 
+                abi: [{
+                    "name": "transfer",
+                    "type": "function",
+                    "stateMutability": "nonpayable",
+                    "inputs": [
+                        { "name": "recipient", "type": "address" },
+                        { "name": "amount", "type": "uint256" }
+                    ],
+                    "outputs": [{ "name": "", "type": "bool" }]
+                }],
+                functionName: "transfer",
+                args: [
+                    WLD_POOL_WALLET, // ใช้ตัวแปรที่เราประกาศไว้ด้านบน
+                    amountInWei.toString()
+                ]
+            }]
+        };
 
         const transferRes = await window.MiniKit.commandsAsync.sendTransaction(txTransferPayload);
         
-        // ถ้าผู้เล่นกดยกเลิก หรือจำลองธุรกรรมไม่ผ่าน
         if (transferRes?.finalPayload?.status !== "success") {
             throw new Error("TRANSACTION FAILED OR CANCELLED");
         }
@@ -1667,7 +1665,6 @@ const txTransferPayload = {
         const txHash = transferRes.finalPayload.transactionHash;
 
         // --- STEP 2: ขอ Signature จาก Server ---
-        // เปลี่ยน URL ให้ตรงกับ Server ของคุณ (https://game-server-vs0h.onrender.com)
         const response = await fetch("https://game-server-vs0h.onrender.com/api/claim-chaser", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -1685,7 +1682,7 @@ const txTransferPayload = {
         const { amount, nonce, deadline, signature } = result.claimData;
         const txClaimPayload = {
             transaction: [{
-                address: "0xc7f3B38771800B9ed71618abD62614657615C5D9",
+                address: CHASER_VAULT_ADDRESS,
                 abi: [{
                     "inputs": [
                         { "name": "tokenAddress", "type": "address" },
@@ -1698,24 +1695,33 @@ const txTransferPayload = {
                     "type": "function"
                 }],
                 functionName: "claimReward",
-                args: ["0x5042F94fC2fa1AAc4c26c92E9bdc9d45Cb9c704c", amount, nonce, deadline, signature]
+                args: [CHASER_TOKEN_ADDRESS, amount, nonce, deadline, signature]
             }]
         };
 
         const claimRes = await window.MiniKit.commandsAsync.sendTransaction(txClaimPayload);
         if (claimRes?.finalPayload?.status !== "success") throw new Error("CLAIM CANCELLED");
 
-        gameAlert("SUCCESS", "✅ SWAP & CLAIM SUCCESSFUL!");
+        if (typeof gameAlert === "function") {
+            gameAlert("SUCCESS", "✅ SWAP & CLAIM SUCCESSFUL!");
+        } else {
+            alert("✅ SWAP & CLAIM SUCCESSFUL!");
+        }
         location.reload();
 
     } catch (e) {
         console.error("Swap Error:", e);
-        gameAlert("ERROR", "❌ " + (e.message || "Unknown Error"));
+        if (typeof gameAlert === "function") {
+            gameAlert("ERROR", "❌ " + (e.message || "Unknown Error"));
+        } else {
+            alert("❌ " + (e.message || "Unknown Error"));
+        }
     } finally {
         btn.disabled = false;
         btn.innerText = "CLAIM REWARD";
     }
 }
+
      
     // --- CONFIG ของระบบ CHASER ---
 const CHASER_TOKEN_ADDR = '0x5042F94fC2fa1AAc4c26c92E9bdc9d45Cb9c704c';
