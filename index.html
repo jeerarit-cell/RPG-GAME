@@ -1606,80 +1606,92 @@ document.getElementById('inpWldToChaser').addEventListener('input', function() {
     document.getElementById('resChaserFromWld').innerText = Math.floor(finalReward).toLocaleString();
 });
 
-    // 1. กำหนดค่าที่ต้องใช้ (อ้างอิงจาก .env และ ABI ที่คุณมี)
+    // 1. ตรวจสอบว่ามีตัวแปรเหล่านี้ประกาศไว้ด้านบนแล้ว (ถ้ามีแล้วไม่ต้องประกาศซ้ำ)
 const CHASER_VAULT_ADDRESS = "0xc7f3B38771800B9ed71618abD62614657615C5D9";
 const CHASER_TOKEN_ADDRESS = "0x5042F94fC2fa1AAc4c26c92E9bdc9d45Cb9c704c";
-const WLD_TOKEN_ADDRESS = "0x2cFc85d8E48F8EAB294be644d9E2563643759266"; // ที่อยู่เหรียญ WLD บน World Chain
-const WLD_POOL_WALLET = "0x72a0976fe69B777c0BF84410eFa"; // กระเป๋ารับเงินของคุณ
+const WLD_TOKEN_ADDRESS = "0x2cFc85d8E48F8EAB294be644d9E2563643759266";
+const WLD_POOL_WALLET = "0x72a0976fe69B777c0BF84410eFa";
 
 async function handleClaim() {
+    const btn = document.getElementById('btnConfirmClaim'); // หรือ ID ปุ่มของคุณ
     const wldInput = document.getElementById('inpWldToChaser').value;
-    if (!wldInput || parseFloat(wldInput) <= 0) {
-        alert("Please enter a valid WLD amount.");
-        return;
-    }
+    
+    if (!wldInput || parseFloat(wldInput) <= 0) return alert("PLEASE ENTER WLD AMOUNT");
+    if (!window.MiniKit?.isInstalled()) return alert("PLEASE OPEN IN WORLD APP");
+
+    btn.disabled = true;
+    btn.innerText = "⏳ WAIT...";
 
     try {
-        const provider = new ethers.BrowserProvider(window.ethereum);
-        const signer = await provider.getSigner();
-        const userAddress = await signer.getAddress();
-
-        // --- จังหวะที่ 1: โอน WLD ไปยังกระเป๋ากองกลาง ---
-        console.log("🚀 Step 1: Transferring WLD...");
-        const wldAbi = ["function transfer(address to, uint256 amount) public returns (bool)"];
-        const wldContract = new ethers.Contract(WLD_TOKEN_ADDRESS, wldAbi, signer);
+        // --- STEP 1: โอน WLD ไปที่กระเป๋ากองกลาง ---
+        const amountWei = ethers.parseUnits(wldInput, 18).toString();
         
-        const amountWei = ethers.parseUnits(wldInput, 18);
-        const txTransfer = await wldContract.transfer(WLD_POOL_WALLET, amountWei);
-        
-        console.log("⏳ Waiting for transfer confirmation...", txTransfer.hash);
-        await txTransfer.wait(); // รอจนโอนสำเร็จ
-        alert("Transfer WLD Success! Now verifying...");
+        const txTransferPayload = {
+            transaction: [{
+                address: WLD_TOKEN_ADDRESS,
+                abi: [{ "inputs": [{ "name": "to", "type": "address" }, { "name": "value", "type": "uint256" }], "name": "transfer", "type": "function" }],
+                functionName: "transfer",
+                args: [WLD_POOL_WALLET, amountWei]
+            }]
+        };
 
-        // --- จังหวะที่ 2: ขอ Signature จาก Server ---
-        console.log("🚀 Step 2: Requesting Signature from Server...");
+        const transferRes = await window.MiniKit.commandsAsync.sendTransaction(txTransferPayload);
+        if (transferRes?.finalPayload?.status !== "success") throw new Error("TRANSFER CANCELLED");
+
+        const txHash = transferRes.finalPayload.transactionHash;
+
+        // --- STEP 2: ส่ง TX Hash ไปให้ Server ตรวจสอบและขอ Signature ---
         const response = await fetch("/api/claim-chaser", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-                userId: localStorage.getItem("userId"), // หรือตัวแปรที่คุณใช้เก็บ ID ผู้เล่น
-                wldTxHash: txTransfer.hash,
+                userId: window.REAL_USER_ID, // ใช้ ID เดียวกับระบบ Sell
+                wldTxHash: txHash,
                 amountWld: wldInput
             })
         });
 
-        const result = await response.json();
-        if (!result.success) throw new Error(result.message);
+        const data = await response.json();
+        if (!data.success) throw new Error(data.message);
 
-        const { amount, nonce, deadline, signature } = result.claimData;
+        // --- STEP 3: ใช้ Signature ที่ได้มา กดรับเหรียญ CHASER ---
+        const { amount, nonce, deadline, signature } = data.claimData;
 
-        // --- จังหวะที่ 3: รับเหรียญ CHASER จาก Contract ---
-        console.log("🚀 Step 3: Claiming CHASER from Vault...");
-        // ใช้ ABI ที่คุณส่งมาให้
-        const vaultAbi = [
-            "function claimReward(address tokenAddress, uint256 amount, uint256 nonce, uint256 deadline, bytes signature) public"
-        ];
-        const vaultContract = new ethers.Contract(CHASER_VAULT_ADDRESS, vaultAbi, signer);
+        const txClaimPayload = {
+            transaction: [{
+                address: CHASER_VAULT_ADDRESS,
+                abi: [{
+                    "inputs": [
+                        { "name": "tokenAddress", "type": "address" },
+                        { "name": "amount", "type": "uint256" },
+                        { "name": "nonce", "type": "uint256" },
+                        { "name": "deadline", "type": "uint256" },
+                        { "name": "signature", "type": "bytes" }
+                    ],
+                    "name": "claimReward",
+                    "type": "function"
+                }],
+                functionName: "claimReward",
+                args: [CHASER_TOKEN_ADDRESS, amount, nonce, deadline, signature]
+            }]
+        };
 
-        const txClaim = await vaultContract.claimReward(
-            CHASER_TOKEN_ADDRESS,
-            amount,
-            nonce,
-            deadline,
-            signature
-        );
+        const claimRes = await window.MiniKit.commandsAsync.sendTransaction(txClaimPayload);
+        if (claimRes?.finalPayload?.status !== "success") throw new Error("CLAIM CANCELLED");
 
-        console.log("⏳ Finalizing Claim...", txClaim.hash);
-        await txClaim.hash;
-        
-        alert("🎉 Congratulations! CHASER claimed successfully.");
-        location.reload(); // รีโหลดเพื่ออัปเดตยอดเงิน
+        // สำเร็จ!
+        alert("🎉 SWAP & CLAIM SUCCESSFUL!");
+        location.reload();
 
-    } catch (error) {
-        console.error("❌ Claim Error:", error);
-        alert("Error: " + (error.reason || error.message));
+    } catch (e) {
+        console.error("Claim Error:", e);
+        alert("❌ ERROR: " + (e.message || "Unknown Error"));
+    } finally {
+        btn.disabled = false;
+        btn.innerText = "CONFIRM SWAP";
     }
 }
+
 
      
     // --- CONFIG ของระบบ CHASER ---
