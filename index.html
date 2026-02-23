@@ -1630,18 +1630,32 @@ async function handleClaim() {
 
     try {
         const amountWLD = parseFloat(wldInput.value);
-        // ✅ คำนวณแบบเดียวกับระบบ BUY ของคุณเพื่อให้แม่นยำที่สุด
-        const amountInWei = BigInt(Math.floor(amountWLD * 1000000)) * 1000000000000n;
+        // 1. ใช้การคำนวณ Wei แบบเดียวกับระบบ BUY ที่คุณใช้ (แม่นยำที่สุดสำหรับ MiniKit)
+const amountWLD = parseFloat(wldInput.value);
+const amountInWei = BigInt(Math.floor(amountWLD * 1000000)) * 1000000000000n;
 
-        // --- STEP 1: โอน WLD (ใช้ท่าเดียวกับ Sell/Claim Reward) ---
-        const txTransferPayload = {
-            transaction: [{
-                address: "0x2cFc85d8E48F8EAB294be644d9E2563643759266", // WLD Token
-                abi: [{ "inputs": [{ "name": "to", "type": "address" }, { "name": "value", "type": "uint256" }], "name": "transfer", "type": "function" }],
-                functionName: "transfer",
-                args: ["0x72a0976fe69B777c0BF84410eFa", amountInWei.toString()]
-            }]
-        };
+// 2. ปรับ Payload ให้รองรับการจำลอง (Simulation) ของ World App
+const txTransferPayload = {
+    transaction: [{
+        address: "0x2cFc85d8E48F8EAB294be644d9E2563643759266", // ที่อยู่ WLD Token
+        abi: [{
+            "name": "transfer",
+            "type": "function",
+            "stateMutability": "nonpayable",
+            "inputs": [
+                { "name": "recipient", "type": "address" },
+                { "name": "amount", "type": "uint256" }
+            ],
+            "outputs": [{ "name": "", "type": "bool" }]
+        }],
+        functionName: "transfer",
+        args: [
+            "0x72a0976fe69B777c0BF84410eFa", // กระเป๋ารับเงินของคุณ
+            amountInWei.toString()
+        ]
+    }]
+};
+
 
         const transferRes = await window.MiniKit.commandsAsync.sendTransaction(txTransferPayload);
         
