@@ -566,20 +566,24 @@ async function refreshPoolDisplay() {
         // 2. วิ่งไปหาป้ายชื่อ uiVaultBalance ที่เราทำไว้บนหน้าจอ
         const uiBalance = document.getElementById('uiVaultBalance');
         
-        if (json.result && json.result !== '0x') {
-            const balanceInWei = BigInt(json.result);
-            const balanceInWLD = Number(balanceInWei) / 1e18;
+         if (json.result && json.result !== '0x') {
+        const balanceInWei = BigInt(json.result);
+        const balanceInWLD = Number(balanceInWei) / 1e18;
+        const formatted = balanceInWLD.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-            // 3. ตกแต่งให้เป็นทศนิยม 2 ตำแหน่ง และเป็นสีฟ้านีออน
-            uiBalance.innerText = balanceInWLD.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-            uiBalance.style.color = "#00eaff";
-            uiBalance.style.fontSize = "1.2rem";
-              // 2. ส่งค่าไปที่หน้า Terminal (Exchange Popup)
-            if(terminalPool) {
-                terminalPool.innerText = formatted;
-            }
-            
-            
+        // 1. ส่งค่าไปบอร์ดหน้าแรก (ส่งแค่ตัวเลข ไม่ต้องแก้ Style)
+        const uiBalance = document.getElementById('uiVaultBalance');
+        if (uiBalance) {
+            uiBalance.innerText = formatted; 
+            // ห้ามใส่ uiBalance.style... ตรงนี้ เพราะจะทำให้ตำแหน่งดีด
+        }
+
+        // 2. ส่งค่าไปหน้า Reward Terminal (Exchange)
+        const terminalPool = document.getElementById('poolWldDisplay');
+        if (terminalPool) {
+            terminalPool.innerText = formatted;
+        }
+                       
             console.log("Pool Updated:", balanceInWLD);
         } else {
             uiBalance.innerText = "⚠️ BUSY"; 
