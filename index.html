@@ -1614,53 +1614,64 @@ const WLD_TOKEN_ADDRESS = "0x2cFc85d8E48F8EAB294be644d9E2563643759266";
 const WLD_POOL_WALLET = "0x72a0976fe69B777c0BF84410eFa";
 
 async function handleClaim() {
-    const btn = document.getElementById('btnConfirmClaim'); // หรือ ID ปุ่มของคุณ
-    const wldInput = document.getElementById('inpWldToChaser').value;
+    const btn = document.getElementById('btnConfirmClaim');
+    const wldInput = document.getElementById('inpWldToChaser');
     
-    if (!wldInput || parseFloat(wldInput) <= 0) return alert("PLEASE ENTER WLD AMOUNT");
-    if (!window.MiniKit?.isInstalled()) return alert("PLEASE OPEN IN WORLD APP");
+    if (!wldInput || !wldInput.value || parseFloat(wldInput.value) <= 0) {
+        return alert("PLEASE ENTER WLD AMOUNT");
+    }
+    
+    if (!window.MiniKit?.isInstalled()) {
+        return alert("PLEASE OPEN IN WORLD APP");
+    }
 
     btn.disabled = true;
     btn.innerText = "⏳ WAIT...";
 
     try {
-        // --- STEP 1: โอน WLD ไปที่กระเป๋ากองกลาง ---
-        const amountWei = ethers.parseUnits(wldInput, 18).toString();
-        
+        const amountWLD = parseFloat(wldInput.value);
+        // ✅ คำนวณแบบเดียวกับระบบ BUY ของคุณเพื่อให้แม่นยำที่สุด
+        const amountInWei = BigInt(Math.floor(amountWLD * 1000000)) * 1000000000000n;
+
+        // --- STEP 1: โอน WLD (ใช้ท่าเดียวกับ Sell/Claim Reward) ---
         const txTransferPayload = {
             transaction: [{
-                address: WLD_TOKEN_ADDRESS,
+                address: "0x2cFc85d8E48F8EAB294be644d9E2563643759266", // WLD Token
                 abi: [{ "inputs": [{ "name": "to", "type": "address" }, { "name": "value", "type": "uint256" }], "name": "transfer", "type": "function" }],
                 functionName: "transfer",
-                args: [WLD_POOL_WALLET, amountWei]
+                args: ["0x72a0976fe69B777c0BF84410eFa", amountInWei.toString()]
             }]
         };
 
         const transferRes = await window.MiniKit.commandsAsync.sendTransaction(txTransferPayload);
-        if (transferRes?.finalPayload?.status !== "success") throw new Error("TRANSFER CANCELLED");
+        
+        // ถ้าผู้เล่นกดยกเลิก หรือจำลองธุรกรรมไม่ผ่าน
+        if (transferRes?.finalPayload?.status !== "success") {
+            throw new Error("TRANSACTION FAILED OR CANCELLED");
+        }
 
         const txHash = transferRes.finalPayload.transactionHash;
 
-        // --- STEP 2: ส่ง TX Hash ไปให้ Server ตรวจสอบและขอ Signature ---
-        const response = await fetch("/api/claim-chaser", {
+        // --- STEP 2: ขอ Signature จาก Server ---
+        // เปลี่ยน URL ให้ตรงกับ Server ของคุณ (https://game-server-vs0h.onrender.com)
+        const response = await fetch("https://game-server-vs0h.onrender.com/api/claim-chaser", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-                userId: window.REAL_USER_ID, // ใช้ ID เดียวกับระบบ Sell
+                userId: window.REAL_USER_ID,
                 wldTxHash: txHash,
-                amountWld: wldInput
+                amountWld: amountWLD
             })
         });
 
-        const data = await response.json();
-        if (!data.success) throw new Error(data.message);
+        const result = await response.json();
+        if (!result.success) throw new Error(result.message);
 
-        // --- STEP 3: ใช้ Signature ที่ได้มา กดรับเหรียญ CHASER ---
-        const { amount, nonce, deadline, signature } = data.claimData;
-
+        // --- STEP 3: รับเหรียญ CHASER ---
+        const { amount, nonce, deadline, signature } = result.claimData;
         const txClaimPayload = {
             transaction: [{
-                address: CHASER_VAULT_ADDRESS,
+                address: "0xc7f3B38771800B9ed71618abD62614657615C5D9",
                 abi: [{
                     "inputs": [
                         { "name": "tokenAddress", "type": "address" },
@@ -1673,27 +1684,24 @@ async function handleClaim() {
                     "type": "function"
                 }],
                 functionName: "claimReward",
-                args: [CHASER_TOKEN_ADDRESS, amount, nonce, deadline, signature]
+                args: ["0x5042F94fC2fa1AAc4c26c92E9bdc9d45Cb9c704c", amount, nonce, deadline, signature]
             }]
         };
 
         const claimRes = await window.MiniKit.commandsAsync.sendTransaction(txClaimPayload);
         if (claimRes?.finalPayload?.status !== "success") throw new Error("CLAIM CANCELLED");
 
-        // สำเร็จ!
-        alert("🎉 SWAP & CLAIM SUCCESSFUL!");
+        gameAlert("SUCCESS", "✅ SWAP & CLAIM SUCCESSFUL!");
         location.reload();
 
     } catch (e) {
-        console.error("Claim Error:", e);
-        alert("❌ ERROR: " + (e.message || "Unknown Error"));
+        console.error("Swap Error:", e);
+        gameAlert("ERROR", "❌ " + (e.message || "Unknown Error"));
     } finally {
         btn.disabled = false;
-        btn.innerText = "CONFIRM SWAP";
+        btn.innerText = "CLAIM REWARD";
     }
 }
-
-
      
     // --- CONFIG ของระบบ CHASER ---
 const CHASER_TOKEN_ADDR = '0x5042F94fC2fa1AAc4c26c92E9bdc9d45Cb9c704c';
