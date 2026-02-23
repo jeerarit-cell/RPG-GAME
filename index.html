@@ -194,17 +194,16 @@
             </div>
 
             <div class="marquee-container"><div class="marquee-text">🎉 SYSTEM: VERIFIED HUMAN DETECTED! - WELCOME TO PROJECT CHASER 👁️</div></div>
-           <div class="ad-banner" onclick="openExchange()" style="cursor: pointer;">
-    <img src="https://github.com/user-attachments/assets/95431a34-e841-4114-967c-797641a63055">
-    <div class="ad-tag">EXCHANGE</div>
-</div>
-
+            <div class="ad-banner" onclick="window.open('https://www.youtube.com/watch?v=7YtWwxA9sC4')" style="cursor: pointer;">
+                <img src="https://github.com/user-attachments/assets/95431a34-e841-4114-967c-797641a63055">
+                <div class="ad-tag">AD</div>
+            </div>
             <div class="lobby-content">
                 <div class="video-box">
                     <div class="video-label">LIVE FEED</div>
                     <iframe width="100%" height="100%" src="https://www.youtube.com/embed/2ohNHqSTu0w?autoplay=1&loop=1&playlist=2ohNHqSTu0w&mute=1&controls=1&showinfo=0&modestbranding=1" frameborder="0" allowfullscreen></iframe>
                 </div>
-          
+            </div>
             <div class="bottom-nav" id="btnStartGame">
                 <div class="nav-item">START GAME</div>
             </div>
@@ -257,62 +256,6 @@
             </div>
         </div>
     </div>
-        <div id="exchangePopup" class="modal" style="display: none; align-items: center; justify-content: center; z-index: 10001;">
-    <div class="exchange-box" style="width: 92%; max-width: 380px; height: 85vh; background: #05080a; border: 1px solid var(--neon-blue); border-radius: 20px; padding: 25px; position: relative; display: flex; flex-direction: column; box-shadow: 0 0 50px rgba(0, 234, 255, 0.15); overflow: hidden;">
-        
-        <div class="close-btn" style="position: absolute; top: 15px; right: 20px; font-size: 1.5rem; cursor: pointer; color: #555;" onclick="closeExchange()">✕</div>
-
-        <div style="margin-bottom: 25px;">
-            <h2 style="font-family: 'Orbitron'; color: var(--neon-blue); margin: 0; font-size: 1.1rem; letter-spacing: 2px;">REWARD TERMINAL</h2>
-            <div style="font-size: 0.6rem; color: #00eaff; font-family: 'Orbitron'; opacity: 0.7;">WORLD CHAIN PROTOCOL V.3.0</div>
-        </div>
-
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 30px;">
-            <div style="background: rgba(255,255,255,0.02); padding: 12px; border-radius: 10px; border-bottom: 2px solid #00eaff;">
-                <div style="font-size: 0.55rem; color: #888; font-family: 'Orbitron'; margin-bottom: 4px;">POOL LIQUIDITY</div>
-                <div id="poolWldDisplay" style="font-size: 1.3rem; color: #fff; font-family: 'Orbitron'; font-weight: bold;">0.00</div>
-            </div>
-            <div style="background: rgba(255,255,255,0.02); padding: 12px; border-radius: 10px; border-bottom: 2px solid var(--neon-orange);">
-                <div style="font-size: 0.55rem; color: #888; font-family: 'Orbitron'; margin-bottom: 4px;">CHASER SUPPLY</div>
-                <div id="poolChaserDisplay" style="font-size: 1.3rem; color: #fff; font-family: 'Orbitron'; font-weight: bold;">0</div>
-            </div>
-        </div>
-
-        <div style="flex: 1;">
-            <div style="font-size: 0.7rem; color: #ccc; font-family: 'Orbitron'; margin-bottom: 10px; letter-spacing: 1px;">DEPOSIT WLD</div>
-            <div style="background: #000; padding: 5px; border-radius: 10px; border: 1px solid #222; margin-bottom: 15px;">
-                <input type="number" id="inpWldToChaser" placeholder="0.00" 
-                    style="width: 100%; background: transparent; border: none; color: #fff; padding: 12px; font-family: 'Orbitron'; outline: none; font-size: 1.2rem; text-align: center;">
-            </div>
-
-            <div style="text-align: center; color: #444; margin: 10px 0;">
-                <span style="font-size: 1.2rem;">↓</span>
-            </div>
-
-            <div style="font-size: 0.7rem; color: var(--neon-orange); font-family: 'Orbitron'; margin-bottom: 10px; letter-spacing: 1px;">ESTIMATED REWARD</div>
-            <div style="background: rgba(255, 157, 0, 0.05); padding: 15px; border-radius: 10px; border: 1px dashed var(--neon-orange); text-align: center; margin-bottom: 25px;">
-                <div id="resChaserFromWld" style="font-size: 1.5rem; color: #00ff00; font-family: 'Orbitron'; font-weight: bold;">0</div>
-                <div style="font-size: 0.6rem; color: #666; font-family: 'Orbitron'; margin-top: 5px;">CHASER TOKENS</div>
-            </div>
-
-            <button style="width: 100%; height: 50px; background: linear-gradient(90deg, #00eaff, #0088ff); color: #000; border: none; border-radius: 8px; font-weight: 900; font-family: 'Orbitron'; cursor: pointer; letter-spacing: 2px; box-shadow: 0 4px 15px rgba(0, 234, 255, 0.3);">
-                CLAIM REWARD
-            </button>
-        </div>
-
-        <div style="background: #0a0c0f; border: 1px solid #1a1e23; border-radius: 12px; padding: 15px; margin-top: 15px;">
-            <div style="font-family: 'Orbitron'; font-size: 0.65rem; color: var(--neon-blue); margin-bottom: 8px;">PROTOCOL INFORMATION</div>
-            <div style="font-size: 0.65rem; color: #777; line-height: 1.6; font-family: 'Space Mono', monospace;">
-                • RATE: 1 WLD = 10,000 CHASER (+2% BONUS)<br>
-                • SERVICE TAX: 1% PER TRANSACTION<br>
-                <span style="color: #bbb;">• LIQUIDITY: EVERY 100 WLD DEPOSITED WILL BE INJECTED INTO THE ECOSYSTEM LIQUIDITY POOL.</span><br>
-                • STATUS: <span style="color: #00ff00;">ENCRYPTED & SECURED</span>
-            </div>
-        </div>
-    </div>
-</div>
-
-
 
    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
 
@@ -1566,71 +1509,6 @@ EARNING <span style="color:#ffd700; font-weight:bold;">${item.reward} COINS!</sp
 
     // 📌 ดึงข้อมูลใหม่เงียบๆ (Background Sync) ทุกๆ 20 วินาที
     setInterval(fetchGlobalKillFeed, 20000);
-
-  
-// 1. ฟังก์ชันสำหรับ "ปิด" หน้าต่าง (สำคัญมาก)
-function closeExchange() {
-    // ปิดการแสดงผล
-    const popup = document.getElementById('exchangePopup');
-    if (popup) {
-        popup.style.display = 'none';
-    }
-    // (เพิ่มเติม) ถ้ามีเสียงคลิก ให้เรียกใช้ที่นี่
-    if (typeof playSfx === 'function') playSfx('click');
-}
-
-// 2. ฟังก์ชันสำหรับ "เปิด" หน้าต่าง (เรียกใช้จากปุ่ม Ad Banner)
-function openExchange() {
-    const popup = document.getElementById('exchangePopup');
-    if (popup) {
-        popup.style.display = 'flex';
-        
-        // รีเซ็ตค่าในช่องกรอกทุกครั้งที่เปิด
-        document.getElementById('inpWldToChaser').value = '';
-        document.getElementById('resChaserFromWld').innerText = '0';
-        
-        // ดึงยอด Pool จาก UI เดิมมาโชว์ (ถ้ามี)
-        const currentVault = document.getElementById('uiVaultBalance') ? 
-                             document.getElementById('uiVaultBalance').innerText : '1.00';
-        document.getElementById('poolWldDisplay').innerText = currentVault;
-    }
-}
-
-// 3. ระบบคำนวณตัวเลขแบบเรียลไทม์ (กรอกปุ๊บ เลขเปลี่ยนปั๊บ)
-document.getElementById('inpWldToChaser').addEventListener('input', function() {
-    let wld = parseFloat(this.value) || 0;
-    
-    // สูตรคำนวณตามเงื่อนไข:
-    // 1 WLD = 10,000 Chaser
-    // Bonus +2%
-    // Tax 1%
-    let base = wld * 10000;
-    let bonus = base * 0.02;
-    let totalBeforeTax = base + bonus;
-    let tax = totalBeforeTax * 0.01;
-    let finalReward = totalBeforeTax - tax;
-
-    // แสดงผลในช่องสีเขียว (ใส่คอมม่าให้สวยงาม)
-    document.getElementById('resChaserFromWld').innerText = Math.floor(finalReward).toLocaleString();
-});
-
-// 4. ฟังก์ชันเมื่อกดปุ่ม CLAIM REWARD
-document.querySelector('.exchange-box button').onclick = function() {
-    let wldAmount = document.getElementById('inpWldToChaser').value;
-    
-    if (!wldAmount || wldAmount <= 0) {
-        alert("Please enter a valid WLD amount.");
-        return;
-    }
-    
-    // ส่วนนี้คือจุดที่คุณจะเอาไปเชื่อมกับระบบ World App ในอนาคต
-    console.log("Claiming " + wldAmount + " WLD...");
-    alert("Claim sequence initiated for " + wldAmount + " WLD.\nCheck your World App to confirm.");
-    
-    // ปิดหน้าต่างหลังจากกดยืนยัน (เพื่อไม่ให้ค้าง)
-    closeExchange();
-};
-
 
 
     </script>
