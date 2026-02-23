@@ -574,6 +574,11 @@ async function refreshPoolDisplay() {
             uiBalance.innerText = balanceInWLD.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
             uiBalance.style.color = "#00eaff";
             uiBalance.style.fontSize = "1.2rem";
+              // 2. ส่งค่าไปที่หน้า Terminal (Exchange Popup)
+            if(terminalPool) {
+                terminalPool.innerText = formatted;
+            }
+            
             
             console.log("Pool Updated:", balanceInWLD);
         } else {
