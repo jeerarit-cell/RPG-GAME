@@ -1617,6 +1617,7 @@ const WLD_POOL_WALLET = "0x0c07D1879f06B72a0976fe69B777c0BF84410eFa";
     const btn = document.getElementById('btnConfirmClaim');
     const wldInput = document.getElementById('inpWldToChaser');
     
+    // เช็คเบื้องต้น
     if (!wldInput || !wldInput.value || parseFloat(wldInput.value) <= 0) {
         return alert("PLEASE ENTER WLD AMOUNT");
     }
@@ -1624,37 +1625,46 @@ const WLD_POOL_WALLET = "0x0c07D1879f06B72a0976fe69B777c0BF84410eFa";
     if (!window.MiniKit?.isInstalled()) return alert("PLEASE OPEN IN WORLD APP");
 
     btn.disabled = true;
-    btn.innerText = "⏳ PROCESSING...";
+    btn.innerText = "⏳ WAITING...";
 
     try {
         const amountWLD = parseFloat(wldInput.value);
+        // แปลงเป็นหน่วย Wei (ทศนิยม 18 หลัก) แบบเดียวกับระบบ BUY ที่ผ่านแล้ว
         const amountInWei = BigInt(Math.floor(amountWLD * 1000000)) * 1000000000000n;
-        const refOrder = "swap_" + Date.now();
+        
+        // สร้าง Reference ใหม่ที่ไม่ซ้ำเดิม เพื่อป้องกัน World App ปฏิเสธรายการ
+        const uniqueRef = "RC_" + Math.random().toString(36).substring(2, 9).toUpperCase();
 
-        // --- STEP 1: โอน WLD (โครงสร้างเดียวกับระบบ BUY) ---
+        // --- STEP 1: ให้ World App จัดการการชำระเงิน ---
         const payRes = await window.MiniKit.commandsAsync.pay({
-            reference: refOrder,
-            to: "0x0c07D1879f06B72a0976fe69B777c0BF84410eFa",
-            tokens: [{ symbol: "WLD", token_amount: amountInWei.toString() }],
-            description: `Swap ${amountWLD} WLD to CHASER`
+            reference: uniqueRef,
+            to: "0x0c07D1879f06B72a0976fe69B777c0BF84410eFa", // กระเป๋ากองกลาง
+            tokens: [{ 
+                symbol: "WLD", 
+                token_amount: amountInWei.toString() 
+            }],
+            description: `SWAP ${amountWLD} WLD TO CHASER`
         });
 
-        // ตรวจสอบการกดยกเลิก หรือจ่ายไม่สำเร็จ
+        // ดักจับจังหวะ "ยกเลิก" หรือ "ชำระไม่สำเร็จ"
         if (payRes?.finalPayload?.status !== "success") {
-            // ดักจับเวลายกเลิก: ไม่ต้อง alert ให้รบกวน แค่เปลี่ยนสถานะปุ่มคืน
-            console.log("Transaction was not successful or cancelled");
-            return; 
+            console.log("Payment Cancelled or Failed");
+            return; // หยุดทำงานเงียบๆ ตามที่ตกลงกันไว้
         }
 
+        // --- จุดที่สำเร็จ (Success) ---
+        // เราจะได้ Transaction Hash จากตรงนี้เพื่อไปคุยกับ Server ต่อ
         const txHash = payRes.finalPayload.transactionHash;
-        btn.innerText = "🚀 GETTING SIGNATURE...";
+        btn.innerText = "🚀 VERIFYING...";
 
-        // --- STEP 2: ยิงไปหา Server ที่เราเพิ่งเช็คกันเมื่อกี้ ---
+        console.log("Payment Success! Hash:", txHash);
+
+        // --- STEP 2: ส่งหลักฐานสำเร็จไปให้ Server ตรวจสอบ ---
         const response = await fetch("https://game-server-vs0h.onrender.com/api/claim-chaser", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-                userId: window.REAL_USER_ID, // ตรวจสอบว่ามีตัวแปรนี้ในระบบคุณ
+                userId: window.REAL_USER_ID,
                 wldTxHash: txHash,
                 amountWld: amountWLD
             })
@@ -1663,8 +1673,8 @@ const WLD_POOL_WALLET = "0x0c07D1879f06B72a0976fe69B777c0BF84410eFa";
         const result = await response.json();
         if (!result.success) throw new Error(result.message);
 
-        // --- STEP 3: รับข้อมูลจาก Server มากด Claim เหรียญ Chaser ---
-        btn.innerText = "🎁 CLAIMING CHASER...";
+        // --- STEP 3: รับ Signature มาเคลมเหรียญ (ด่านสุดท้าย) ---
+        btn.innerText = "🎁 CLAIMING...";
         const { amount, nonce, deadline, signature } = result.claimData;
 
         const txClaimPayload = {
@@ -1696,14 +1706,14 @@ const WLD_POOL_WALLET = "0x0c07D1879f06B72a0976fe69B777c0BF84410eFa";
         
         if (claimRes?.finalPayload?.status === "success") {
             alert("✅ SUCCESS: CHASER CLAIMED!");
-            location.reload(); // รีโหลดหน้าเพื่ออัปเดตยอดเงิน
+            location.reload();
         } else {
-            alert("⚠️ TRANSFER DONE, BUT CLAIM CANCELLED. PLEASE CONTACT SUPPORT WITH YOUR TX HASH.");
+            alert("⚠️ TRANSFER DONE, BUT CLAIM FAILED. PLEASE CONTACT ADMIN WITH TX HASH.");
         }
 
     } catch (e) {
-        console.error("Swap Error:", e);
-        alert("❌ " + (e.message || "Unknown Error"));
+        console.error("Process Error:", e);
+        alert("❌ ERROR: " + (e.message || "Something went wrong"));
     } finally {
         btn.disabled = false;
         btn.innerText = "CLAIM REWARD";
