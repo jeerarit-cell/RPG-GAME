@@ -1512,58 +1512,68 @@ EARNING <span style="color:#ffd700; font-weight:bold;">${item.reward} COINS!</sp
     setInterval(fetchGlobalKillFeed, 20000);
 
     </script>
-          <div id="exchangePopup" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.9); z-index: 999999; backdrop-filter: blur(10px); align-items: center; justify-content: center; box-sizing: border-box; padding: 20px;">
+          <div id="exchangePopup" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.92); z-index: 999999; backdrop-filter: blur(10px); align-items: center; justify-content: center; box-sizing: border-box; padding: 20px;">
     
-    <div class="exchange-box" style="width: 100%; max-width: 360px; max-height: 85vh; background: #05080a; border: 1px solid #00eaff; border-radius: 20px; padding: 25px; position: relative; display: flex; flex-direction: column; box-shadow: 0 0 30px rgba(0, 234, 255, 0.3); box-sizing: border-box; overflow-y: auto;">
+    <div class="exchange-box" style="width: 100%; max-width: 360px; max-height: 95vh; background: #05080a; border: 1px solid #00eaff; border-radius: 20px; padding: 20px; position: relative; display: flex; flex-direction: column; box-shadow: 0 0 30px rgba(0, 234, 255, 0.3); box-sizing: border-box; overflow-y: auto;">
         
-        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 25px;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px;">
             <div style="text-align: left;">
-                <h2 style="font-family: 'Orbitron', sans-serif; color: #00eaff; margin: 0; font-size: 1.1rem; letter-spacing: 2px;">REWARD TERMINAL</h2>
-                <div style="font-size: 0.6rem; color: #444; font-family: 'Orbitron';">SECURE_PROTOCOL_V3</div>
+                <h2 style="font-family: 'Orbitron', sans-serif; color: #00eaff; margin: 0; font-size: 0.95rem; letter-spacing: 2px;">REWARD TERMINAL</h2>
+                <div style="font-size: 0.5rem; color: #0088aa; font-family: 'Orbitron';">SECURE_PROTOCOL_V3</div>
             </div>
-            <div onclick="closeExchange()" style="cursor: pointer; color: #666; font-size: 1.8rem; line-height: 1;">✕</div>
+            <div onclick="closeExchange()" style="cursor: pointer; color: #fff; font-size: 1.4rem; line-height: 1; opacity: 0.5;">✕</div>
         </div>
 
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px;">
-            <div style="background: rgba(255,255,255,0.02); padding: 12px; border-radius: 12px; border: 1px solid #111; text-align: left;">
-                <div style="font-size: 0.55rem; color: #666; font-family: 'Orbitron'; margin-bottom: 5px;">TOTAL POOL</div>
-                <div id="poolWldDisplay" style="font-size: 1.2rem; color: #fff; font-family: 'Orbitron'; font-weight: bold;">0.00</div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 12px;">
+            <div style="background: rgba(255,255,255,0.02); padding: 8px; border-radius: 8px; border: 1px solid #1a1a1a;">
+                <div style="font-size: 0.45rem; color: #00eaff; font-family: 'Orbitron'; margin-bottom: 2px;">POOL</div>
+                <div id="poolWldDisplay" style="font-size: 0.9rem; color: #fff; font-family: 'Orbitron'; font-weight: bold;">0.00</div>
             </div>
-            <div style="background: rgba(255,255,255,0.02); padding: 12px; border-radius: 12px; border: 1px solid #111; text-align: left;">
-                <div style="font-size: 0.55rem; color: #666; font-family: 'Orbitron'; margin-bottom: 5px;">SUPPLY</div>
-                <div id="poolChaserDisplay" style="font-size: 1.2rem; color: #fff; font-family: 'Orbitron'; font-weight: bold;">100,000,000</div>
+            <div style="background: rgba(255,255,255,0.02); padding: 8px; border-radius: 8px; border: 1px solid #1a1a1a;">
+                <div style="font-size: 0.45rem; color: #ff9d00; font-family: 'Orbitron'; margin-bottom: 2px;">SUPPLY</div>
+                <div id="poolChaserDisplay" style="font-size: 0.9rem; color: #fff; font-family: 'Orbitron'; font-weight: bold;">100,000,000</div>
             </div>
         </div>
 
-        <div style="margin-bottom: 15px; text-align: center;">
-            <div style="font-size: 0.65rem; color: #888; font-family: 'Orbitron'; margin-bottom: 10px;">DEPOSIT WLD AMOUNT</div>
+        <div style="margin-bottom: 10px; text-align: center;">
+            <div style="font-size: 0.55rem; color: #888; font-family: 'Orbitron'; margin-bottom: 5px;">DEPOSIT WLD</div>
             <input type="number" id="inpWldToChaser" placeholder="0.00" 
-                style="width: 100%; background: #000; border: 1px solid #222; color: #fff; padding: 15px; border-radius: 10px; font-family: 'Orbitron'; outline: none; font-size: 1.3rem; text-align: center; box-sizing: border-box;">
+                style="width: 100%; background: #000; border: 1px solid #222; color: #fff; padding: 10px; border-radius: 6px; font-family: 'Orbitron'; outline: none; font-size: 1rem; text-align: center; box-sizing: border-box;">
         </div>
 
-        <div style="text-align: center; color: #222; font-size: 1.5rem; margin-bottom: 10px;">↓</div>
-
-        <div style="background: rgba(255, 157, 0, 0.05); padding: 15px; border-radius: 15px; border: 1px dashed rgba(255, 157, 0, 0.3); text-align: center; margin-bottom: 25px;">
-            <div style="font-size: 0.65rem; color: #ff9d00; font-family: 'Orbitron'; margin-bottom: 8px;">ESTIMATED REWARD</div>
-            <div id="resChaserFromWld" style="font-size: 1.8rem; color: #00ff00; font-family: 'Orbitron'; font-weight: bold;">0</div>
-            <div style="font-size: 0.6rem; color: #444; font-family: 'Orbitron'; margin-top: 5px;">CHASER TOKENS</div>
+        <div style="background: rgba(255, 157, 0, 0.04); padding: 10px; border-radius: 10px; border: 1px dashed rgba(255, 157, 0, 0.3); text-align: center; margin-bottom: 12px;">
+            <div id="resChaserFromWld" style="font-size: 1.4rem; color: #00ff00; font-family: 'Orbitron'; font-weight: bold;">0</div>
+            <div style="font-size: 0.45rem; color: #666; font-family: 'Orbitron'; margin-top: 2px;">ESTIMATED CHASER REWARD</div>
         </div>
 
-        <button onclick="handleClaim()" style="width: 100%; height: 50px; background: linear-gradient(90deg, #00eaff, #0088ff); color: #000; border: none; border-radius: 10px; font-weight: 900; font-family: 'Orbitron'; cursor: pointer; font-size: 0.9rem; letter-spacing: 1px; margin-bottom: 20px;">CLAIM REWARD</button>
+        <button onclick="handleClaim()" style="width: 100%; height: 42px; background: linear-gradient(90deg, #00eaff, #0088ff); color: #000; border: none; border-radius: 6px; font-weight: 900; font-family: 'Orbitron'; cursor: pointer; font-size: 0.75rem; letter-spacing: 1px; margin-bottom: 15px;">CLAIM REWARD</button>
 
-        <div style="background: #080a0c; border: 1px solid #111; border-radius: 12px; padding: 15px; text-align: left;">
-            <div style="font-family: 'Orbitron'; font-size: 0.65rem; color: #00eaff; margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
-                <span style="width: 5px; height: 5px; background: #00eaff; border-radius: 50%;"></span>
-                PROTOCOL LOGS
+        <div style="background: linear-gradient(135deg, rgba(0,234,255,0.08), rgba(0,0,0,0)); border-radius: 10px; padding: 12px; margin-bottom: 12px; border-left: 2px solid #00eaff; text-align: left;">
+            <div style="font-family: 'Orbitron'; font-size: 0.6rem; color: #fff; margin-bottom: 4px; letter-spacing: 1px;">JOIN THE CHASER TRIBE</div>
+            <p style="font-size: 0.6rem; color: #bbb; line-height: 1.4; margin: 0; font-family: sans-serif;">
+                Be more than a player. Grow this community with us and shape the future of the hunt. <span style="color: #00eaff;">Your contribution fuels the system.</span>
+            </p>
+            
+            <div style="display: flex; gap: 10px; margin-top: 10px;">
+                <a href="https://x.com/i/status/2025134736784630088" target="_blank" style="text-decoration: none; display: flex; align-items: center; gap: 5px; background: #111; padding: 5px 10px; border-radius: 5px; border: 1px solid #333;">
+                    <span style="color: #fff; font-size: 0.7rem; font-family: 'Orbitron';">𝕏</span>
+                    <span style="color: #888; font-size: 0.55rem; font-family: 'Orbitron';">TWITTER</span>
+                </a>
+                <a href="https://www.facebook.com/share/16z9GBCxwF/" target="_blank" style="text-decoration: none; display: flex; align-items: center; gap: 5px; background: #111; padding: 5px 10px; border-radius: 5px; border: 1px solid #333;">
+                    <span style="color: #1877F2; font-size: 0.7rem;">f</span>
+                    <span style="color: #888; font-size: 0.55rem; font-family: 'Orbitron';">FACEBOOK</span>
+                </a>
             </div>
-            <div style="font-size: 0.6rem; color: #555; line-height: 1.5; font-family: sans-serif;">
-                • Conversion: 1 WLD = 10,000 Chaser (+2% Bonus)<br>
-                • Liquidity: 100 WLD deposits will be used for ecosystem pool.<br>
-                • Status: Secured via World Chain Protocol.
-            </div>
+        </div>
+
+        <div style="font-size: 0.5rem; color: #444; line-height: 1.2; font-family: sans-serif; text-align: left; padding: 0 5px;">
+            • Rate: 1 WLD = 10,000 Chaser (+2% Bonus)<br>
+            • Liquidity: 100 WLD deposits used for Pool.<br>
+            • System: Secured via World Chain Protocol.
         </div>
     </div>
 </div>
+
       <script>
 function closeExchange() {
     document.getElementById('exchangePopup').style.display = 'none';
