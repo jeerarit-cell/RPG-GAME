@@ -195,7 +195,7 @@
             </div>
 
             <div class="marquee-container"><div class="marquee-text">🎉 SYSTEM: VERIFIED HUMAN DETECTED! - WELCOME TO PROJECT CHASER 👁️</div></div>
-            <div class="ad-banner" onclick="openExchange()" style="cursor: pointer;">
+            <div class="ad-banner" onclick="openChaserTerminal()" style="cursor: pointer;">
     <img src="https://github.com/user-attachments/assets/95431a34-e841-4114-967c-797641a63055">
     <div class="ad-tag">EXCHANGE</div>
 </div>
@@ -1584,38 +1584,36 @@ EARNING <span style="color:#ffd700; font-weight:bold;">${item.reward} COINS!</sp
 
     </div>
 </div>
-       /* =====================================================
- * 1. ฟังก์ชันเปิด-ปิดหน้าต่าง
+       <script>
+/* =====================================================
+ * CHASER REWARD SYSTEM (สมองควบคุมหน้าต่างใหม่)
  * ===================================================== */
+
+// 1. ฟังก์ชันเปิดหน้าต่าง (ให้คุณเอาชื่อนี้ไปใส่ที่ปุ่มกดข้างนอก)
 function openChaserTerminal() {
     const popup = document.getElementById('exchangePopup');
     if (popup) {
         popup.style.display = 'flex';
-        // รีเฟรชยอด Supply ทุกครั้งที่เปิด
-        refreshChaserSupply();
+        refreshChaserSupply(); // อัปเดตยอดคงเหลือจาก Blockchain ทันที
     }
 }
 
+// 2. ฟังก์ชันปิดหน้าต่าง (ตรงกับ onclick="closeExchange()" ใน HTML ของคุณ)
 function closeExchange() {
     const popup = document.getElementById('exchangePopup');
     if (popup) popup.style.display = 'none';
 }
 
-/* =====================================================
- * 2. ระบบคำนวณตัวเลข Preview (พิมพ์แล้วยอดโชว์ทันที)
- * ===================================================== */
+// 3. ระบบคำนวณ Preview (พิมพ์ตัวเลขแล้วยอด Reward เด้งทันที)
 document.getElementById('inpWldToChaser').addEventListener('input', function() {
     const amount = parseFloat(this.value) || 0;
-    const rate = 10000; // 1 WLD = 10,000 Chaser
-    const bonus = 1.02; // +2%
+    const rate = 10000; 
+    const bonus = 1.02; // +2% ตามเงื่อนไข
     const result = Math.floor(amount * rate * bonus);
-    
     document.getElementById('resChaserFromWld').innerText = result.toLocaleString();
 });
 
-/* =====================================================
- * 3. ฟังก์ชันหลัก handleClaim (ตรงกับ onclick ใน HTML)
- * ===================================================== */
+// 4. ฟังก์ชันกดยืนยัน (ตรงกับ onclick="handleClaim()" ใน HTML ของคุณ)
 async function handleClaim() {
     const btn = document.getElementById('btnConfirmClaim');
     if (btn.disabled) return;
@@ -1630,12 +1628,11 @@ async function handleClaim() {
     }
     if (!window.MiniKit?.isInstalled()) return gameAlert("ERROR", "PLEASE OPEN IN WORLD APP");
 
-    // เริ่มกระบวนการ Claim
     btn.disabled = true;
     btn.innerText = "⏳ PROCESSING...";
 
     try {
-        // Step 1: ขอ Signature จาก Server
+        // ขอ Signature จาก Server
         const response = await fetch("https://game-server-vs0h.onrender.com/api/get-swap-signature", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -1648,10 +1645,10 @@ async function handleClaim() {
         const data = await response.json();
         if (!data.success) throw new Error(data.message || "Server Rejected");
 
-        // Step 2: ส่งธุรกรรมไปที่ World App
+        // ส่ง Transaction ไปที่ World App
         const txPayload = {
             transaction: [{
-                address: '0xc7f3B38771800B9ed71618abD62614657615C5D9', // VAULT ADDR
+                address: '0xc7f3B38771800B9ed71618abD62614657615C5D9', // VAULT
                 abi: [{
                     "inputs": [
                         { "name": "tokenAddress", "type": "address" },
@@ -1665,7 +1662,7 @@ async function handleClaim() {
                 }],
                 functionName: "claimReward",
                 args: [
-                    '0x5042F94fC2fa1AAc4c26c92E9bdc9d45Cb9c704c', // TOKEN ADDR
+                    '0x5042F94fC2fa1AAc4c26c92E9bdc9d45Cb9c704c', // TOKEN
                     data.claimData.amount,
                     data.claimData.nonce.toString(),
                     data.claimData.deadline.toString(),
@@ -1675,10 +1672,9 @@ async function handleClaim() {
         };
 
         const txResult = await window.MiniKit.commandsAsync.sendTransaction(txPayload);
-
         if (txResult?.finalPayload?.status !== "success") throw new Error("TRANSACTION CANCELLED");
 
-        // Step 3: แจ้ง Server เมื่อสำเร็จเพื่อหัก Coin ในเกม
+        // ยืนยันกับ Server เพื่อหัก Coin ในเกม
         const syncRes = await fetch("https://game-server-vs0h.onrender.com/api/swap-success", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -1693,7 +1689,7 @@ async function handleClaim() {
         if (syncData.success) {
             playerCOIN = syncData.newBalance;
             if (typeof updateBalance === "function") updateBalance();
-            closeExchange();
+            closeExchange(); 
             gameAlert("SUCCESS", "✅ CLAIM SUCCESSFUL!");
         }
 
@@ -1706,17 +1702,13 @@ async function handleClaim() {
     }
 }
 
-    
-    // --- CONFIG ของระบบ CHASER ---
-const CHASER_TOKEN_ADDR = '0x5042F94fC2fa1AAc4c26c92E9bdc9d45Cb9c704c';
-const CHASER_VAULT_ADDR = '0xc7f3B38771800B9ed71618abD62614657615C5D9'; 
-
+// 5. ระบบดึงยอด Supply จาก Blockchain
 async function refreshChaserSupply() {
+    const CHASER_TOKEN = '0x5042F94fC2fa1AAc4c26c92E9bdc9d45Cb9c704c';
+    const CHASER_VAULT = '0xc7f3B38771800B9ed71618abD62614657615C5D9';
     const RPC_URL = 'https://worldchain-mainnet.gateway.tenderly.co';
     
-    // สร้าง Data สำหรับถาม balanceOf
-    const encodedAddress = CHASER_VAULT_ADDR.replace('0x', '').padStart(64, '0');
-    const callData = '0x70a08231' + encodedAddress;
+    const callData = '0x70a08231' + CHASER_VAULT.replace('0x', '').padStart(64, '0');
 
     try {
         const response = await fetch(RPC_URL, {
@@ -1725,34 +1717,170 @@ async function refreshChaserSupply() {
             body: JSON.stringify({
                 jsonrpc: '2.0', id: 1,
                 method: 'eth_call',
-                params: [{ to: CHASER_TOKEN_ADDR, data: callData }, 'latest']
+                params: [{ to: CHASER_TOKEN, data: callData }, 'latest']
             })
         });
-
         const json = await response.json();
-        
-        // ส่งข้อมูลไปที่ ID poolChaserDisplay ในบอร์ดที่คุณเพิ่งส่งมา
         const uiChaser = document.getElementById('poolChaserDisplay');
-
-        if (json.result && json.result !== '0x') {
-            const balanceInWei = BigInt(json.result);
-            const balanceInChaser = Number(balanceInWei) / 1e18;
-            const formatted = balanceInChaser.toLocaleString(undefined, { 
-                minimumFractionDigits: 2, 
-                maximumFractionDigits: 2 
-            });
-
-            if (uiChaser) uiChaser.innerText = formatted;
-            console.log("Chaser Supply Sync:", balanceInChaser);
+        if (json.result && json.result !== '0x' && uiChaser) {
+            const balance = Number(BigInt(json.result)) / 1e18;
+            uiChaser.innerText = balance.toLocaleString(undefined, { maximumFractionDigits: 2 });
         }
-    } catch (error) {
-        console.error("Chaser pipe error:", error);
+    } catch (err) { console.error("Supply sync fail", err); }
+}
+
+// อัปเดต Supply อัตโนมัติทุก 30 วินาที
+setInterval(refreshChaserSupply, 30000);
+</script>
+<script>
+/* =====================================================
+ * CHASER REWARD SYSTEM (สมองควบคุมหน้าต่างใหม่)
+ * ===================================================== */
+
+// 1. ฟังก์ชันเปิดหน้าต่าง (ให้คุณเอาชื่อนี้ไปใส่ที่ปุ่มกดข้างนอก)
+function openChaserTerminal() {
+    const popup = document.getElementById('exchangePopup');
+    if (popup) {
+        popup.style.display = 'flex';
+        refreshChaserSupply(); // อัปเดตยอดคงเหลือจาก Blockchain ทันที
     }
 }
 
-// สั่งให้รันอัตโนมัติทุก 30 วินาที แยกกับท่อ WLD
-refreshChaserSupply();
+// 2. ฟังก์ชันปิดหน้าต่าง (ตรงกับ onclick="closeExchange()" ใน HTML ของคุณ)
+function closeExchange() {
+    const popup = document.getElementById('exchangePopup');
+    if (popup) popup.style.display = 'none';
+}
+
+// 3. ระบบคำนวณ Preview (พิมพ์ตัวเลขแล้วยอด Reward เด้งทันที)
+document.getElementById('inpWldToChaser').addEventListener('input', function() {
+    const amount = parseFloat(this.value) || 0;
+    const rate = 10000; 
+    const bonus = 1.02; // +2% ตามเงื่อนไข
+    const result = Math.floor(amount * rate * bonus);
+    document.getElementById('resChaserFromWld').innerText = result.toLocaleString();
+});
+
+// 4. ฟังก์ชันกดยืนยัน (ตรงกับ onclick="handleClaim()" ใน HTML ของคุณ)
+async function handleClaim() {
+    const btn = document.getElementById('btnConfirmClaim');
+    if (btn.disabled) return;
+
+    const inpSwap = document.getElementById('inpWldToChaser');
+    const amountCoin = parseInt(inpSwap.value) || 0;
+
+    // ตรวจสอบเงื่อนไข
+    if (amountCoin < 100) return gameAlert("ERROR", "⛔ MINIMUM 100 COINS");
+    if (typeof playerCOIN === "undefined" || playerCOIN < amountCoin) {
+        return gameAlert("ERROR", "⛔ NOT ENOUGH COINS!");
+    }
+    if (!window.MiniKit?.isInstalled()) return gameAlert("ERROR", "PLEASE OPEN IN WORLD APP");
+
+    btn.disabled = true;
+    btn.innerText = "⏳ PROCESSING...";
+
+    try {
+        // ขอ Signature จาก Server
+        const response = await fetch("https://game-server-vs0h.onrender.com/api/get-swap-signature", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                userId: window.REAL_USER_ID,
+                amountCoin: amountCoin
+            })
+        });
+
+        const data = await response.json();
+        if (!data.success) throw new Error(data.message || "Server Rejected");
+
+        // ส่ง Transaction ไปที่ World App
+        const txPayload = {
+            transaction: [{
+                address: '0xc7f3B38771800B9ed71618abD62614657615C5D9', // VAULT
+                abi: [{
+                    "inputs": [
+                        { "name": "tokenAddress", "type": "address" },
+                        { "name": "amount", "type": "uint256" },
+                        { "name": "nonce", "type": "uint256" },
+                        { "name": "deadline", "type": "uint256" },
+                        { "name": "signature", "type": "bytes" }
+                    ],
+                    "name": "claimReward",
+                    "type": "function"
+                }],
+                functionName: "claimReward",
+                args: [
+                    '0x5042F94fC2fa1AAc4c26c92E9bdc9d45Cb9c704c', // TOKEN
+                    data.claimData.amount,
+                    data.claimData.nonce.toString(),
+                    data.claimData.deadline.toString(),
+                    data.claimData.signature
+                ]
+            }]
+        };
+
+        const txResult = await window.MiniKit.commandsAsync.sendTransaction(txPayload);
+        if (txResult?.finalPayload?.status !== "success") throw new Error("TRANSACTION CANCELLED");
+
+        // ยืนยันกับ Server เพื่อหัก Coin ในเกม
+        const syncRes = await fetch("https://game-server-vs0h.onrender.com/api/swap-success", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                userId: window.REAL_USER_ID,
+                amountCoin: amountCoin,
+                nonce: data.claimData.nonce 
+            })
+        });
+
+        const syncData = await syncRes.json();
+        if (syncData.success) {
+            playerCOIN = syncData.newBalance;
+            if (typeof updateBalance === "function") updateBalance();
+            closeExchange(); 
+            gameAlert("SUCCESS", "✅ CLAIM SUCCESSFUL!");
+        }
+
+    } catch (e) {
+        console.error("Claim Error:", e);
+        gameAlert("ERROR", e.message || "Unknown error");
+    } finally {
+        btn.disabled = false;
+        btn.innerText = "CLAIM REWARD";
+    }
+}
+
+// 5. ระบบดึงยอด Supply จาก Blockchain
+async function refreshChaserSupply() {
+    const CHASER_TOKEN = '0x5042F94fC2fa1AAc4c26c92E9bdc9d45Cb9c704c';
+    const CHASER_VAULT = '0xc7f3B38771800B9ed71618abD62614657615C5D9';
+    const RPC_URL = 'https://worldchain-mainnet.gateway.tenderly.co';
+    
+    const callData = '0x70a08231' + CHASER_VAULT.replace('0x', '').padStart(64, '0');
+
+    try {
+        const response = await fetch(RPC_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                jsonrpc: '2.0', id: 1,
+                method: 'eth_call',
+                params: [{ to: CHASER_TOKEN, data: callData }, 'latest']
+            })
+        });
+        const json = await response.json();
+        const uiChaser = document.getElementById('poolChaserDisplay');
+        if (json.result && json.result !== '0x' && uiChaser) {
+            const balance = Number(BigInt(json.result)) / 1e18;
+            uiChaser.innerText = balance.toLocaleString(undefined, { maximumFractionDigits: 2 });
+        }
+    } catch (err) { console.error("Supply sync fail", err); }
+}
+
+// อัปเดต Supply อัตโนมัติทุก 30 วินาที
 setInterval(refreshChaserSupply, 30000);
+</script>
+
 
 
 </body>
