@@ -1653,6 +1653,15 @@ async function handleClaim() {
 
         const data = await response.json();
         if (!data.success) throw new Error(data.message || "Server Rejected");
+         // --- เพิ่มตรงนี้ครับ ---
+        console.log("--- เช็คข้อมูลจาก SERVER ---");
+        console.log("Vault:", data.claimData.vaultAddress);
+        console.log("Token:", data.claimData.tokenAddress);
+        console.log("Amount:", data.claimData.amount);
+        console.log("Nonce:", data.claimData.nonce);
+        console.log("Deadline:", data.claimData.deadline);
+        console.log("Sig:", data.claimData.signature);
+        // -----------------------
 
         // Step 2: ส่ง Transaction ไปที่ World App
         const txPayload = {
