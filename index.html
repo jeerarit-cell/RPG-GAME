@@ -1755,7 +1755,7 @@ function closeExchange() {
 // 3. ระบบคำนวณ Preview (พิมพ์ตัวเลขแล้วยอด Reward เด้งทันที)
 document.getElementById('inpWldToChaser').addEventListener('input', function() {
     const amount = parseFloat(this.value) || 0;
-    const rate = 10000; 
+    const rate = 10; 
     const bonus = 1.02; // +2% ตามเงื่อนไข
     const result = Math.floor(amount * rate * bonus);
     document.getElementById('resChaserFromWld').innerText = result.toLocaleString();
