@@ -1080,6 +1080,8 @@ if (serverData.eDmg > 0) {
 
             // 3. ได้เลขกระเป๋ามาแล้ว!
             const walletAddress = finalPayload.address;
+             window.USER_WALLET = walletAddress; // เก็บไว้ใช้ทั่วทั้งแอป
+
             
        
             // 4. ส่งข้อมูลไปให้ Server ลงทะเบียนและแจกเงินแทน
@@ -1654,7 +1656,7 @@ const response = await fetch("https://game-server-vs0h.onrender.com/api/get-chas
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
         userId: window.REAL_USER_ID,        // ID ในเกม
-        walletAddress: window.MINIKIT_WALLET_ADDRESS, // เพิ่มตรงนี้! (ที่อยู่กระเป๋าผู้เล่น)
+        walletAddress: window.USER_WALLET, // เพิ่มตรงนี้! (ที่อยู่กระเป๋าผู้เล่น)
         amountCoin: amountCoin
     })
 });
