@@ -1697,15 +1697,17 @@ const txPayload = {
         }
 
         // Step 3: แจ้ง Server ให้ตัดยอดเงินในเกม
-        const syncRes = await fetch("https://game-server-vs0h.onrender.com/api/chaser-success", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                userId: window.REAL_USER_ID,
-                amountCoin: amountCoin,
-                nonce: data.claimData.nonce 
-            })
-        });
+const syncRes = await fetch("https://game-server-vs0h.onrender.com/api/chaser-success", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+        userId: window.REAL_USER_ID,       // ID ในเกม (เช่น 12345)
+        walletAddress: window.MINIKIT_WALLET_ADDRESS, // ที่อยู่กระเป๋าผู้เล่น (0x...)
+        amountCoin: amountCoin,
+        nonce: data.claimData.nonce 
+    })
+});
+
 
         const syncData = await syncRes.json();
         if (syncData.success) {
