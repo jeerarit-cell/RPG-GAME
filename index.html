@@ -1632,23 +1632,29 @@ if (chaserInput) {
 // ==========================================
 
 async function handleClaim() {
-    // 1. ดึงค่าจากตัวแปรเดิมที่คุณมี (เช่น ยอดเหรียญจาก Input)
-    const amountCoin = document.getElementById("inpWldToChaser").value; 
+    const amountInput = document.getElementById("inpWldToChaser").value; 
+    const amountCoin = Number(amountInput);
 
-    if (!amountCoin || amountCoin < 100) {
-        alert("กรุณาระบุจำนวนเหรียญ (ขั้นต่ำ 100)");
+    if (!amountCoin || amountCoin < CHASER_MIN) {
+        alert(`กรุณาระบุจำนวนเหรียญ (ขั้นต่ำ ${CHASER_MIN})`);
+        return;
+    }
+
+    // เช็คว่า User ID มีค่าไหมก่อนยิง API
+    if (!window.REAL_USER_ID) {
+        alert("กรุณาเข้าสู่ระบบก่อนทำรายการ");
         return;
     }
 
     try {
         console.log("🔍 กำลังขอลายเซ็นสำหรับแลก Chaser...");
 
-        // 2. เรียก API หลังบ้าน (ใช้ URL ที่คุณตั้งไว้)
-        const response = await fetch("https://game-server-vs0h.onrender.com/api/get-chaser-signature", {
+        // 1. เรียก API เอา Signature
+        const response = await fetch(CH_SIGNATURE_API, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-                userId: window.REAL_USER_ID, // ใช้ ID ผู้เล่นที่ Login อยู่
+                userId: window.REAL_USER_ID,
                 amountCoin: amountCoin
             })
         });
@@ -1657,15 +1663,18 @@ async function handleClaim() {
         if (!data.success) throw new Error(data.message);
 
         const { claimData } = data;
+        console.log("✅ ได้รับลายเซ็นแล้ว กำลังส่งธุรกรรมไปยัง Blockchain...");
 
-        // 3. ส่งธุรกรรมผ่าน MiniKit (คงสภาพโครงสร้างเดิมของคุณ)
+        // 2. ส่งธุรกรรมผ่าน MiniKit
+        // หมายเหตุ: อ้างอิงตาม ABI ที่คุณให้มา ลำดับคือ tokenAddress, amount, nonce, deadline, signature
         const { commandPayload } = await window.MiniKit.commands.sendTransaction({
             transaction: [{
-                address: claimData.vaultAddress, // ที่อยู่สัญญา Vault
+                address: CHASER_VAULT_ADDRESS, // ใส่ที่อยู่สัญญา Vault ของคุณตรงนี้
                 abi: [
                     {
-                        "name": "claimReward", // *** ต้องเป็นชื่อนี้ให้ตรงกับสัญญาในไฟล์คุณ ***
+                        "name": "claimReward",
                         "type": "function",
+                        "stateMutability": "nonpayable",
                         "inputs": [
                             { "name": "tokenAddress", "type": "address" },
                             { "name": "amount", "type": "uint256" },
@@ -1678,17 +1687,19 @@ async function handleClaim() {
                 functionName: "claimReward",
                 args: [
                     claimData.tokenAddress,
-                    claimData.amount,
-                    claimData.nonce,
-                    claimData.deadline,
+                    claimData.amount.toString(), // ส่งเป็น String ป้องกัน Precision Loss
+                    claimData.nonce.toString(),
+                    claimData.deadline.toString(),
                     claimData.signature
                 ]
             }]
         });
 
-        // 4. ตรวจสอบผลลัพธ์ (Success Callback)
+        // 3. ตรวจสอบผลลัพธ์จาก MiniKit
         if (commandPayload?.status === "success") {
-            await fetch("https://game-server-vs0h.onrender.com/api/chaser-success", {
+            console.log("🚀 ธุรกรรมสำเร็จ! กำลังอัปเดตยอดเงินในระบบ...");
+            
+            const successResponse = await fetch(CH_SUCCESS_API, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
@@ -1697,15 +1708,24 @@ async function handleClaim() {
                     nonce: claimData.nonce
                 })
             });
-            alert("แลกเหรียญสำเร็จ!");
-            location.reload(); // รีเฟรชหน้าเพื่ออัปเดตยอดเงิน
+
+            const successData = await successResponse.json();
+            if (successData.success) {
+                alert("🎉 แลกเหรียญสำเร็จ! ยอดเงินจะอัปเดตในไม่ช้า");
+                location.reload();
+            } else {
+                alert("หักยอดเงินล้มเหลว กรุณาติดต่อแอดมิน: " + successData.message);
+            }
+        } else {
+            throw new Error("ธุรกรรมบน Blockchain ถูกยกเลิกหรือล้มเหลว");
         }
 
     } catch (error) {
-        console.error("Swap Error:", error);
+        console.error("Claim Error:", error);
         alert("เกิดข้อผิดพลาด: " + error.message);
     }
 }
+
 
 
 
