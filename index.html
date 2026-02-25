@@ -1587,148 +1587,104 @@ EARNING <span style="color:#ffd700; font-weight:bold;">${item.reward} COINS!</sp
     </div>
 </div>
        <script>
-/* =====================================================
- * CHASER CONFIGURATION (เพิ่มเข้าไปใหม่)
- * ===================================================== */
-const CHASER_MIN = 100;
-const CHASER_TOKEN_ADDR = "0x5042F94fC2fa1AAc4c26c92E9bdc9d45Cb9c704c";
-const CH_SIGNATURE_API = "https://game-server-vs0h.onrender.com/api/get-chaser-signature";
-const CH_SUCCESS_API = "https://game-server-vs0h.onrender.com/api/chaser-success";
-
-// --- 1. ฟังก์ชันเปิดหน้าต่าง ---
-function openChaserTerminal() {
-    const popup = document.getElementById('exchangePopup');
-    if (popup) {
-        popup.style.display = 'flex';
-        console.log("Terminal Opened");
-    }
-}
-
-// --- 2. ฟังก์ชันปิดหน้าต่าง ---
-function closeExchange() {
-    const popup = document.getElementById('exchangePopup');
-    if (popup) popup.style.display = 'none';
-}
-
-// --- 3. ระบบคำนวณ Preview (10 Chaser ตาม Text ใน HTML ล่าสุดของคุณ) ---
-// หมายเหตุ: ใน Text HTML คุณบอก 10 แต่ในสูตรเดิมเขียน 10 ผมปรับให้ตรงตาม Text นะครับ
-const chaserInput = document.getElementById('inpWldToChaser');
-if (chaserInput) {
-    chaserInput.addEventListener('input', function() {
-        const amount = parseFloat(this.value) || 0;
-        const rate = 10; // ปรับให้ตรงตามเงื่อนไข 1:10 ในหน้าจอ
-        const bonus = 1.02; // โบนัส 2%
-        const result = Math.floor(amount * rate * bonus);
-        
-        const resDisplay = document.getElementById('resChaserFromWld');
-        if (resDisplay) {
-            resDisplay.innerText = result.toLocaleString();
-        }
-    });
-}
-
-// --- 4. ฟังก์ชันกดยืนยัน (Smart Contract ตัวใหม่ 5 Args) ---
-async function handleClaim() {
-    const btn = document.getElementById('btnConfirmClaim');
-    if (!btn || btn.disabled) return;
-
-    const inpSwap = document.getElementById('inpWldToChaser');
-    const amountCoin = parseInt(inpSwap.value) || 0;
-
-    // ตรวจสอบเงื่อนไข
-    if (amountCoin < 100) return gameAlert("ERROR", "⛔ MINIMUM 100 COINS");
-    if (typeof playerCOIN === "undefined" || playerCOIN < amountCoin) {
-        return gameAlert("ERROR", "⛔ NOT ENOUGH COINS!");
-    }
-    
-    // ตรวจสอบ MiniKit
-    if (!window.MiniKit?.isInstalled()) {
-        return gameAlert("ERROR", "PLEASE OPEN IN WORLD APP");
-    }
-
-    btn.disabled = true;
-    btn.innerText = "⏳ PROCESSING...";
-
+// ==========================================
+// ฟังก์ชันหลักสำหรับเคลมเหรียญ CHASER (รวม 3 ขั้นตอน)
+// ==========================================
+async function handleChaserClaim(amountCoin) {
     try {
-        // Step 1: ขอ Signature จาก Server
-const response = await fetch("https://game-server-vs0h.onrender.com/api/get-chaser-signature", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-        userId: window.REAL_USER_ID,        // ID ในเกม
-        walletAddress: window.USER_WALLET, // เพิ่มตรงนี้! (ที่อยู่กระเป๋าผู้เล่น)
-        amountCoin: amountCoin
-    })
-});
+        // --- ส่วนที่ 1: ตรวจสอบความพร้อมก่อนเริ่ม ---
+        if (!window.REAL_USER_ID) {
+            alert("ไม่พบ ID ผู้เล่น กรุณาล็อกอินใหม่");
+            return;
+        }
 
+        if (typeof playerCOIN !== "undefined" && playerCOIN < amountCoin) {
+            alert("ยอดเหรียญในเกมไม่เพียงพอ");
+            return;
+        }
 
-        const data = await response.json();
-        if (!data.success) throw new Error(data.message || "Server Rejected");
+        console.log("🚀 ขั้นตอนที่ 1: กำลังขอลายเซ็นจากเซิร์ฟเวอร์...");
 
-        // Step 2: ส่ง Transaction (ใช้ ABI 5 parameters ตามสัญญาใหม่)
-        // แก้ไขในฟังก์ชัน handleClaim (ฝั่ง Frontend)
-const txPayload = {
-    transaction: [{
-        address: data.claimData.vaultAddress,
-        abi: [{
-            "inputs": [
-                { "name": "tokenAddress", "type": "address" }, // เปลี่ยนชื่อให้ตรง ABI
-                { "name": "amount", "type": "uint256" },
-                { "name": "nonce", "type": "uint256" },
-                { "name": "deadline", "type": "uint256" },
-                { "name": "signature", "type": "bytes" }
-            ],
-            "name": "claimReward",
-            "type": "function"
-        }],
-        functionName: "claimReward",
-        args: [
-            data.claimData.tokenAddress,
-            data.claimData.amount.toString(),
-            data.claimData.nonce.toString(),
-            data.claimData.deadline.toString(),
-            data.claimData.signature
-        ]
-    }]
-};
+        // --- ส่วนที่ 2: ขอ Signature จาก Backend (API 6) ---
+        const response = await fetch("https://game-server-vs0h.onrender.com/api/get-chaser-signature", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                userId: window.REAL_USER_ID,
+                amountCoin: amountCoin
+            })
+        });
 
+        const result = await response.json();
+        if (!result.success) throw new Error(result.message || "Server Signature Failed");
 
-        const txResult = await window.MiniKit.commandsAsync.sendTransaction(txPayload);
+        const { claimData } = result;
+        console.log("✅ ได้รับลายเซ็นเรียบร้อย:", claimData);
+
+        // --- ส่วนที่ 3: ส่ง Transaction ผ่าน MiniKit ไปยัง Smart Contract ---
+        console.log("📱 ขั้นตอนที่ 2: กำลังเปิดหน้าต่าง World App เพื่อยืนยัน...");
         
-        // ตรวจสอบว่า Transaction สำเร็จไหม
-        if (txResult?.finalPayload?.status !== "success") {
-            throw new Error("TRANSACTION CANCELLED");
+        if (!window.MiniKit?.isInstalled()) {
+            throw new Error("กรุณาเปิดผ่าน World App / MiniKit เท่านั้น");
         }
 
-        // Step 3: แจ้ง Server ให้ตัดยอดเงินในเกม
-const syncRes = await fetch("https://game-server-vs0h.onrender.com/api/chaser-success", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-        userId: window.REAL_USER_ID,       // ID ในเกม (เช่น 12345)
-        walletAddress: window.MINIKIT_WALLET_ADDRESS, // ที่อยู่กระเป๋าผู้เล่น (0x...)
-        amountCoin: amountCoin,
-        nonce: data.claimData.nonce 
-    })
-});
+        const { commandPayload } = await window.MiniKit.commands.sendTransaction({
+            transaction: [
+                {
+                    address: claimData.vaultAddress,
+                    abi: [
+                        {
+                            "name": "claimChaser",
+                            "type": "function",
+                            "inputs": [
+                                { "name": "token", "type": "address" },
+                                { "name": "amount", "type": "uint256" },
+                                { "name": "nonce", "type": "uint256" },
+                                { "name": "deadline", "type": "uint256" },
+                                { "name": "signature", "type": "bytes" }
+                            ]
+                        }
+                    ],
+                    functionName: "claimChaser",
+                    args: [
+                        claimData.tokenAddress,
+                        claimData.amount,
+                        claimData.nonce,
+                        claimData.deadline,
+                        claimData.signature
+                    ]
+                }
+            ]
+        });
 
+        // --- ส่วนที่ 4: ยืนยันผลกับเซิร์ฟเวอร์เพื่อหักเงินใน Database (API 7) ---
+        if (commandPayload?.status === "success") {
+            console.log("💰 ขั้นตอนที่ 3: บล็อกเชนสำเร็จ กำลังอัปเดตยอดเงินในฐานข้อมูล...");
 
-        const syncData = await syncRes.json();
-        if (syncData.success) {
-            playerCOIN = syncData.newBalance;
-            if (typeof updateBalance === "function") updateBalance();
-            closeExchange(); 
-            gameAlert("SUCCESS", "✅ CLAIM SUCCESSFUL!<br>CHASER TOKENS RECEIVED");
+            const syncResponse = await fetch("https://game-server-vs0h.onrender.com/api/chaser-success", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    userId: window.REAL_USER_ID,
+                    amountCoin: amountCoin,
+                    nonce: claimData.nonce
+                })
+            });
+
+            const syncResult = await syncResponse.json();
+            if (syncResult.success) {
+                alert("แลกเหรียญ Chaser สำเร็จ!");
+                location.reload(); // รีเฟรชหน้าเพื่ออัปเดตยอด Coin
+            } else {
+                alert("หักเหรียญในเกมไม่สำเร็จ แต่เคลมบนบล็อกเชนสำเร็จแล้ว กรุณาติดต่อแอดมิน");
+            }
         } else {
-            throw new Error("SYNC_FAILED: CONTACT ADMIN");
+            alert("การทำรายการบนบล็อกเชนถูกยกเลิกหรือล้มเหลว");
         }
 
-    } catch (e) {
-        console.error("Claim Error:", e);
-        gameAlert("ERROR", e.message || "Unknown error");
-    } finally {
-        btn.disabled = false;
-        btn.innerText = "CLAIM REWARD";
+    } catch (error) {
+        console.error("❌ Claim Error:", error);
+        alert("ข้อผิดพลาด: " + error.message);
     }
 }
 
