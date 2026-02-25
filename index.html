@@ -1630,7 +1630,7 @@ if (chaserInput) {
 // ==========================================
 // [SECTION] CHASER CLAIM SYSTEM (FRONTEND)
 // ==========================================
-
+const CHASER_VAULT_ADDRESS = "0xc7f3B38771800B9ed71618abD62614657615C5D9";
 async function handleClaim() {
     const amountInput = document.getElementById("inpWldToChaser").value; 
     const amountCoin = Number(amountInput);
@@ -1669,7 +1669,7 @@ async function handleClaim() {
         // หมายเหตุ: อ้างอิงตาม ABI ที่คุณให้มา ลำดับคือ tokenAddress, amount, nonce, deadline, signature
         const { commandPayload } = await window.MiniKit.commands.sendTransaction({
             transaction: [{
-                address: CHASER_VAULT_ADDRESS, // ใส่ที่อยู่สัญญา Vault ของคุณตรงนี้
+                address: "0xc7f3B38771800B9ed71618abD62614657615C5D9";, // ใส่ที่อยู่สัญญา Vault ของคุณตรงนี้
                 abi: [
                     {
                         "name": "claimReward",
