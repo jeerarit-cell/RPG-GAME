@@ -1649,14 +1649,16 @@ async function handleClaim() {
 
     try {
         // Step 1: ขอ Signature จาก Server
-        const response = await fetch("https://game-server-vs0h.onrender.com/api/get-chaser-signature", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                userId: window.REAL_USER_ID,
-                amountCoin: amountCoin
-            })
-        });
+const response = await fetch("https://game-server-vs0h.onrender.com/api/get-chaser-signature", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+        userId: window.REAL_USER_ID,        // ID ในเกม
+        walletAddress: window.MINIKIT_WALLET_ADDRESS, // เพิ่มตรงนี้! (ที่อยู่กระเป๋าผู้เล่น)
+        amountCoin: amountCoin
+    })
+});
+
 
         const data = await response.json();
         if (!data.success) throw new Error(data.message || "Server Rejected");
