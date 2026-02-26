@@ -1677,32 +1677,22 @@ async function handleClaim() {
         if (btn) btn.innerText = "📱 กรุณายืนยันในแอป...";
         console.log("Step 2: Sending to World Chain...");
         
-        const { commandPayload } = await window.MiniKit.commands.sendTransaction({
-            transaction: [{
-                address: "0xc7f3B38771800B9ed71618abD62614657615C5D9", // New Vault Address
-                abi: [
-                    {
-                        "name": "claimReward",
-                        "type": "function",
-                        "inputs": [
-                            { "name": "tokenAddress", "type": "address" },
-                            { "name": "amount", "type": "uint256" },
-                            { "name": "nonce", "type": "uint256" },
-                            { "name": "deadline", "type": "uint256" },
-                            { "name": "signature", "type": "bytes" }
-                        ]
-                    }
-                ],
-                functionName: "claimReward",
-                args: [
-    "0x5042F94fC2fa1AAc4c26c92E9bdc9d45Cb9c704c", // [1] tokenAddress (เลขเหรียญ Chaser)
-    claimData.amount,                            // [2] amount (จำนวนเหรียญที่จะได้รับ - หน่วย Wei)
-    claimData.nonce,                             // [3] nonce (เลขธุรกรรมจาก Server)
-    claimData.deadline,                          // [4] deadline (เวลาหมดอายุ)
-    claimData.signature                          // [5] signature (ลายเซ็นยืนยันจาก Server)
-]
-            }]
-        });
+        const txResult = await window.MiniKit.commands.sendTransaction({
+    transaction: [{
+        address: "0xc7f3B38771800B9ed71618abD62614657615C5D9",
+        abi: [...],
+        functionName: "claimReward",
+        args: [
+            "0x5042F94fC2fa1AAc4c26c92E9bdc9d45Cb9c704c",
+            claimData.amount.toString(),
+            claimData.nonce,
+            claimData.deadline,
+            claimData.signature
+        ]
+    }]
+});
+
+console.log("TX RESULT:", txResult);
 
         // STEP 3: แจ้งผลสำเร็จและหักเงินใน Firebase
         if (commandPayload?.status === "success") {
