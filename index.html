@@ -1654,9 +1654,14 @@ async function handleClaim() {
         console.log("🔍 กำลังดึง Wallet จาก World App...");
 
         // ✅ 1. ดึง wallet runtime (สำคัญมาก)
-        const provider = await window.MiniKit.getProviderAsync();
-        const signer = provider.getSigner();
-        const walletAddress = await signer.getAddress();
+        const walletAddress = window.MiniKit?.session?.walletAddress;
+
+if (!walletAddress) {
+    alert("ไม่พบกระเป๋า กรุณาเปิดผ่าน World App");
+    return;
+}
+
+console.log("Runtime wallet:", walletAddress);
 
         if (!walletAddress) {
             throw new Error("ไม่พบกระเป๋า กรุณาเปิดใน World App");
