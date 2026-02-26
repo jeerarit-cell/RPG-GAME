@@ -1657,34 +1657,36 @@ async function handleClaim() {
             btn.innerText = "⏳ กำลังตรวจสอบสิทธิ์..."; 
         }
 
-        // STEP 1: ขอ Signature จาก Server
-        console.log("Step 1: Fetching secure signature...");
-        const sigResponse = await fetch(CHASER_CONFIG.API_SIGNATURE, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                userId: window.REAL_USER_ID,
-                amountCoin: amountCoin
-            })
-        });
+                // STEP 1: ขอ Signature จาก Server
+        console.log(">>> เริ่มยิงไปหา Server แล้วนะ...");
+        
+        try {
+            const sigResponse = await fetch("https://game-server-vs0h.onrender.com/api/get-chaser-signature", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    userId: window.REAL_USER_ID,
+                    amountCoin: amountCoin
+                })
+            });
 
-      
-    // ✅ เปลี่ยนจาก response เป็น sigResponse ให้ตรงกับข้างบน
-        const sigData = await sigResponse.json(); 
+            console.log(">>> Server ตอบกลับมาแล้ว (Status):", sigResponse.status);
 
-        console.log("--- ตรวจสอบข้อมูลจาก Server ---");
-        // ✅ เปลี่ยนจาก data เป็น sigData ให้ตรงกัน
-        console.log("Token:", sigData.claimData?.tokenAddress);
-        console.log("Amount:", sigData.claimData?.amount);
-        console.log("Nonce:", sigData.claimData?.nonce);
-        console.log("Deadline:", sigData.claimData?.deadline);
-        console.log("Signature:", sigData.claimData?.signature);
+            const sigData = await sigResponse.json();
+            console.log(">>> ข้อมูลที่ได้จาก Server:", sigData);
 
-        // ตอนนี้ sigData.success จะทำงานได้ถูกต้องแล้ว
+            if (!sigData.success) throw new Error(sigData.message || "Server rejected");
 
-        if (!sigData.success) throw new Error(sigData.message || "Server rejected request");
+            const { claimData } = sigData;
+            
+            // ถ้ามาถึงตรงนี้ได้ แปลว่า Step 1 ผ่านฉลุยครับ!
+            
+        } catch (fetchError) {
+            console.error(">>> พังที่ Step 1 (Fetch):", fetchError);
+            gameAlert("DEBUG", "Fetch Failed: " + fetchError.message);
+            throw fetchError; // หยุดทำงานทันทีถ้า Step 1 ไม่ผ่าน
+        }
 
-        const { claimData } = sigData;
 
         // STEP 2: ส่งรายการไปที่ Blockchain (MiniKit)
         if (btn) btn.innerText = "📱 กรุณายืนยันในแอป...";
