@@ -1550,11 +1550,11 @@ EARNING <span style="color:#ffd700; font-weight:bold;">${item.reward} COINS!</sp
 
         <div style="margin-bottom: 10px; text-align: center;">
             <div style="font-size: 0.55rem; color: #00eaff; font-family: 'Orbitron'; margin-bottom: 5px;">DEPOSIT COIN</div>
-            <input type="number" id="inpWldToChaser" placeholder="MIN 100" style="background: #000; border: 2px solid #00eaff;color: #fff; padding: 10px; border-radius: 6px; font-family: 'Orbitron'; outline: none; font-size: 1rem; text-align: center; box-sizing: border-box;">
+            <input type="number" id="inpCoinToChaser" placeholder="MIN 100" style="background: #000; border: 2px solid #00eaff;color: #fff; padding: 10px; border-radius: 6px; font-family: 'Orbitron'; outline: none; font-size: 1rem; text-align: center; box-sizing: border-box;">
         </div>
 
         <div style="background: rgba(255, 157, 0, 0.04); padding: 10px; border-radius: 10px; border: 1px dashed rgba(255, 157, 0, 0.3); text-align: center; margin-bottom: 12px;">
-            <div id="resChaserFromWld" style="font-size: 1.4rem; color: #00ff00; font-family: 'Orbitron'; font-weight: bold;">0</div>
+            <div id="resChaserFromCoin" style="font-size: 1.4rem; color: #00ff00; font-family: 'Orbitron'; font-weight: bold;">0</div>
             <div style="font-size: 0.45rem; color: #00eaff; font-family: 'Orbitron'; margin-top: 2px;">ESTIMATED CHASER REWARD</div>
         </div>
 
@@ -1603,12 +1603,12 @@ const CHASER_CONFIG = {
 // =====================================================
 // [2] ระบบคำนวณ Preview (แก้ไขให้รัดกุมขึ้น)
 // =====================================================
-const chaserInput = document.getElementById('inpWldToChaser');
+const chaserInput = document.getElementById('inpCoinToChaser');
 if (chaserInput) {
     chaserInput.addEventListener('input', function() {
         const amount = parseFloat(this.value) || 0;
         const result = Math.floor(amount * CHASER_CONFIG.EXCHANGE_RATE * CHASER_CONFIG.BONUS_RATE);
-        const resDisplay = document.getElementById('resChaserFromWld');
+        const resDisplay = document.getElementById('resChaserFromCoin');
         if (resDisplay) {
             resDisplay.innerText = result.toLocaleString();
         }
@@ -1620,7 +1620,7 @@ if (chaserInput) {
 // =====================================================
 async function handleClaim() {
     // ดึงค่า Input
-    const amountInput = document.getElementById("inpWldToChaser");
+    const amountInput = document.getElementById("inpCoinToChaser");
     const amountCoin = amountInput ? amountInput.value : 0;
     
     // ดึงปุ่ม (ใช้ ID หรือหาจาก Class ถ้าหา event.target ไม่เจอ)
@@ -1708,15 +1708,6 @@ async function handleClaim() {
             btn.disabled = false; 
             btn.innerText = "Confirm Swap"; 
         }
-    }
-}
-
-    } catch (error) {
-        console.error("Swap Error Details:", error);
-        alert("❌ เกิดข้อผิดพลาด: " + error.message);
-    } finally {
-        // คืนสถานะปุ่ม
-        if(btn) { btn.disabled = false; btn.innerText = "Confirm Swap"; }
     }
 }
 
