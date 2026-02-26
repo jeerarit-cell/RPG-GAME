@@ -1632,120 +1632,82 @@ if (chaserInput) {
 // [SECTION] CHASER CLAIM SYSTEM (FRONTEND)
 // ==========================================
 async function handleClaim() {
-    const amountInput = document.getElementById("inpWldToChaser").value; 
-    const amountCoin = Number(amountInput);
+    // 1. ดึงค่าจากตัวแปรเดิมที่คุณมี (เช่น ยอดเหรียญจาก Input)
+    const amountCoin = document.getElementById("chaserAmountInput").value; 
 
-    if (!amountCoin || amountCoin < CHASER_MIN) {
-        alert(`กรุณาระบุจำนวนเหรียญ (ขั้นต่ำ ${CHASER_MIN})`);
-        return;
-    }
-
-    if (!window.REAL_USER_ID) {
-        alert("กรุณาเข้าสู่ระบบก่อนทำรายการ");
-        return;
-    }
-
-    if (!window.MiniKit?.isInstalled()) {
-        alert("กรุณาเปิดผ่าน World App");
+    if (!amountCoin || amountCoin < 100) {
+        alert("กรุณาระบุจำนวนเหรียญ (ขั้นต่ำ 100)");
         return;
     }
 
     try {
-        console.log("🔍 กำลังดึง Wallet จาก World App...");
+        console.log("🔍 กำลังขอลายเซ็นสำหรับแลก Chaser...");
 
-        // ✅ 1. ดึง wallet runtime (สำคัญมาก)
-        const walletAddress = window.MiniKit?.session?.walletAddress;
-
-if (!walletAddress) {
-    alert("ไม่พบกระเป๋า กรุณาเปิดผ่าน World App");
-    return;
-}
-
-console.log("Runtime wallet:", walletAddress);
-
-        if (!walletAddress) {
-            throw new Error("ไม่พบกระเป๋า กรุณาเปิดใน World App");
-        }
-
-        console.log("✅ Runtime wallet:", walletAddress);
-
-        // ✅ 2. ขอ Signature จาก Server (ส่ง wallet ไปด้วย)
-        console.log("🔍 กำลังขอลายเซ็นจาก Server...");
-        const response = await fetch(CH_SIGNATURE_API, {
+        // 2. เรียก API หลังบ้าน (ใช้ URL ที่คุณตั้งไว้)
+        const response = await fetch("/api/get-chaser-signature", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-                userId: window.REAL_USER_ID,
-                walletAddress: window.USER_WALLET,   // ⭐ จุดแก้สำคัญ
+                userId: window.REAL_USER_ID, // ใช้ ID ผู้เล่นที่ Login อยู่
                 amountCoin: amountCoin
+                walletAddress:window.USER_WALLET,
             })
         });
 
         const data = await response.json();
-        if (!data.success) throw new Error(data.message || "Server rejected");
+        if (!data.success) throw new Error(data.message);
 
         const { claimData } = data;
 
-        console.log("✅ ได้ลายเซ็นแล้ว กำลังส่งธุรกรรม...");
-
-        // ✅ 3. ส่งธุรกรรมผ่าน MiniKit (Popup จะขึ้นแค่ตรงนี้)
-        const txResult = await window.MiniKit.commandsAsync.sendTransaction({
+        // 3. ส่งธุรกรรมผ่าน MiniKit (คงสภาพโครงสร้างเดิมของคุณ)
+        const { commandPayload } = await window.MiniKit.commands.sendTransaction({
             transaction: [{
-                address: CHASER_VAULT_ADDRESS,
-                abi: [{
-                    name: "claimReward",
-                    type: "function",
-                    stateMutability: "nonpayable",
-                    inputs: [
-                        { name: "tokenAddress", type: "address" },
-                        { name: "amount", type: "uint256" },
-                        { name: "nonce", type: "uint256" },
-                        { name: "deadline", type: "uint256" },
-                        { name: "signature", type: "bytes" }
-                    ]
-                }],
+                address: claimData.vaultAddress, // ที่อยู่สัญญา Vault
+                abi: [
+                    {
+                        "name": "claimReward", // *** ต้องเป็นชื่อนี้ให้ตรงกับสัญญาในไฟล์คุณ ***
+                        "type": "function",
+                        "inputs": [
+                            { "name": "tokenAddress", "type": "address" },
+                            { "name": "amount", "type": "uint256" },
+                            { "name": "nonce", "type": "uint256" },
+                            { "name": "deadline", "type": "uint256" },
+                            { "name": "signature", "type": "bytes" }
+                        ]
+                    }
+                ],
                 functionName: "claimReward",
                 args: [
                     claimData.tokenAddress,
-                    claimData.amount.toString(),
-                    claimData.nonce.toString(),
-                    claimData.deadline.toString(),
+                    claimData.amount,
+                    claimData.nonce,
+                    claimData.deadline,
                     claimData.signature
                 ]
             }]
         });
 
-        if (txResult?.finalPayload?.status !== "success") {
-            throw new Error("ธุรกรรมถูกยกเลิกหรือไม่สำเร็จ");
+        // 4. ตรวจสอบผลลัพธ์ (Success Callback)
+        if (commandPayload?.status === "success") {
+            await fetch("/api/chaser-success", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    userId: window.REAL_USER_ID,
+                    amountCoin: amountCoin,
+                    nonce: claimData.nonce
+                })
+            });
+            alert("แลกเหรียญสำเร็จ!");
+            location.reload(); // รีเฟรชหน้าเพื่ออัปเดตยอดเงิน
         }
-
-        console.log("🚀 Blockchain สำเร็จ กำลัง sync server...");
-
-        // ✅ 4. แจ้ง server ว่าสำเร็จแล้ว
-        const successResponse = await fetch(CH_SUCCESS_API, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                userId: window.REAL_USER_ID,
-                amountCoin: amountCoin,
-                nonce: claimData.nonce
-            })
-        });
-
-        const successData = await successResponse.json();
-
-        if (!successData.success) {
-            throw new Error(successData.message || "Sync failed");
-        }
-
-        alert("🎉 แลกเหรียญสำเร็จ!");
-        location.reload();
 
     } catch (error) {
-        console.error("❌ Claim Error:", error);
-        alert("เกิดข้อผิดพลาด: " + (error.message || "Unknown error"));
+        console.error("Swap Error:", error);
+        alert("เกิดข้อผิดพลาด: " + error.message);
     }
 }
+
 
 
 // 5. ระบบดึงยอด Supply จาก Blockchain
