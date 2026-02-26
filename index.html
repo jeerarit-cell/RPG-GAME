@@ -1635,117 +1635,137 @@ if (chaserInput) {
 // [3] ฟังก์ชันหลัก (Handle Claim)
 // =====================================================
 async function handleClaim() {
-    // 1. ตรวจสอบข้อมูลเบื้องต้น
+
     if (!window.REAL_USER_ID) {
-        alert("❌ ไม่พบข้อมูลผู้ใช้งาน กรุณารีเฟรชหน้าเว็บ");
+        alert("❌ ไม่พบข้อมูลผู้ใช้งาน กรุณารีเฟรช");
         return;
     }
 
     const amountInput = document.getElementById("inpCoinToChaser");
     const amountCoin = amountInput ? Number(amountInput.value) : 0;
-    const btn = document.querySelector('button[onclick="handleClaim()"]') || document.getElementById('btnConfirmClaim');
+    const btn = document.getElementById('btnConfirmClaim');
 
     if (amountCoin < CHASER_CONFIG.MIN_COIN) {
         alert(`❌ ขั้นต่ำในการแลกคือ ${CHASER_CONFIG.MIN_COIN} Coins`);
         return;
     }
 
+    let claimData; // 👈 สำคัญมาก (แก้ scope พัง)
+
     try {
-        // 2. เริ่มสถานะ Loading
-        if (btn) { 
-            btn.disabled = true; 
-            btn.innerText = "⏳ กำลังตรวจสอบสิทธิ์..."; 
+
+        if (btn) {
+            btn.disabled = true;
+            btn.innerText = "⏳ กำลังตรวจสอบสิทธิ์...";
         }
 
-                // STEP 1: ขอ Signature จาก Server
-        console.log(">>> เริ่มยิงไปหา Server แล้วนะ...");
-        
-        try {
-            const sigResponse = await fetch("https://game-server-vs0h.onrender.com/api/get-chaser-signature", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    userId: window.REAL_USER_ID,
-                    amountCoin: amountCoin
-                })
-            });
+        // =========================
+        // STEP 1: ขอ Signature
+        // =========================
+        const sigResponse = await fetch(CHASER_CONFIG.API_SIGNATURE, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                userId: window.REAL_USER_ID,
+                amountCoin: amountCoin
+            })
+        });
 
-            console.log(">>> Server ตอบกลับมาแล้ว (Status):", sigResponse.status);
+        const sigData = await sigResponse.json();
 
-            const sigData = await sigResponse.json();
-            console.log(">>> ข้อมูลที่ได้จาก Server:", sigData);
-
-            if (!sigData.success) throw new Error(sigData.message || "Server rejected");
-
-            const { claimData } = sigData;
-            
-            // ถ้ามาถึงตรงนี้ได้ แปลว่า Step 1 ผ่านฉลุยครับ!
-            
-        } catch (fetchError) {
-            console.error(">>> พังที่ Step 1 (Fetch):", fetchError);
-            gameAlert("DEBUG", "Fetch Failed: " + fetchError.message);
-            throw fetchError; // หยุดทำงานทันทีถ้า Step 1 ไม่ผ่าน
+        if (!sigData.success) {
+            throw new Error(sigData.message || "Server rejected");
         }
 
+        claimData = sigData.claimData;
 
-        // STEP 2: ส่งรายการไปที่ Blockchain (MiniKit)
+        // ดักข้อมูลครบไหม
+        if (!claimData?.tokenAddress) throw new Error("Missing tokenAddress");
+        if (!claimData?.amount) throw new Error("Missing amount");
+        if (!claimData?.nonce) throw new Error("Missing nonce");
+        if (!claimData?.deadline) throw new Error("Missing deadline");
+        if (!claimData?.signature) throw new Error("Missing signature");
+
+        console.log("✅ STEP 1 OK:", claimData);
+
+        // =========================
+        // STEP 2: ส่งไป Blockchain
+        // =========================
+        if (!window.MiniKit) {
+            throw new Error("MiniKit not found");
+        }
+
         if (btn) btn.innerText = "📱 กรุณายืนยันในแอป...";
-        console.log("Step 2: Sending to World Chain...");
-        
-        const { commandPayload } = await window.MiniKit.commands.sendTransaction({
+
+        const txResult = await window.MiniKit.commands.sendTransaction({
             transaction: [{
-                address: "0xc7f3B38771800B9ed71618abD62614657615C5D9", // New Vault Address
-                abi: [
-                    {
-                        "name": "claimReward",
-                        "type": "function",
-                        "inputs": [
-                            { "name": "tokenAddress", "type": "address" },
-                            { "name": "amount", "type": "uint256" },
-                            { "name": "nonce", "type": "uint256" },
-                            { "name": "deadline", "type": "uint256" },
-                            { "name": "signature", "type": "bytes" }
-                        ]
-                    }
-                ],
+                address: "0xc7f3B38771800B9ed71618abD62614657615C5D9",
+                abi: [{
+                    name: "claimReward",
+                    type: "function",
+                    inputs: [
+                        { name: "tokenAddress", type: "address" },
+                        { name: "amount", type: "uint256" },
+                        { name: "nonce", type: "uint256" },
+                        { name: "deadline", type: "uint256" },
+                        { name: "signature", type: "bytes" }
+                    ]
+                }],
+                functionName: "claimReward",
+                args: [
+                    claimData.tokenAddress,
+                    claimData.amount,
+                    claimData.nonce,
+                    claimData.deadline,
+                    claimData.signature
+                ]
+            }]
+        });
 
-        // STEP 3: แจ้งผลสำเร็จและหักเงินใน Firebase
-        if (commandPayload?.status === "success") {
-            if (btn) btn.innerText = "✅ กำลังบันทึกข้อมูล...";
-            
-            const successResponse = await fetch(CHASER_CONFIG.API_SUCCESS, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    userId: window.REAL_USER_ID,
-                    amountCoin: amountCoin, // ส่งจำนวน Coin ไปหักใน Firebase
-                    nonce: claimData.nonce,
-                    txHash: commandPayload.transactionHash
-                })
-            });
+        console.log("📦 TX RESULT:", txResult);
 
-            const successData = await successResponse.json();
-            if (successData.success) {
-                alert("🎉 แลกสำเร็จ! ยอดเงินของคุณถูกอัปเดตแล้ว");
-                location.reload();
-            } else {
-                throw new Error("Blockchain สำเร็จ แต่หักเงินในระบบล้มเหลว: " + successData.message);
-            }
-        } else {
+        if (txResult?.commandPayload?.status !== "success") {
             throw new Error("User rejected or Transaction failed");
         }
 
+        // =========================
+        // STEP 3: แจ้ง Server หัก Coin
+        // =========================
+        if (btn) btn.innerText = "💾 กำลังบันทึกข้อมูล...";
+
+        const successResponse = await fetch(CHASER_CONFIG.API_SUCCESS, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                userId: window.REAL_USER_ID,
+                amountCoin: amountCoin,
+                nonce: claimData.nonce,
+                txHash: txResult.commandPayload.transactionHash
+            })
+        });
+
+        const successData = await successResponse.json();
+
+        if (!successData.success) {
+            throw new Error("Blockchain สำเร็จ แต่หักเงินในระบบล้มเหลว: " + successData.message);
+        }
+
+        alert("🎉 แลกสำเร็จ!");
+        location.reload();
+
     } catch (error) {
-        console.error("Critical Error:", error);
+
+        console.error("❌ HANDLE CLAIM ERROR:", error);
         alert("❌ เกิดข้อผิดพลาด: " + error.message);
+
     } finally {
-        if (btn) { 
-            btn.disabled = false; 
-            btn.innerText = "Confirm Swap"; 
+
+        if (btn) {
+            btn.disabled = false;
+            btn.innerText = "Confirm Swap";
         }
     }
 }
-
 
 
 // 5. ระบบดึงยอด Supply จาก Blockchain
