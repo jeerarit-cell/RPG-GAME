@@ -1633,7 +1633,7 @@ if (chaserInput) {
 // ==========================================
 async function handleClaim() {
     // 1. ดึงค่าจากตัวแปรเดิมที่คุณมี (เช่น ยอดเหรียญจาก Input)
-    const amountCoin = document.getElementById("('inpWldToChaser").value; 
+    const amountCoin = document.getElementById("inpWldToChaser").value; 
 
     if (!amountCoin || amountCoin < 100) {
         alert("กรุณาระบุจำนวนเหรียญ (ขั้นต่ำ 100)");
@@ -1649,7 +1649,7 @@ async function handleClaim() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 userId: window.REAL_USER_ID, // ใช้ ID ผู้เล่นที่ Login อยู่
-                amountCoin: amountCoin
+                amountCoin: amountCoin,
                 walletAddress:window.USER_WALLET,
             })
         });
