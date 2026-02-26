@@ -1669,13 +1669,18 @@ async function handleClaim() {
         });
 
       
-             const data = await response.json();
-console.log("--- ตรวจสอบข้อมูลจาก Server ---");
-console.log("Token:", data.claimData?.tokenAddress);
-console.log("Amount:", data.claimData?.amount);
-console.log("Nonce:", data.claimData?.nonce);
-console.log("Deadline:", data.claimData?.deadline);
-console.log("Signature:", data.claimData?.signature);
+    // ✅ เปลี่ยนจาก response เป็น sigResponse ให้ตรงกับข้างบน
+        const sigData = await sigResponse.json(); 
+
+        console.log("--- ตรวจสอบข้อมูลจาก Server ---");
+        // ✅ เปลี่ยนจาก data เป็น sigData ให้ตรงกัน
+        console.log("Token:", sigData.claimData?.tokenAddress);
+        console.log("Amount:", sigData.claimData?.amount);
+        console.log("Nonce:", sigData.claimData?.nonce);
+        console.log("Deadline:", sigData.claimData?.deadline);
+        console.log("Signature:", sigData.claimData?.signature);
+
+        // ตอนนี้ sigData.success จะทำงานได้ถูกต้องแล้ว
 
         if (!sigData.success) throw new Error(sigData.message || "Server rejected request");
 
