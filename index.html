@@ -1624,7 +1624,7 @@ async function handleClaim() {
     const amountCoin = amountInput ? amountInput.value : 0;
     
     // ดึงปุ่ม (ใช้ ID หรือหาจาก Class ถ้าหา event.target ไม่เจอ)
-    const btn = document.querySelector('button[onclick="handleClaim()"]') || document.getElementById('btnConfirmSwap');
+    const btn = document.querySelector('button[onclick="handleClaim()"]') || document.getElementById('btnConfirmClaim');
 
     if (!amountCoin || amountCoin < CHASER_CONFIG.MIN_DEPOSIT) {
         alert(`❌ กรุณาระบุจำนวนเหรียญขั้นต่ำ ${CHASER_CONFIG.MIN_DEPOSIT}`);
