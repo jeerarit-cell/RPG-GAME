@@ -1640,54 +1640,69 @@ async function handleClaim() {
         return;
     }
 
-    // เช็คว่า User ID มีค่าไหมก่อนยิง API
     if (!window.REAL_USER_ID) {
         alert("กรุณาเข้าสู่ระบบก่อนทำรายการ");
         return;
     }
 
-    try {
-        console.log("🔍 กำลังขอลายเซ็นสำหรับแลก Chaser...");
+    if (!window.MiniKit?.isInstalled()) {
+        alert("กรุณาเปิดผ่าน World App");
+        return;
+    }
 
-        // 1. เรียก API เอา Signature
+    try {
+        console.log("🔍 กำลังดึง Wallet จาก World App...");
+
+        // ✅ 1. ดึง wallet runtime (สำคัญมาก)
+        const provider = await window.MiniKit.getProviderAsync();
+        const signer = provider.getSigner();
+        const walletAddress = await signer.getAddress();
+
+        if (!walletAddress) {
+            throw new Error("ไม่พบกระเป๋า กรุณาเปิดใน World App");
+        }
+
+        console.log("✅ Runtime wallet:", walletAddress);
+
+        // ✅ 2. ขอ Signature จาก Server (ส่ง wallet ไปด้วย)
+        console.log("🔍 กำลังขอลายเซ็นจาก Server...");
         const response = await fetch(CH_SIGNATURE_API, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 userId: window.REAL_USER_ID,
+                walletAddress: walletAddress,   // ⭐ จุดแก้สำคัญ
                 amountCoin: amountCoin
             })
         });
 
         const data = await response.json();
-        if (!data.success) throw new Error(data.message);
+        if (!data.success) throw new Error(data.message || "Server rejected");
 
         const { claimData } = data;
-        console.log("✅ ได้รับลายเซ็นแล้ว กำลังส่งธุรกรรมไปยัง Blockchain...");
 
-        // 2. ส่งธุรกรรมผ่าน MiniKit
-        // หมายเหตุ: อ้างอิงตาม ABI ที่คุณให้มา ลำดับคือ tokenAddress, amount, nonce, deadline, signature
-        const { commandPayload } = await window.MiniKit.commands.sendTransaction({
+        console.log("✅ ได้ลายเซ็นแล้ว กำลังส่งธุรกรรม...");
+
+        // ✅ 3. ส่งธุรกรรมผ่าน MiniKit (Popup จะขึ้นแค่ตรงนี้)
+        const txResult = await window.MiniKit.commandsAsync.sendTransaction({
             transaction: [{
-                address: CHASER_VAULT_ADDRESS, // ใส่ที่อยู่สัญญา Vault ของคุณตรงนี้
-                abi: [
-                    {
-                        "name": "claimReward",
-                        "type": "function",
-                        "stateMutability": "nonpayable",
-                        "inputs": [
-                            { "name": "tokenAddress", "type": "address" },
-                            { "name": "amount", "type": "uint256" },
-                            { "name": "nonce", "type": "uint256" },
-                            { "name": "deadline", "type": "uint256" },
-                            { "name": "signature", "type": "bytes" }
-                        ]
-                    }
-                ],
+                address: CHASER_VAULT_ADDRESS,
+                abi: [{
+                    name: "claimReward",
+                    type: "function",
+                    stateMutability: "nonpayable",
+                    inputs: [
+                        { name: "tokenAddress", type: "address" },
+                        { name: "amount", type: "uint256" },
+                        { name: "nonce", type: "uint256" },
+                        { name: "deadline", type: "uint256" },
+                        { name: "signature", type: "bytes" }
+                    ]
+                }],
                 functionName: "claimReward",
                 args: [
                     claimData.tokenAddress,
-                    claimData.amount.toString(), // ส่งเป็น String ป้องกัน Precision Loss
+                    claimData.amount.toString(),
                     claimData.nonce.toString(),
                     claimData.deadline.toString(),
                     claimData.signature
@@ -1695,41 +1710,37 @@ async function handleClaim() {
             }]
         });
 
-        // 3. ตรวจสอบผลลัพธ์จาก MiniKit
-        if (commandPayload?.status === "success") {
-            console.log("🚀 ธุรกรรมสำเร็จ! กำลังอัปเดตยอดเงินในระบบ...");
-            
-            const successResponse = await fetch(CH_SUCCESS_API, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    userId: window.REAL_USER_ID,
-                    amountCoin: amountCoin,
-                    nonce: claimData.nonce
-                })
-            });
-
-            const successData = await successResponse.json();
-            if (successData.success) {
-                alert("🎉 แลกเหรียญสำเร็จ! ยอดเงินจะอัปเดตในไม่ช้า");
-                location.reload();
-            } else {
-                alert("หักยอดเงินล้มเหลว กรุณาติดต่อแอดมิน: " + successData.message);
-            }
-        } else {
-            throw new Error("ธุรกรรมบน Blockchain ถูกยกเลิกหรือล้มเหลว");
+        if (txResult?.finalPayload?.status !== "success") {
+            throw new Error("ธุรกรรมถูกยกเลิกหรือไม่สำเร็จ");
         }
 
+        console.log("🚀 Blockchain สำเร็จ กำลัง sync server...");
+
+        // ✅ 4. แจ้ง server ว่าสำเร็จแล้ว
+        const successResponse = await fetch(CH_SUCCESS_API, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                userId: window.REAL_USER_ID,
+                amountCoin: amountCoin,
+                nonce: claimData.nonce
+            })
+        });
+
+        const successData = await successResponse.json();
+
+        if (!successData.success) {
+            throw new Error(successData.message || "Sync failed");
+        }
+
+        alert("🎉 แลกเหรียญสำเร็จ!");
+        location.reload();
+
     } catch (error) {
-        console.error("Claim Error:", error);
-        alert("เกิดข้อผิดพลาด: " + error.message);
+        console.error("❌ Claim Error:", error);
+        alert("เกิดข้อผิดพลาด: " + (error.message || "Unknown error"));
     }
 }
-
-
-
-
-
 
 
 // 5. ระบบดึงยอด Supply จาก Blockchain
