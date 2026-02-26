@@ -1676,7 +1676,7 @@ console.log("Runtime wallet:", walletAddress);
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 userId: window.REAL_USER_ID,
-                walletAddress: walletAddress,   // ⭐ จุดแก้สำคัญ
+                walletAddress: window.USER_WALLET,   // ⭐ จุดแก้สำคัญ
                 amountCoin: amountCoin
             })
         });
