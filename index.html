@@ -1587,6 +1587,24 @@ EARNING <span style="color:#ffd700; font-weight:bold;">${item.reward} COINS!</sp
     </div>
 </div>
        <script>
+// ฟังก์ชันสำหรับ "เปิด" หน้าต่าง
+function openExchange() {
+    const popup = document.getElementById('exchangePopup');
+    if (popup) {
+        popup.style.display = 'flex';
+        // เมื่อเปิดแล้ว ให้ดึงยอด Supply ล่าสุดทันที
+        refreshChaserSupply(); 
+    }
+}
+
+// ฟังก์ชันสำหรับ "ปิด" หน้าต่าง (ที่ใน HTML เรียกใช้ไว้)
+function closeExchange() {
+    const popup = document.getElementById('exchangePopup');
+    if (popup) {
+        popup.style.display = 'none';
+    }
+}
+
 // =====================================================
 // [1] CHASER CONFIGURATION
 // =====================================================
