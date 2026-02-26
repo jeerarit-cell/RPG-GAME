@@ -1668,7 +1668,15 @@ async function handleClaim() {
             })
         });
 
-        const sigData = await sigResponse.json();
+      
+             const data = await response.json();
+console.log("--- ตรวจสอบข้อมูลจาก Server ---");
+console.log("Token:", data.claimData?.tokenAddress);
+console.log("Amount:", data.claimData?.amount);
+console.log("Nonce:", data.claimData?.nonce);
+console.log("Deadline:", data.claimData?.deadline);
+console.log("Signature:", data.claimData?.signature);
+
         if (!sigData.success) throw new Error(sigData.message || "Server rejected request");
 
         const { claimData } = sigData;
