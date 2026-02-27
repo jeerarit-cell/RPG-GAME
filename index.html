@@ -1716,7 +1716,7 @@ async function handleClaim() {
 // 5. ระบบดึงยอด Supply จาก Blockchain
 async function refreshChaserSupply() {
     const CHASER_TOKEN = '0x5042F94fC2fa1AAc4c26c92E9bdc9d45Cb9c704c';
-    const CHASER_VAULT = '0xc7f3B38771800B9ed71618abD62614657615C5D9';
+    const CHASER_VAULT = '0xE9525b6605e2A649020322829D9fcaeEC0652d51';
     const RPC_URL = 'https://worldchain-mainnet.gateway.tenderly.co';
     
     const callData = '0x70a08231' + CHASER_VAULT.replace('0x', '').padStart(64, '0');
