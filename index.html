@@ -1662,21 +1662,24 @@ async function handleClaim() {
                     name: "claimReward",
                     type: "function",
                     inputs: [
-                        { name: "tokenAddress", type: "address" },
-                        { name: "amount", type: "uint256" },
-                        { name: "nonce", type: "uint256" },
-                        { name: "deadline", type: "uint256" },
-                        { name: "signature", type: "bytes" }
-                    ]
+    { name: "user", type: "address" }, // <--- เพิ่มบรรทัดนี้
+    { name: "tokenAddress", type: "address" },
+    { name: "amount", type: "uint256" },
+    { name: "nonce", type: "uint256" },
+    { name: "deadline", type: "uint256" },
+    { name: "signature", type: "bytes" }
+]
                 }],
                 functionName: "claimReward",
                 args: [
-                    claimData.tokenAddress,
-                    claimData.amount,
-                    claimData.nonce,
-                    claimData.deadline,
-                    claimData.signature
-                ]
+    claimData.user, // <--- เพิ่มตัวนี้เข้าไปเป็นลำดับแรก
+    claimData.tokenAddress,
+    claimData.amount,
+    claimData.nonce,
+    claimData.deadline,
+    claimData.signature
+]
+
             }]
         });
 
