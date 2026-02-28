@@ -1657,8 +1657,7 @@ async function handleClaim() {
         
         const sigData = await sigRes.json();
         if (!sigData.success) throw new Error(sigData.message || "Server Rejected");
-
-        const { claimData } = sigData;
+    
             // --- STEP 2: ส่ง Transaction (ปรับเหลือ 4 ตัวตามสัญญา GameVaultV2) ---
 const txPayload = {
     transaction: [{
