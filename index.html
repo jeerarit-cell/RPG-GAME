@@ -1662,7 +1662,7 @@ async function handleClaim() {
             // --- STEP 2: ส่ง Transaction (ปรับเหลือ 4 ตัวตามสัญญา GameVaultV2) ---
 const txPayload = {
     transaction: [{
-        address: claimData.vaultAddress,
+                    address: data.claimData.vaultAddress,
         abi: [{
             name: "claimReward",
             type: "function",
