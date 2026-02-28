@@ -1655,7 +1655,7 @@ async function handleClaim() {
             })
         });
         
-        const sigData = await sigRes.json();
+        const sigData = await response.json();
         if (!sigData.success) throw new Error(sigData.message || "Server Rejected");
     
             // --- STEP 2: ส่ง Transaction (ปรับเหลือ 4 ตัวตามสัญญา GameVaultV2) ---
