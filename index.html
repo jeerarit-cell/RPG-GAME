@@ -1743,9 +1743,7 @@ document.getElementById('btnConfirmClaim').onclick = async function () {
         // ✅ 1. เรียกฟังก์ชันปิดหน้าต่างที่คุณมี (เลือกใช้อย่างใดอย่างหนึ่ง)
         if (typeof closeExchange === "function") {
             closeExchange(); // เรียกฟังก์ชันที่คุณเขียนไว้ก่อนหน้านี้
-        } else if (typeof overlay !== "undefined") {
-            overlay.remove(); // ลบ Element ออกจาก DOM
-        }
+        } 
 
         // แสดงผลสำเร็จ
         gameAlert("SWAP SUCCESS", `🎉 TRANSACTION SUCCESSFUL);
