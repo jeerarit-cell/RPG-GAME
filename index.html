@@ -1610,22 +1610,35 @@ const CHASER_CONFIG = {
     MIN_COIN: 100,
     API_SIGNATURE: "https://game-server-vs0h.onrender.com/api/get-chaser-signature",
     API_SUCCESS: "https://game-server-vs0h.onrender.com/api/chaser-success",
-    PREVIEW_RATE: 10.2 // ต้องตรงกับ CHASER_RATE ใน Server
+    // [1] Configuration
+const CHASER_CONFIG = {
+    PREVIEW_RATE: 10.2, // 1 Coin = 10.2 Tokens
+    FEE_PERCENT: 1      // หักออก 1%
 };
 
-// [2] ระบบคำนวณ Preview (User Interface)
+// [2] ระบบคำนวณ Preview
 const chaserInput = document.getElementById('inpCoinToChaser');
 if (chaserInput) {
     chaserInput.addEventListener('input', function() {
         const amount = parseFloat(this.value) || 0;
-        const result = Math.round((amount * CHASER_CONFIG.PREVIEW_RATE) * 100) / 100;
+        
+        // ขั้นตอนที่ 1: คำนวณยอดเต็ม (Gross) -> 100 * 10.2 = 1020
+        const grossAmount = amount * CHASER_CONFIG.PREVIEW_RATE;
+        
+        // ขั้นตอนที่ 2: หักออก 1% (Net) -> 1020 * 0.99 = 1009.8
+        const feeMultiplier = (100 - CHASER_CONFIG.FEE_PERCENT) / 100;
+        const netAmount = grossAmount * feeMultiplier;
+        
+        // ขั้นตอนที่ 3: ปัดเศษทศนิยม 2 ตำแหน่งเพื่อให้สวยงาม
+        const result = Math.round(netAmount * 100) / 100;
         
         const resDisplay = document.getElementById('resChaserFromCoin');
         if (resDisplay) {
-            resDisplay.innerText = result.toLocaleString(undefined, { minimumFractionDigits: 2 });
+            resDisplay.innerText = result.toLocaleString(); // แสดงผลแบบมีคอมม่า (เช่น 1,009.8)
         }
     });
 }
+
 
 // [3] ระบบหลัก (SWAP PROCESS) - ใช้โครงสร้างเดียวกับ Code 1 แต่ Logic ภายในเป็น Code 2
 document.getElementById('btnConfirmClaim').onclick = async function () {
