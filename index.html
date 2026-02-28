@@ -1752,7 +1752,7 @@ document.getElementById('btnConfirmClaim').onclick = async function () {
         console.error("Swap Error:", e);
         // กรอง Error กรณีผู้ใช้กดยกเลิกเอง ไม่ต้องโชว์ Alert ใหญ่
         if (!e.message?.includes("CANCELLED") && !e.message?.includes("CANCELLED")) {
-            gameAlert("ERROR", "❌ ERROR OCCURRED: " + (e.message || "Unknown error"));
+            gameAlert("ERROR", "❌ ERROR OCCURRED " + (e.message || "Unknown error"));
         }
     } finally {
         // เมื่อจบกระบวนการ คืนค่าปุ่มให้กดได้ใหม่
