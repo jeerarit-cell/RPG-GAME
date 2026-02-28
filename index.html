@@ -1662,8 +1662,7 @@ async function handleClaim() {
 const txPayload = {
     transaction: [{
                     address: sigData.claimData.vaultAddress,
-        abi: [{
-            name: "claimReward",
+        abi: [{          
             type: "function",
             inputs: [
     { internalType: "address", name: "token", type: "address" },  // 👈 เพิ่มตัวนี้ (ตัวที่ 1)
@@ -1671,6 +1670,7 @@ const txPayload = {
     { internalType: "uint256", name: "nonce", type: "uint256" },  // 👈 (ตัวที่ 3)
     { internalType: "bytes", name: "signature", type: "bytes" }    // 👈 (ตัวที่ 4)
 ],
+            name: "claimReward",
             outputs: [],
             stateMutability: "nonpayable"
         }],
