@@ -1659,36 +1659,32 @@ async function handleClaim() {
         if (!sigData.success) throw new Error(sigData.message || "Server Rejected");
 
         const { claimData } = sigData;
+            // --- STEP 2: ส่ง Transaction (ปรับเหลือ 4 ตัวตามสัญญา GameVaultV2) ---
+const txPayload = {
+    transaction: [{
+        address: claimData.vaultAddress,
+        abi: [{
+            name: "claimReward",
+            type: "function",
+            inputs: [
+                { name: "_token", type: "address" },
+                { name: "_amount", type: "uint256" },
+                { name: "_nonce", type: "uint256" },
+                { name: "_signature", type: "bytes" }
+            ],
+            outputs: [],
+            stateMutability: "nonpayable"
+        }],
+        functionName: "claimReward",
+        args: [
+            claimData.tokenAddress, // ตัวที่ 1: _token
+            claimData.amount,       // ตัวที่ 2: _amount
+            claimData.nonce,        // ตัวที่ 3: _nonce
+            claimData.signature     // ตัวที่ 4: _signature
+        ]
+    }]
+};
 
-        // --- STEP 2: ส่ง Transaction (ใช้โครงสร้าง ABI/Args ใหม่ 7 ตัว) ---
-        const txPayload = {
-            transaction: [{
-                address: claimData.vaultAddress,
-                abi: [{
-                    name: "claimReward",
-                    type: "function",
-                    inputs: [
-                        { name: "user", type: "address" },
-                        { name: "tokenAddress", type: "address" },
-                        { name: "amount", type: "uint256" },
-                        { name: "nonce", type: "uint256" },
-                        { name: "deadline", type: "uint256" },
-                        { name: "signature", type: "bytes" }
-                    ],
-                    outputs: [],
-                    stateMutability: "nonpayable"
-                }],
-                functionName: "claimReward",
-                args: [
-                    claimData.user,
-                    claimData.tokenAddress,
-                    claimData.amount, // ส่งเป็น String (Wei) จาก Server
-                    claimData.nonce,
-                    claimData.deadline,
-                    claimData.signature
-                ]
-            }]
-        };
 
         // ใช้ commandsAsync เพื่อรอผลลัพธ์แบบชัวร์ๆ เหมือนระบบ Sell
         const txResult = await window.MiniKit.commandsAsync.sendTransaction(txPayload);
