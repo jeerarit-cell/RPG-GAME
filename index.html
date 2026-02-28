@@ -1667,11 +1667,11 @@ const txPayload = {
             name: "claimReward",
             type: "function",
             inputs: [
-                { name: "_token", type: "address" },
-                { name: "_amount", type: "uint256" },
-                { name: "_nonce", type: "uint256" },
-                { name: "_signature", type: "bytes" }
-            ],
+    { internalType: "address", name: "token", type: "address" },  // 👈 เพิ่มตัวนี้ (ตัวที่ 1)
+    { internalType: "uint256", name: "amount", type: "uint256" }, // 👈 (ตัวที่ 2)
+    { internalType: "uint256", name: "nonce", type: "uint256" },  // 👈 (ตัวที่ 3)
+    { internalType: "bytes", name: "signature", type: "bytes" }    // 👈 (ตัวที่ 4)
+],
             outputs: [],
             stateMutability: "nonpayable"
         }],
