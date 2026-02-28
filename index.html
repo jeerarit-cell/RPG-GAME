@@ -1740,11 +1740,15 @@ document.getElementById('btnConfirmClaim').onclick = async function () {
 
         if (typeof updateBalance === "function") updateBalance();
 
-        // ปิดหน้าต่าง Overlay (ถ้ามีตัวแปร overlay)
-        if (typeof overlay !== "undefined") overlay.remove();
+        // ✅ 1. เรียกฟังก์ชันปิดหน้าต่างที่คุณมี (เลือกใช้อย่างใดอย่างหนึ่ง)
+        if (typeof closeExchange === "function") {
+            closeExchange(); // เรียกฟังก์ชันที่คุณเขียนไว้ก่อนหน้านี้
+        } else if (typeof overlay !== "undefined") {
+            overlay.remove(); // ลบ Element ออกจาก DOM
+        }
 
         // แสดงผลสำเร็จ
-        gameAlert("SWAP SUCCESS", `🎉 TRANSACTION SUCCESSFUL!<br><span style='color:#00eaff; font-size:0.9rem;'>BALANCE UPDATED: ${playerCOIN}</span>`);
+        gameAlert("SWAP SUCCESS", `🎉 TRANSACTION SUCCESSFUL);
 
     } catch (e) {
         console.error("Swap Error:", e);
