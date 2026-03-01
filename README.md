@@ -13,3 +13,4 @@ BATTLE CARD
 ![background](https://github.com/user-attachments/assets/13b147e2-f363-49ce-bd43-68530d231a60)
 ![legandary](https://github.com/user-attachments/assets/b8379da1-b55e-4c8f-bcfb-e68eaae581ed)
 ![รูปโปรไฟล์](https://github.com/user-attachments/assets/027f139b-d81c-4e2d-9feb-9dc0502c8f8b)
+![adbanner exchange-320x116 (1).jpeg](https://github.com/user-attachments/assets/b57945cf-92ce-4e65-a90d-c099b1a43d1d)
